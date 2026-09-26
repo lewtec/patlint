@@ -19,19 +19,19 @@ func TestParse_contract(t *testing.T) {
 	for _, tc := range engines {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if tc.e.Has("") || tc.e.Has("no-such-lang") {
+			if tc.e.Has(t.Context(), "") || tc.e.Has(t.Context(), "no-such-lang") {
 				t.Fatal("Has empty/unknown")
 			}
-			if !tc.e.Has(tc.ok) {
+			if !tc.e.Has(t.Context(), tc.ok) {
 				t.Fatalf("Has(%q)=false", tc.ok)
 			}
-			if _, err := tc.e.Parse(src, ""); !errors.Is(err, ErrUnsupportedLanguage) {
+			if _, err := tc.e.Parse(t.Context(), src, ""); !errors.Is(err, ErrUnsupportedLanguage) {
 				t.Fatalf("empty language: err=%v", err)
 			}
-			if _, err := tc.e.Parse(src, "no-such-lang"); !errors.Is(err, ErrUnsupportedLanguage) {
+			if _, err := tc.e.Parse(t.Context(), src, "no-such-lang"); !errors.Is(err, ErrUnsupportedLanguage) {
 				t.Fatalf("unknown language: err=%v", err)
 			}
-			tree, err := tc.e.Parse(src, tc.ok)
+			tree, err := tc.e.Parse(t.Context(), src, tc.ok)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -51,7 +51,7 @@ func TestParse_contract(t *testing.T) {
 
 func TestStub_QueryUnsupported(t *testing.T) {
 	t.Parallel()
-	if _, err := (Stub{}).Query(nil, StubLanguage, `(ident) @n`); !errors.Is(err, ErrUnsupportedQuery) {
+	if _, err := (Stub{}).Query(t.Context(), nil, StubLanguage, `(ident) @n`); !errors.Is(err, ErrUnsupportedQuery) {
 		t.Fatalf("err=%v", err)
 	}
 }
@@ -59,7 +59,7 @@ func TestStub_QueryUnsupported(t *testing.T) {
 func TestStub_fields(t *testing.T) {
 	t.Parallel()
 	src := []byte("foo=bar")
-	tree, err := Stub{}.Parse(src, StubLanguage)
+	tree, err := Stub{}.Parse(t.Context(), src, StubLanguage)
 	if err != nil {
 		t.Fatal(err)
 	}

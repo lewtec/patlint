@@ -1,11 +1,16 @@
-// Package ccgo is the ccgo-tree-sitter [sitter.Engine].
+// Package ccgo is the [sitter.Engine] backed by the lewkit tree-sitter driver.
+// Grammars still register through the ccgo modules imported below.
 package ccgo
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
+	"github.com/lewtec/lewkit/x/driver/treesitter"
 	"github.com/lewtec/patlint/pkg/sitter"
-	"github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar"
+
+	_ "github.com/lewtec/lewkit/x/driver/treesitter/ccgo"
 
 	// Product grammars. Keep in sync with internal/prelude language_*.rft.
 	_ "github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/astro"
@@ -35,39 +40,37 @@ type Engine struct{}
 var _ sitter.Engine = Engine{}
 
 // Has implements [sitter.Engine].
-func (Engine) Has(language string) bool {
-	if language == "" {
+func (Engine) Has(ctx context.Context, language string) bool {
+	if ctx == nil || language == "" {
 		return false
 	}
-	_, ok := grammar.Get(language)
-	return ok
+	_, err := treesitter.Get(ctx, language)
+	return err == nil
 }
 
 // Parse implements [sitter.Engine].
-func (Engine) Parse(src []byte, language string) (*sitter.Tree, error) {
+func (Engine) Parse(ctx context.Context, src []byte, language string) (*sitter.Tree, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("nil context")
+	}
 	if err := sitter.CheckLanguage(language); err != nil {
 		return nil, err
 	}
-	lang, ok := grammar.Get(language)
-	if !ok {
-		return nil, fmt.Errorf("%w: %q", sitter.ErrUnsupportedLanguage, language)
+	gt, err := treesitter.Parse(ctx, language, src)
+	if err != nil {
+		if errors.Is(err, treesitter.ErrUnknown) {
+			return nil, fmt.Errorf("%w: %q", sitter.ErrUnsupportedLanguage, language)
+		}
+		return nil, fmt.Errorf("%w: %q: %w", sitter.ErrSetLanguage, language, err)
 	}
-	p := grammar.NewParser()
-	if !p.SetLanguage(lang) {
-		p.Delete()
-		return nil, fmt.Errorf("%w: %q", sitter.ErrSetLanguage, language)
-	}
-	gt := p.ParseBytes(src)
 	root := snapshot(gt.RootNode())
-	gt.Delete()
-	p.Delete()
 	if root.IsNull() {
 		return &sitter.Tree{Language: language}, nil
 	}
 	return &sitter.Tree{Root: &root, Language: language}, nil
 }
 
-func snapshot(n *grammar.Node) sitter.Node {
+func snapshot(n treesitter.Node) sitter.Node {
 	if n == nil || n.IsNull() {
 		return sitter.NullNode()
 	}

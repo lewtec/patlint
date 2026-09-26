@@ -210,7 +210,7 @@ func TestLookbehindStarNotRecognized(t *testing.T) {
 
 func TestLookbehindStarNotSameAsNFA(t *testing.T) {
 	src := []byte("public class A {\n  public void foo() {}\n  void bar() {}\n  class Inner {}\n}\n")
-	pf, err := ingestutil.ParseSource(ccgo.Engine{}, src, "A.java", "java")
+	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "A.java", "java")
 	if err != nil {
 		t.Fatal(err)
 	}

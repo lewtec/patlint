@@ -15,7 +15,7 @@ type PackQueries interface {
 	AttributeHost(relPath string) (lang string, ok bool, err error)
 	Extract(ctx context.Context, sess *project.Session, lang string, root *sitter.Node, source []byte, relPath string) (*project.FileExtract, error)
 	PathHasEmbeds(relPath string) bool
-	EmbedRegions(relPath string, source []byte, hostRoot *sitter.Node) []project.EmbeddedSource
+	EmbedRegions(ctx context.Context, relPath string, source []byte, hostRoot *sitter.Node) []project.EmbeddedSource
 	PathExtsForLanguage(lang string) []string
 	Families() []project.FamilyClaim
 	GrammarForLanguage(lang string) string
@@ -148,15 +148,15 @@ func pathHasEmbeds(policy PackQueries, relPath string) bool {
 	return PathHasEmbeds(policy, relPath)
 }
 
-func EmbedRegions(policy PackQueries, relPath string, source []byte, hostRoot *sitter.Node) []project.EmbeddedSource {
+func EmbedRegions(ctx context.Context, policy PackQueries, relPath string, source []byte, hostRoot *sitter.Node) []project.EmbeddedSource {
 	if policy == nil {
 		return nil
 	}
-	return policy.EmbedRegions(relPath, source, hostRoot)
+	return policy.EmbedRegions(ctx, relPath, source, hostRoot)
 }
 
-func embedRegions(policy PackQueries, relPath string, source []byte, hostRoot *sitter.Node) []project.EmbeddedSource {
-	return EmbedRegions(policy, relPath, source, hostRoot)
+func embedRegions(ctx context.Context, policy PackQueries, relPath string, source []byte, hostRoot *sitter.Node) []project.EmbeddedSource {
+	return EmbedRegions(ctx, policy, relPath, source, hostRoot)
 }
 
 // PathExtsForFamily is the union of PathExtsForLanguage for languages in family.

@@ -22,11 +22,11 @@ func TestCFunctionAtomIsDeclaratorNotSoup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "helper.c")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "helper.c")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,11 +63,11 @@ func TestGoConstVarAndFieldAtoms(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "t.go")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "t.go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,11 +96,11 @@ func TestJSDestructureAtomsAreBindings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "a.js")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "a.js")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,11 +135,11 @@ func TestTSDestructureAtomsAreBindings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "a.ts")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "a.ts")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,11 +166,11 @@ func TestPythonAssignmentAtoms(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "a.py")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "a.py")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,11 +196,11 @@ func TestJSDefaultImportLocalName(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "main.js")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "main.js")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,11 +226,11 @@ func TestJSConstLetAtoms(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "a.js")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "a.js")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,11 +256,11 @@ func TestProductExtractRunsJSPackOnVueScript(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "App.vue")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "App.vue")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,11 +294,11 @@ func TestAtomJoinNames_GoMethod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "t.go")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "t.go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,11 +328,11 @@ func TestAtomJoinNames_JavaMethod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "A.java")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "A.java")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -378,11 +378,11 @@ func TestUseNameCaptures_JavaObjectName(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "A.java")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "A.java")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -692,7 +692,7 @@ func TestAsGrammarUnknownFails(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = prog.ValidateGrammars(ccgo.Engine{})
+	err = prog.ValidateGrammars(t.Context(), ccgo.Engine{})
 	if !errors.Is(err, pattern.ErrExtract) {
 		t.Fatalf("err=%v", err)
 	}
@@ -717,7 +717,7 @@ func TestAsLanguageWithoutGrammarFails(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = prog.ValidateGrammars(ccgo.Engine{})
+	err = prog.ValidateGrammars(t.Context(), ccgo.Engine{})
 	if !errors.Is(err, pattern.ErrExtract) {
 		t.Fatalf("err=%v", err)
 	}
@@ -746,7 +746,7 @@ func TestPurposeLispUsesCommonlispGrammar(t *testing.T) {
 	if err := os.WriteFile(path, []byte("(hello world)\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -815,7 +815,7 @@ func TestLoadExtractPack_GoFragment(t *testing.T) {
 	if err := os.WriteFile(path, code, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	pf, err := ingestutil.ParseSourceFile(ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -841,7 +841,7 @@ func TestLoadExtractPack_UnknownLanguage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = prog.ValidateGrammars(ccgo.Engine{})
+	err = prog.ValidateGrammars(t.Context(), ccgo.Engine{})
 	if err == nil {
 		t.Fatal("want error for unregistered grammar id")
 	}
@@ -1216,7 +1216,7 @@ func Demo(n int) int {
 	if err := os.WriteFile(path, code, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	pf, err := ingestutil.ParseSourceFile(ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1338,7 +1338,7 @@ func TestExtractEmbedAsLanguage(t *testing.T) {
 	if err := os.WriteFile(path, code, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	pf, err := ingestutil.ParseSourceFile(ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1378,7 +1378,7 @@ func TestExtractErr_AsAtomVisibility(t *testing.T) {
 	if err := os.WriteFile(path, code, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	pf, err := ingestutil.ParseSourceFile(ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1423,7 +1423,7 @@ func TestExtractErr_AsScopeNestByContainment(t *testing.T) {
 	if err := os.WriteFile(path, code, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	pf, err := ingestutil.ParseSourceFile(ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
 	if err != nil {
 		t.Fatal(err)
 	}

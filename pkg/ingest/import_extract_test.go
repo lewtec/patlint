@@ -144,7 +144,7 @@ func TestEnsureImportFirst_CIncludeAfterGuard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, err := ingestutil.ParseSource(ccgo.Engine{}, src, "foo.h", "c")
+	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "foo.h", "c")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestEnsureImportFirst_CIncludeAfterPragmaOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, err := ingestutil.ParseSource(ccgo.Engine{}, src, "foo.h", "c")
+	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "foo.h", "c")
 	if err != nil {
 		t.Fatal(err)
 	}

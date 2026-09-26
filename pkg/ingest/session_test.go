@@ -30,7 +30,7 @@ func TestSession_WalksWithoutCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(sess, vm)
+	w, err := walker.NewWalker(t.Context(), sess, vm)
 	if err != nil {
 		t.Fatal(err)
 	}

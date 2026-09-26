@@ -1,6 +1,7 @@
 package pattern
 
 import (
+	"context"
 	"fmt"
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/project"
@@ -15,7 +16,7 @@ import (
 // BuildTape attributes relPath via VM PackQueries, parses the host language,
 // builds the structural tape (host leaves + embed islands spliced in), and
 // sets TokenClass from paint actions (as-keyword, as-string, …).
-func BuildTape(sess *project.Session, vm *LispVM, source []byte, relPath string) (cells []tape.Cell, lang string, err error) {
+func BuildTape(ctx context.Context, sess *project.Session, vm *LispVM, source []byte, relPath string) (cells []tape.Cell, lang string, err error) {
 	if sess == nil {
 		return nil, "", ingest.ErrNilSession
 	}
@@ -30,15 +31,15 @@ func BuildTape(sess *project.Session, vm *LispVM, source []byte, relPath string)
 	if !ok {
 		return nil, "", fmt.Errorf("%w for %s (no path rule claims this file)", ingest.ErrUnsupportedLanguage, relPath)
 	}
-	pf, err := ingestutil.ParseSource(sess.Engine(), source, relPath, vm.GrammarForLanguage(lang))
+	pf, err := ingestutil.ParseSource(ctx, sess.Engine(), source, relPath, vm.GrammarForLanguage(lang))
 	if err != nil {
 		return nil, lang, err
 	}
 	defer pf.Close()
 	cells = tape.Build(pf.Root, source, tape.WithAtomicTexts(vm.AtomicSpans(lang)), nil)
-	cells = spliceEmbedCells(sess, cells, source, relPath, pf.Root, vm.Packs().Program())
+	cells = spliceEmbedCells(ctx, sess, cells, source, relPath, pf.Root, vm.Packs().Program())
 	prog := vm.Packs().Program()
-	paint := PaintClasses(prog, sess, pf.Root, source, rel)
+	paint := PaintClasses(ctx, prog, sess, pf.Root, source, rel)
 	for i := range cells {
 		cells[i].TokenClass = classForCell(paint, cells[i].StartByte, cells[i].EndByte, cells[i].Type, lang, prog)
 	}
@@ -47,12 +48,12 @@ func BuildTape(sess *project.Session, vm *LispVM, source []byte, relPath string)
 
 // spliceEmbedCells replaces host leaves that cover an embed region with the
 // embed language's tape cells (host-absolute spans). SPEC.md Regions: embeds are not skipped.
-func spliceEmbedCells(sess *project.Session, cells []tape.Cell, source []byte, relPath string, hostRoot *sitter.Node, p *ExtractProgram) []tape.Cell {
+func spliceEmbedCells(ctx context.Context, sess *project.Session, cells []tape.Cell, source []byte, relPath string, hostRoot *sitter.Node, p *ExtractProgram) []tape.Cell {
 	if p == nil || hostRoot == nil || len(source) == 0 {
 		return cells
 	}
 	rel := stringsTrimDotSlash(filepathToSlash(relPath))
-	loci := uniqueEmbedRegions(sess, p, rel, relPath, source, hostRoot, nil)
+	loci := uniqueEmbedRegions(ctx, sess, p, rel, relPath, source, hostRoot, nil)
 	if len(loci) == 0 {
 		return cells
 	}

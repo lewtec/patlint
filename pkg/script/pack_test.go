@@ -89,7 +89,10 @@ func TestExpandScriptArgs_emptyDir(t *testing.T) {
 func TestEnsureDeadImports(t *testing.T) {
 	t.Parallel()
 	p := &script.Program{Path: "t.rft"}
-	p = script.EnsureDeadImports(p)
+	p, err := script.EnsureDeadImports(p)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(p.Actions) < 1 || p.Actions[0].Builtin != script.BuiltinDeadImports {
 		t.Fatalf("actions=%+v", p.Actions)
 	}
@@ -110,7 +113,10 @@ func TestEnsureDeadImports(t *testing.T) {
 		}
 	}
 	n := len(p.Actions)
-	p2 := script.EnsureDeadImports(p)
+	p2, err := script.EnsureDeadImports(p)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(p2.Actions) != n {
 		t.Fatalf("not idempotent: %d → %d", n, len(p2.Actions))
 	}

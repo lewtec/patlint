@@ -2,6 +2,7 @@ package sitter
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 )
 
@@ -23,12 +24,15 @@ type Stub struct{}
 var _ Engine = Stub{}
 
 // Has implements [Engine].
-func (Stub) Has(language string) bool {
-	return language == StubLanguage
+func (Stub) Has(ctx context.Context, language string) bool {
+	return ctx != nil && language == StubLanguage
 }
 
 // Parse implements [Engine].
-func (Stub) Parse(src []byte, language string) (*Tree, error) {
+func (Stub) Parse(ctx context.Context, src []byte, language string) (*Tree, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("nil context")
+	}
 	if err := CheckLanguage(language); err != nil {
 		return nil, err
 	}
@@ -53,6 +57,6 @@ func (Stub) Parse(src []byte, language string) (*Tree, error) {
 }
 
 // Query implements [Engine]. Stub has no query backend.
-func (Stub) Query([]byte, string, string) ([]QueryMatch, error) {
+func (Stub) Query(context.Context, []byte, string, string) ([]QueryMatch, error) {
 	return nil, fmt.Errorf("%w: stub", ErrUnsupportedQuery)
 }

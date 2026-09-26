@@ -40,11 +40,11 @@ func TestMatchFileMultiLeaves_EqualsSolo(t *testing.T) {
 		t.Fatalf("arm2 ok=%v key=%q", ok, fk2)
 	}
 
-	solo1, err := MatchFileMatcher(testSess(), dir, "x.go", src, rootNode, cm1, nil)
+	solo1, err := MatchFileMatcher(t.Context(), testSess(), dir, "x.go", src, rootNode, cm1, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	solo2, err := MatchFileMatcher(testSess(), dir, "x.go", src, rootNode, cm2, nil)
+	solo2, err := MatchFileMatcher(t.Context(), testSess(), dir, "x.go", src, rootNode, cm2, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestCollapsedMulti_CaptureArm(t *testing.T) {
 	}
 	a1, _, _ := cm1.AsFullFileLeafArm(1)
 	a2, _, _ := cm2.AsFullFileLeafArm(2)
-	solo1, err := MatchFileMatcher(testSess(), dir, "x.go", src, rootNode, cm1, nil)
+	solo1, err := MatchFileMatcher(t.Context(), testSess(), dir, "x.go", src, rootNode, cm1, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -78,7 +78,7 @@ func WriteSARIF(w io.Writer, root string, findings []Finding, rules []Rule) erro
 		Runs: []sarifRun{{
 			Tool: sarifTool{
 				Driver: sarifToolComponent{
-					Name:           "refactree",
+					Name:           "patlint",
 					Version:        release.Version(),
 					InformationURI: "https://github.com/lewtec/patlint",
 					Rules:          outRules,

@@ -1,6 +1,7 @@
 package pattern
 
 import (
+	"context"
 	"fmt"
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/project"
@@ -266,16 +267,16 @@ func (s *fileScratch) nodes(root *sitter.Node) *nodeIndex {
 }
 
 // MatchFileMatcher runs a compiled matcher on one file (full-file domain).
-func MatchFileMatcher(sess *project.Session, root, fileRel string, source []byte, rootNode *sitter.Node, cm *CompiledMatcher, result *project.Result) ([]Match, error) {
-	return matchFileMatcherPol(sess, root, fileRel, source, rootNode, cm, result, tape.DefaultPolicy(), nil)
+func MatchFileMatcher(ctx context.Context, sess *project.Session, root, fileRel string, source []byte, rootNode *sitter.Node, cm *CompiledMatcher, result *project.Result) ([]Match, error) {
+	return matchFileMatcherPol(ctx, sess, root, fileRel, source, rootNode, cm, result, tape.DefaultPolicy(), nil)
 }
 
 // MatchFileMatcherPolicy is MatchFileMatcher with an explicit tape policy (pack as-atomic).
-func MatchFileMatcherPolicy(sess *project.Session, root, fileRel string, source []byte, rootNode *sitter.Node, cm *CompiledMatcher, result *project.Result, pol tape.Policy) ([]Match, error) {
-	return matchFileMatcherPol(sess, root, fileRel, source, rootNode, cm, result, pol, nil)
+func MatchFileMatcherPolicy(ctx context.Context, sess *project.Session, root, fileRel string, source []byte, rootNode *sitter.Node, cm *CompiledMatcher, result *project.Result, pol tape.Policy) ([]Match, error) {
+	return matchFileMatcherPol(ctx, sess, root, fileRel, source, rootNode, cm, result, pol, nil)
 }
 
-func matchFileMatcherPol(sess *project.Session, root, fileRel string, source []byte, rootNode *sitter.Node, cm *CompiledMatcher, result *project.Result, pol tape.Policy, scratch *fileScratch) ([]Match, error) {
+func matchFileMatcherPol(ctx context.Context, sess *project.Session, root, fileRel string, source []byte, rootNode *sitter.Node, cm *CompiledMatcher, result *project.Result, pol tape.Policy, scratch *fileScratch) ([]Match, error) {
 	if cm == nil {
 		return nil, fmt.Errorf("%w: matcher: nil compiled", ErrMatcher)
 	}
@@ -287,7 +288,8 @@ func matchFileMatcherPol(sess *project.Session, root, fileRel string, source []b
 	if len(tokens) == 0 {
 		return nil, nil
 	}
-	ctx := &matchCtx{
+	mc := &matchCtx{
+		ctx:      ctx,
 		sess:     sess,
 		relPath:  rel,
 		source:   source,
@@ -298,7 +300,7 @@ func matchFileMatcherPol(sess *project.Session, root, fileRel string, source []b
 		scratch:  scratch,
 	}
 	_ = root
-	out, err := cm.root.find(ctx)
+	out, err := cm.root.find(mc)
 	if err != nil {
 		return nil, err
 	}
@@ -394,6 +396,7 @@ type finderAsLang struct {
 type finderOr struct{ arms []finder }
 
 type matchCtx struct {
+	ctx      context.Context
 	sess     *project.Session
 	relPath  string
 	source   []byte
@@ -824,7 +827,7 @@ func (f *finderAsLang) find(ctx *matchCtx) ([]Match, error) {
 			continue
 		}
 		hint := embedFileHint(f.lang)
-		pf, err := ingestutil.ParseSource(ctx.sess.Engine(), content, hint, f.lang)
+		pf, err := ingestutil.ParseSource(ctx.ctx, ctx.sess.Engine(), content, hint, f.lang)
 		if err != nil || pf == nil || pf.Root == nil {
 			if pf != nil {
 				pf.Close()
@@ -833,6 +836,7 @@ func (f *finderAsLang) find(ctx *matchCtx) ([]Match, error) {
 		}
 		tokens := tokensFromTape(pf.Root, content, nil, ctx.scratch.policyForLang(f.lang))
 		sub := matchCtx{
+			ctx:      ctx.ctx,
 			sess:     ctx.sess,
 			relPath:  ctx.relPath,
 			source:   content,

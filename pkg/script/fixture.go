@@ -515,12 +515,12 @@ func RunCase(ctx context.Context, c Case, opts RunCaseOptions) (CaseResult, erro
 	}
 }
 
-func preludeWalker(root string) (*walker.Walker, error) {
+func preludeWalker(ctx context.Context, root string) (*walker.Walker, error) {
 	vm, err := pattern.New(prelude.FS)
 	if err != nil {
 		return nil, err
 	}
-	return walker.NewWalker(project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
+	return walker.NewWalker(ctx, project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
 }
 
 func runKindRun(ctx context.Context, c Case, opts RunCaseOptions) (CaseResult, error) {
@@ -550,7 +550,10 @@ func runKindRun(ctx context.Context, c Case, opts RunCaseOptions) (CaseResult, e
 	if prog.Path == "" {
 		prog.Path = "<builtin>"
 	}
-	prog = EnsureDeadImports(prog)
+	prog, err = EnsureDeadImports(prog)
+	if err != nil {
+		return res, err
+	}
 
 	runRes, err := Run(ctx, project.NewSession(c.Scenario).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
 	if err != nil {
@@ -589,7 +592,7 @@ func runKindRun(ctx context.Context, c Case, opts RunCaseOptions) (CaseResult, e
 
 func runKindExtract(ctx context.Context, c Case) (CaseResult, error) {
 	res := CaseResult{Name: c.Name}
-	w, err := preludeWalker(c.Scenario)
+	w, err := preludeWalker(ctx, c.Scenario)
 	if err != nil {
 		return res, err
 	}
@@ -616,7 +619,7 @@ func runKindExtract(ctx context.Context, c Case) (CaseResult, error) {
 
 func runKindIngest(ctx context.Context, c Case) (CaseResult, error) {
 	res := CaseResult{Name: c.Name}
-	w, err := preludeWalker(c.Scenario)
+	w, err := preludeWalker(ctx, c.Scenario)
 	if err != nil {
 		return res, err
 	}
@@ -674,7 +677,7 @@ func runKindGrep(ctx context.Context, c Case) (CaseResult, error) {
 	if err != nil {
 		return res, err
 	}
-	w, err := preludeWalker(c.Scenario)
+	w, err := preludeWalker(ctx, c.Scenario)
 	if err != nil {
 		return res, err
 	}
@@ -705,7 +708,7 @@ func runKindRewrite(ctx context.Context, c Case, opts RunCaseOptions) (CaseResul
 	if cleanup {
 		defer os.RemoveAll(work)
 	}
-	w, err := preludeWalker(work)
+	w, err := preludeWalker(ctx, work)
 	if err != nil {
 		return res, err
 	}
@@ -725,7 +728,7 @@ func runKindMv(ctx context.Context, c Case, opts RunCaseOptions) (CaseResult, er
 	if cleanup {
 		defer os.RemoveAll(work)
 	}
-	w, err := preludeWalker(work)
+	w, err := preludeWalker(ctx, work)
 	if err != nil {
 		return res, err
 	}

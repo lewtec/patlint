@@ -29,7 +29,7 @@ func TestStageEditsAndValidate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}

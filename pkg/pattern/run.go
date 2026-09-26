@@ -165,7 +165,7 @@ func Stream(ctx context.Context, sess *project.Session, vm *LispVM, op Op, opts 
 		if err != nil {
 			return err
 		}
-		pf, err := ingestutil.ParseSource(sess.Engine(), source, rel, vm.GrammarForLanguage(fe.Language))
+		pf, err := ingestutil.ParseSource(ctx, sess.Engine(), source, rel, vm.GrammarForLanguage(fe.Language))
 		if err != nil {
 			return fmt.Errorf("parse %s: %w", rel, err)
 		}
@@ -186,7 +186,7 @@ func Stream(ctx context.Context, sess *project.Session, vm *LispVM, op Op, opts 
 		scratch := &fileScratch{pol: pol, forLang: vm.tapePolicyForLang}
 		if cm != nil {
 			scratch.want = nodeTypesFromFinder(cm.root)
-			ms, err = matchFileMatcherPol(sess, rootAbs, rel, source, pf.Root, cm, fileResult, pol, scratch)
+			ms, err = matchFileMatcherPol(ctx, sess, rootAbs, rel, source, pf.Root, cm, fileResult, pol, scratch)
 		} else {
 			ms, err = matchFilePatPol(sess, rootAbs, rel, source, pf.Root, core, fileResult, pol)
 		}

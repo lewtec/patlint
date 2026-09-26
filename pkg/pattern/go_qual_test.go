@@ -18,11 +18,11 @@ func TestGoQualifiedTypeUse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "x.go")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "x.go")
 	if err != nil {
 		t.Fatal(err)
 	}

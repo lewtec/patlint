@@ -17,7 +17,7 @@ import (
 
 func parseGo(t *testing.T, src string) (*sitter.Node, []byte, func()) {
 	t.Helper()
-	pf, err := ingestutil.ParseSource(ccgo.Engine{}, []byte(src), "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, []byte(src), "x.go", "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,11 +42,11 @@ func Max(a, b int) int {
 		t.Fatal(err)
 	}
 	bindings := ingest.LocalBindingsForLanguage(t.Context(), vm, sess, root, source, "go", "x.go")
-	w, err := walker.NewWalker(sess, vm)
+	w, err := walker.NewWalker(t.Context(), sess, vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cells, _, err := w.BuildTape(source, "x.go")
+	cells, _, err := w.BuildTape(t.Context(), source, "x.go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,11 +74,11 @@ func TestProjectAbstract_LitKeepsValue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(sess, vm)
+	w, err := walker.NewWalker(t.Context(), sess, vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cells, _, err := w.BuildTape(source, "x.go")
+	cells, _, err := w.BuildTape(t.Context(), source, "x.go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func Min(a, b int) int {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}

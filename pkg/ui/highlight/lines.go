@@ -1,6 +1,7 @@
 package highlight
 
 import (
+	"context"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -10,7 +11,7 @@ import (
 // Lines splits source into display lines (no trailing newline on each).
 // When opts.Color is true, builds the structural tape via extract packs and
 // styles cells by TokenClass (same path as Write).
-func Lines(source []byte, filePath string, opts Options) []string {
+func Lines(ctx context.Context, source []byte, filePath string, opts Options) []string {
 	if len(source) == 0 {
 		return nil
 	}
@@ -21,7 +22,7 @@ func Lines(source []byte, filePath string, opts Options) []string {
 	if opts.Walker == nil {
 		return strings.Split(string(source), "\n")
 	}
-	cells, _, err := opts.Walker.BuildTape(source, filePath)
+	cells, _, err := opts.Walker.BuildTape(ctx, source, filePath)
 	if err != nil || len(cells) == 0 {
 		return strings.Split(string(source), "\n")
 	}

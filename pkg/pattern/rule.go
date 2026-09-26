@@ -1,6 +1,7 @@
 package pattern
 
 import (
+	"context"
 	"fmt"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/sitter"
@@ -53,9 +54,9 @@ func (r Rule) Edits(matches []Match, source []byte) ([]project.Edit, error) {
 }
 
 // MatchFile runs this rule's pattern on one parsed file.
-func (r Rule) MatchFile(sess *project.Session, root, fileRel string, source []byte, rootNode *sitter.Node, result *project.Result) ([]Match, error) {
+func (r Rule) MatchFile(ctx context.Context, sess *project.Session, root, fileRel string, source []byte, rootNode *sitter.Node, result *project.Result) ([]Match, error) {
 	if r.Matcher != nil {
-		return MatchFileMatcher(sess, root, fileRel, source, rootNode, r.Matcher, result)
+		return MatchFileMatcher(ctx, sess, root, fileRel, source, rootNode, r.Matcher, result)
 	}
 	if r.Pattern.Kind == "" {
 		return nil, fmt.Errorf("%w: rule: empty pattern", ErrRule)
@@ -64,8 +65,8 @@ func (r Rule) MatchFile(sess *project.Session, root, fileRel string, source []by
 }
 
 // ExpandFile matches and builds edits for one file under root.
-func (r Rule) ExpandFile(sess *project.Session, root, fileRel string, source []byte, rootNode *sitter.Node, result *project.Result) (matches []Match, edits []project.Edit, err error) {
-	matches, err = r.MatchFile(sess, root, fileRel, source, rootNode, result)
+func (r Rule) ExpandFile(ctx context.Context, sess *project.Session, root, fileRel string, source []byte, rootNode *sitter.Node, result *project.Result) (matches []Match, edits []project.Edit, err error) {
+	matches, err = r.MatchFile(ctx, sess, root, fileRel, source, rootNode, result)
 	if err != nil {
 		return nil, nil, err
 	}

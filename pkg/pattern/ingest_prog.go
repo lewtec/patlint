@@ -1,6 +1,7 @@
 package pattern
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
@@ -73,6 +74,7 @@ func ingestHead(act ExtractAction) (string, []datalog.Arg) {
 
 // ingestHost is the finder oracle for $as: matcher → ephemeral rows.
 type ingestHost struct {
+	ctx     context.Context
 	st      *store.Store
 	sess    *project.Session
 	p       *ExtractProgram
@@ -103,7 +105,7 @@ func (h *ingestHost) Builtin(name string, args []string) [][]string {
 	if act.Matcher == nil || act.Kind == ExtractPaint {
 		return nil
 	}
-	ms, merr := matchFileMatcherPol(h.sess, ".", h.fp, h.source, h.root, act.Matcher, nil, h.pol, h.scratch)
+	ms, merr := matchFileMatcherPol(h.ctx, h.sess, ".", h.fp, h.source, h.root, act.Matcher, nil, h.pol, h.scratch)
 	if merr != nil {
 		h.err = merr
 		return nil

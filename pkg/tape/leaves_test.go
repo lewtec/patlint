@@ -68,7 +68,7 @@ func TestBuild_GoCompositeWithPolicy(t *testing.T) {
 
 func parseGo(t *testing.T, src []byte) *sitter.Node {
 	t.Helper()
-	pf, err := ingestutil.ParseSource(ccgo.Engine{}, src, "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -5,9 +5,11 @@
 package highlight
 
 import (
-	"github.com/lewtec/patlint/pkg/walker"
+	"context"
 	"io"
 	"os"
+
+	"github.com/lewtec/patlint/pkg/walker"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/lewtec/patlint/pkg/tape"
@@ -38,7 +40,7 @@ func AutoColor(w io.Writer) bool {
 // Write prints source for filePath. When opts.Color is true, builds the
 // structural tape via extract packs and styles cells by TokenClass.
 // On pack/parse failure the raw source is written (no error).
-func Write(w io.Writer, source []byte, filePath string, opts Options) error {
+func Write(ctx context.Context, w io.Writer, source []byte, filePath string, opts Options) error {
 	if len(source) == 0 {
 		return nil
 	}
@@ -51,7 +53,7 @@ func Write(w io.Writer, source []byte, filePath string, opts Options) error {
 		_, err := w.Write(source)
 		return err
 	}
-	cells, _, err := opts.Walker.BuildTape(source, filePath)
+	cells, _, err := opts.Walker.BuildTape(ctx, source, filePath)
 	if err != nil || len(cells) == 0 {
 		_, werr := w.Write(source)
 		return werr

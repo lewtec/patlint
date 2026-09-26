@@ -94,7 +94,10 @@ func (c *runCmd) Run(ctx context.Context) error {
 	if merged.Path == "" {
 		merged.Path = "<builtin>"
 	}
-	merged = script.EnsureDeadImports(merged)
+	merged, err = script.EnsureDeadImports(merged)
+	if err != nil {
+		return errExit{code: 2, err: err}
+	}
 
 	opts := script.Options{Paths: paths, LangFilter: c.lang.Value()}
 	if slog.Default().Enabled(ctx, slog.LevelDebug) {
@@ -132,7 +135,7 @@ func (c *runCmd) Run(ctx context.Context) error {
 		}
 	}
 
-	if err := report.WriteFormat(os.Stdout, format, root, res.Findings, script.ReportRules(res)); err != nil {
+	if err := report.WriteFormat(ctx, os.Stdout, format, root, res.Findings, script.ReportRules(res)); err != nil {
 		return errExit{code: 2, err: err}
 	}
 

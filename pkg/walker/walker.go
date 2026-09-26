@@ -25,7 +25,7 @@ type Walker struct {
 }
 
 // NewWalker pairs a view with frozen policy. Both required.
-func NewWalker(sess *project.Session, vm *pattern.LispVM) (*Walker, error) {
+func NewWalker(ctx context.Context, sess *project.Session, vm *pattern.LispVM) (*Walker, error) {
 	if sess == nil {
 		return nil, ingest.ErrNilSession
 	}
@@ -36,7 +36,7 @@ func NewWalker(sess *project.Session, vm *pattern.LispVM) (*Walker, error) {
 		return nil, sitter.ErrNilEngine
 	}
 	if vm.Packs() != nil && vm.Packs().Program() != nil {
-		if err := vm.Packs().Program().ValidateGrammars(sess.Engine()); err != nil {
+		if err := vm.Packs().Program().ValidateGrammars(ctx, sess.Engine()); err != nil {
 			return nil, err
 		}
 	}

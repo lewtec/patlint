@@ -1,6 +1,7 @@
 package ingestutil
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -28,14 +29,17 @@ func (p *ParsedFile) Close() {
 }
 
 // RequireGrammar reports whether eng has id.
-func RequireGrammar(eng sitter.Engine, id string) error {
+func RequireGrammar(ctx context.Context, eng sitter.Engine, id string) error {
+	if ctx == nil {
+		return fmt.Errorf("nil context")
+	}
 	if eng == nil {
 		return sitter.ErrNilEngine
 	}
 	if id == "" {
 		return fmt.Errorf("%w: empty language", ErrUnsupportedLanguage)
 	}
-	if !eng.Has(id) {
+	if !eng.Has(ctx, id) {
 		return fmt.Errorf("%w: %q (grammar not registered)", ErrUnsupportedLanguage, id)
 	}
 	return nil
@@ -43,14 +47,17 @@ func RequireGrammar(eng sitter.Engine, id string) error {
 
 // ParseSource parses content as language id (pack as-language / AttributeHost).
 // path is for errors and labels only — not extension lookup.
-func ParseSource(eng sitter.Engine, content []byte, path, language string) (*ParsedFile, error) {
+func ParseSource(ctx context.Context, eng sitter.Engine, content []byte, path, language string) (*ParsedFile, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("nil context")
+	}
 	if eng == nil {
 		return nil, sitter.ErrNilEngine
 	}
 	if language == "" {
 		return nil, fmt.Errorf("%w for %s (empty language; use pack path attribution)", ErrUnsupportedLanguage, path)
 	}
-	tree, err := eng.Parse(content, language)
+	tree, err := eng.Parse(ctx, content, language)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
@@ -62,10 +69,10 @@ func ParseSource(eng sitter.Engine, content []byte, path, language string) (*Par
 }
 
 // ParseSourceFile reads path and parses it as language id (not by extension).
-func ParseSourceFile(eng sitter.Engine, path, language string) (*ParsedFile, error) {
+func ParseSourceFile(ctx context.Context, eng sitter.Engine, path, language string) (*ParsedFile, error) {
 	source, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	return ParseSource(eng, source, path, language)
+	return ParseSource(ctx, eng, source, path, language)
 }

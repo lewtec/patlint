@@ -15,7 +15,7 @@ func TestParseSourceFile(t *testing.T) {
 	if err := os.WriteFile(path, []byte("package p\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	pf, err := ParseSourceFile(ccgo.Engine{}, path, "go")
+	pf, err := ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestParseSourceFileEmptyLanguage(t *testing.T) {
 	if err := os.WriteFile(path, []byte("package p\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ParseSourceFile(ccgo.Engine{}, path, ""); err == nil {
+	if _, err := ParseSourceFile(t.Context(), ccgo.Engine{}, path, ""); err == nil {
 		t.Fatal("expected empty language error")
 	}
 }
@@ -46,14 +46,14 @@ func TestParseSourceFileUnknownLanguage(t *testing.T) {
 	if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ParseSourceFile(ccgo.Engine{}, path, "not-a-grammar"); err == nil {
+	if _, err := ParseSourceFile(t.Context(), ccgo.Engine{}, path, "not-a-grammar"); err == nil {
 		t.Fatal("expected error")
 	}
 }
 
 func TestParseSource(t *testing.T) {
 	content := []byte("package p\n")
-	pf, err := ParseSource(ccgo.Engine{}, content, "x.go", "go")
+	pf, err := ParseSource(ccgot.Context(), .Engine{}, content, "x.go", "go")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -871,14 +871,14 @@ func loadExtractPack(path, src string, base expandEnv) (*ExtractProgram, error) 
 }
 
 // ValidateGrammars fails if any as-language id is unknown to eng.
-func (p *ExtractProgram) ValidateGrammars(eng sitter.Engine) error {
+func (p *ExtractProgram) ValidateGrammars(ctx context.Context, eng sitter.Engine) error {
 	if p == nil {
 		return nil
 	}
-	return validateExtractPackGrammars(eng, "pack", p)
+	return validateExtractPackGrammars(ctx, eng, "pack", p)
 }
 
-func validateExtractPackGrammars(eng sitter.Engine, path string, prog *ExtractProgram) error {
+func validateExtractPackGrammars(ctx context.Context, eng sitter.Engine, path string, prog *ExtractProgram) error {
 	if eng == nil {
 		return sitter.ErrNilEngine
 	}
@@ -892,7 +892,7 @@ func validateExtractPackGrammars(eng sitter.Engine, path string, prog *ExtractPr
 			return nil
 		}
 		seen[gid] = struct{}{}
-		if !eng.Has(gid) {
+		if !eng.Has(ctx, gid) {
 			return fmt.Errorf("%w: %s: unknown language %q (grammar %q not registered; use as-grammar or blank-import)", ErrExtract, path, id, gid)
 		}
 		return nil
@@ -1467,7 +1467,7 @@ func (p *ExtractProgram) ExtractInto(ctx context.Context, sess *project.Session,
 	useID := 0
 	pol := p.tapePolicy(lang)
 	scratch := &fileScratch{pol: pol, forLang: p.tapePolicy, want: nodeTypesFromProgram(p, rel)}
-	h := &ingestHost{st: st, sess: sess, p: p, root: root, source: source, fp: relPath, useID: &useID, scratch: scratch, pol: pol}
+	h := &ingestHost{ctx: ctx, st: st, sess: sess, p: p, root: root, source: source, fp: relPath, useID: &useID, scratch: scratch, pol: pol}
 	if err := datalog.Eval(ctx, st, p.IngestClauses(relPath), h); err != nil {
 		return err
 	}
@@ -1481,13 +1481,13 @@ func (p *ExtractProgram) ExtractInto(ctx context.Context, sess *project.Session,
 		if !actionAcceptsPath(act.Paths, rel) {
 			continue
 		}
-		ms, err := matchEmbedAction(sess, relPath, source, root, act, scratch, p)
+		ms, err := matchEmbedAction(ctx, sess, relPath, source, root, act, scratch, p)
 		if err != nil {
 			return err
 		}
 		applyExtractMatches(st, relPath, &useID, p, act, source, root, ms, 0, scratch.nodes(root))
 	}
-	applyGuestExtractOnEmbeds(sess, st, p, rel, relPath, source, root, &useID, scratch)
+	applyGuestExtractOnEmbeds(ctx, sess, st, p, rel, relPath, source, root, &useID, scratch)
 	finishExtract(st, relPath, source)
 	return nil
 }
@@ -1634,18 +1634,18 @@ func writeUses(st *store.Store, fp string, uses []project.UsageDef) {
 	}
 }
 
-func applyGuestExtractOnEmbeds(sess *project.Session, st *store.Store, p *ExtractProgram, rel, relPath string, source []byte, hostRoot *sitter.Node, useID *int, scratch *fileScratch) {
+func applyGuestExtractOnEmbeds(ctx context.Context, sess *project.Session, st *store.Store, p *ExtractProgram, rel, relPath string, source []byte, hostRoot *sitter.Node, useID *int, scratch *fileScratch) {
 	if st == nil || p == nil {
 		return
 	}
-	embs := uniqueEmbedRegions(sess, p, rel, relPath, source, hostRoot, scratch)
+	embs := uniqueEmbedRegions(ctx, sess, p, rel, relPath, source, hostRoot, scratch)
 	for _, emb := range embs {
-		applyLangExtract(sess, st, p, emb.root, emb.content, relPath, emb.lang, useID, emb.base)
+		applyLangExtract(ctx, sess, st, p, emb.root, emb.content, relPath, emb.lang, useID, emb.base)
 		emb.close()
 	}
 }
 
-func applyLangExtract(sess *project.Session, st *store.Store, p *ExtractProgram, root *sitter.Node, source []byte, relPath, lang string, useID *int, off uint32) {
+func applyLangExtract(ctx context.Context, sess *project.Session, st *store.Store, p *ExtractProgram, root *sitter.Node, source []byte, relPath, lang string, useID *int, off uint32) {
 	if st == nil || p == nil || root == nil || lang == "" {
 		return
 	}
@@ -1656,7 +1656,7 @@ func applyLangExtract(sess *project.Session, st *store.Store, p *ExtractProgram,
 		if !actionAppliesToLang(act, lang) {
 			continue
 		}
-		ms, err := MatchFileMatcherPolicy(sess, ".", relPath, source, root, act.Matcher, nil, p.tapePolicy(lang))
+		ms, err := MatchFileMatcherPolicy(ctx, sess, ".", relPath, source, root, act.Matcher, nil, p.tapePolicy(lang))
 		if err != nil {
 			continue
 		}
@@ -1757,7 +1757,7 @@ func preferScopedUsages(us []project.UsageDef) []project.UsageDef {
 	return out
 }
 
-func matchEmbedAction(sess *project.Session, relPath string, source []byte, hostRoot *sitter.Node, act ExtractAction, scratch *fileScratch, p *ExtractProgram) ([]Match, error) {
+func matchEmbedAction(ctx context.Context, sess *project.Session, relPath string, source []byte, hostRoot *sitter.Node, act ExtractAction, scratch *fileScratch, p *ExtractProgram) ([]Match, error) {
 	if act.Region == nil {
 		return nil, fmt.Errorf("%w: embed action %s: missing region", ErrExtract, act.Lang)
 	}
@@ -1768,12 +1768,12 @@ func matchEmbedAction(sess *project.Session, relPath string, source []byte, host
 	if scratch != nil {
 		hostPol = scratch.pol
 	}
-	regs, err := matchFileMatcherPol(sess, ".", relPath, source, hostRoot, act.Region, nil, hostPol, scratch)
+	regs, err := matchFileMatcherPol(ctx, sess, ".", relPath, source, hostRoot, act.Region, nil, hostPol, scratch)
 	if err != nil {
 		return nil, err
 	}
 	gid := p.grammarID(act.Lang)
-	if sess == nil || sess.Engine() == nil || !sess.Engine().Has(gid) {
+	if sess == nil || sess.Engine() == nil || !sess.Engine().Has(ctx, gid) {
 		return nil, fmt.Errorf("%w: unknown language %q (grammar not registered)", ErrExtract, act.Lang)
 	}
 	var out []Match
@@ -1786,11 +1786,11 @@ func matchEmbedAction(sess *project.Session, relPath string, source []byte, host
 		if len(content) == 0 {
 			continue
 		}
-		pf, err := ingestutil.ParseSource(sess.Engine(), content, relPath+"#"+act.Lang, gid)
+		pf, err := ingestutil.ParseSource(ctx, sess.Engine(), content, relPath+"#"+act.Lang, gid)
 		if err != nil {
 			return nil, fmt.Errorf("embed %s: %w", act.Lang, err)
 		}
-		bodyMs, err := MatchFileMatcherPolicy(sess, ".", relPath, content, pf.Root, act.Matcher, nil, p.tapePolicy(act.Lang))
+		bodyMs, err := MatchFileMatcherPolicy(ctx, sess, ".", relPath, content, pf.Root, act.Matcher, nil, p.tapePolicy(act.Lang))
 		pf.Close()
 		if err != nil {
 			return nil, err

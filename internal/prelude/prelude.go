@@ -1,13 +1,10 @@
-// Package prelude is the single “load everything” entry for refactree.
+// Package prelude is the load entry for patlint.
 //
 //	import _ "github.com/lewtec/patlint/internal/prelude"
 //
-// Responsibilities (all here, not in pkg/pattern):
-//   - blank-import every language surface (drivers, families, move)
-//   - go:embed all *.rft files as FS (pass to pattern.New)
-//
-// Grammars register on the ccgo engine (pkg/sitter). Filenames under this
-// package are organizational only.
+// It blank-imports the Go import resolver and embeds the .rft packs.
+// Grammars register in pkg/sitter/ccgo and are parsed through the lewkit
+// tree-sitter driver.
 package prelude
 
 import (

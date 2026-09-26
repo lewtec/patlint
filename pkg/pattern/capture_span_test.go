@@ -274,7 +274,7 @@ func TestRefSelectorSpan(t *testing.T) {
 
 func mustMatchFile(t *testing.T, dir, abs, rel string, src []byte, pat Node) []Match {
 	t.Helper()
-	pf, err := ingestutil.ParseSourceFile(ccgo.Engine{}, abs, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, abs, "go")
 	if err != nil {
 		t.Fatal(err)
 	}

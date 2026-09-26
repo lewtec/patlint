@@ -14,7 +14,7 @@ import (
 
 func TestLinesPlainSplitsSource(t *testing.T) {
 	src := []byte("package main\n\nfunc Hello() {}\n")
-	got := highlight.Lines(src, "main.go", highlight.Options{Color: false})
+	got := highlight.Lines(t.Context(), src, "main.go", highlight.Options{Color: false})
 	want := []string{"package main", "", "func Hello() {}", ""}
 	if len(got) != len(want) {
 		t.Fatalf("len=%d want %d: %#v", len(got), len(want), got)
@@ -32,11 +32,11 @@ func TestLinesColorStylesKeywords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := highlight.Lines(src, "main.go", highlight.Options{Color: true, Walker: w})
+	got := highlight.Lines(t.Context(), src, "main.go", highlight.Options{Color: true, Walker: w})
 	if len(got) < 1 {
 		t.Fatal("expected at least one line")
 	}
@@ -50,7 +50,7 @@ func TestLinesColorStylesKeywords(t *testing.T) {
 }
 
 func TestLinesEmpty(t *testing.T) {
-	if got := highlight.Lines(nil, "main.go", highlight.Options{Color: true}); got != nil {
+	if got := highlight.Lines(t.Context(), nil, "main.go", highlight.Options{Color: true}); got != nil {
 		t.Fatalf("got %#v", got)
 	}
 }

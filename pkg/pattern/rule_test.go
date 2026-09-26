@@ -83,7 +83,7 @@ func f() {
 		t.Fatal(err)
 	}
 
-	pf, err := ingestutil.ParseSourceFile(ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func f() {
 		t.Fatal("RefLeafRule should need links")
 	}
 
-	matches, edits, err := rule.ExpandFile(project.NewSession(".").WithEngine(ccgo.Engine{}), dir, "p.go", src, pf.Root, result)
+	matches, edits, err := rule.ExpandFile(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), dir, "p.go", src, pf.Root, result)
 	if err != nil {
 		t.Fatal(err)
 	}

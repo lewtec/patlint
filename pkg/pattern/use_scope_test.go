@@ -19,11 +19,11 @@ func TestGoUseScopeInsideMain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "main.go")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "main.go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestGoUseScopeInsideMain(t *testing.T) {
 		t.Fatal(err)
 	}
 	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
-	walk, err := walker.NewWalker(sess, vm)
+	walk, err := walker.NewWalker(t.Context(), sess, vm)
 	if err != nil {
 		t.Fatal(err)
 	}

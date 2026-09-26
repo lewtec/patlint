@@ -1,6 +1,7 @@
 package report
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -19,11 +20,12 @@ import (
 
 // WriteRustc writes rustc-style diagnostics (header, snippet, carets, notes).
 // Color follows highlight.AutoColor(w): TTY on, pipes/NO_COLOR off.
-func WriteRustc(w io.Writer, root string, findings []Finding) error {
-	return newRustcWriter(w, root, highlight.AutoColor(w)).write(findings)
+func WriteRustc(ctx context.Context, w io.Writer, root string, findings []Finding) error {
+	return newRustcWriter(ctx, w, root, highlight.AutoColor(w)).write(findings)
 }
 
 type rustcWriter struct {
+	ctx   context.Context
 	w     io.Writer
 	root  string
 	color bool
@@ -32,8 +34,9 @@ type rustcWriter struct {
 	plain map[string][]string
 }
 
-func newRustcWriter(w io.Writer, root string, color bool) *rustcWriter {
+func newRustcWriter(ctx context.Context, w io.Writer, root string, color bool) *rustcWriter {
 	return &rustcWriter{
+		ctx:   ctx,
 		w:     w,
 		root:  root,
 		color: color,
@@ -207,9 +210,9 @@ func (rw *rustcWriter) lines(f Finding) (styled, raw []string) {
 	}
 	key := f.File
 	if _, ok := rw.plain[key]; !ok {
-		rw.plain[key] = highlight.Lines(f.Source, f.File, highlight.Options{Color: false})
+		rw.plain[key] = highlight.Lines(rw.ctx, f.Source, f.File, highlight.Options{Color: false})
 		if rw.color {
-			rw.hl[key] = highlight.Lines(f.Source, f.File, highlight.Options{Color: true})
+			rw.hl[key] = highlight.Lines(rw.ctx, f.Source, f.File, highlight.Options{Color: true})
 		} else {
 			rw.hl[key] = rw.plain[key]
 		}

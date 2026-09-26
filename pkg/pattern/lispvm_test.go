@@ -132,18 +132,18 @@ func TestLispVM_NewIgnoresRewriteHeads(t *testing.T) {
 }
 
 func TestWalker_RequiresBoth(t *testing.T) {
-	if _, err := walker.NewWalker(nil, nil); err == nil {
+	if _, err := walker.NewWalker(t.Context(), nil, nil); err == nil {
 		t.Fatal("want error")
 	}
 	sess := project.NewSession(".").WithEngine(ccgo.Engine{})
-	if _, err := walker.NewWalker(sess, nil); err == nil {
+	if _, err := walker.NewWalker(t.Context(), sess, nil); err == nil {
 		t.Fatal("want nil vm error")
 	}
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(sess, vm)
+	w, err := walker.NewWalker(t.Context(), sess, vm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +169,7 @@ func TestWalker_WalkExtracts_UsesVMPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(sess, vm)
+	w, err := walker.NewWalker(t.Context(), sess, vm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +202,7 @@ func TestWalker_WalkAtoms_UsesVMPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(sess, vm)
+	w, err := walker.NewWalker(t.Context(), sess, vm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestWalker_Grep_UsesVMPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(sess, vm)
+	w, err := walker.NewWalker(t.Context(), sess, vm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +262,7 @@ func TestWalker_Load_UsesVMPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(sess, vm)
+	w, err := walker.NewWalker(t.Context(), sess, vm)
 	if err != nil {
 		t.Fatal(err)
 	}

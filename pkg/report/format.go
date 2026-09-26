@@ -1,6 +1,7 @@
 package report
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -73,7 +74,7 @@ func NormalizeFormat(format string) (string, error) {
 }
 
 // WriteFormat dispatches text, table, sarif, or rustc output for lint and run.
-func WriteFormat(w io.Writer, format, root string, findings []Finding, rules []Rule) error {
+func WriteFormat(ctx context.Context, w io.Writer, format, root string, findings []Finding, rules []Rule) error {
 	format, err := NormalizeFormat(format)
 	if err != nil {
 		return err
@@ -84,7 +85,7 @@ func WriteFormat(w io.Writer, format, root string, findings []Finding, rules []R
 	case "sarif":
 		return WriteSARIF(w, root, findings, rules)
 	case "rustc":
-		return WriteRustc(w, root, findings)
+		return WriteRustc(ctx, w, root, findings)
 	default:
 		return WriteText(w, findings)
 	}

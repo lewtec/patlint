@@ -130,7 +130,8 @@ func TestRunCase_deadImports(t *testing.T) {
 
 	gold := t.TempDir()
 	require.NoError(t, os.WriteFile(lewpath.New(gold, "main.go").String(), []byte(src), 0o644))
-	prog := script.EnsureDeadImports(&script.Program{Path: "<builtin>"})
+	prog, err := script.EnsureDeadImports(&script.Program{Path: "<builtin>"})
+	require.NoError(t, err)
 	fixRes, err := script.Run(t.Context(), project.NewSession(gold).WithEngine(ccgo.Engine{}), prog, script.Options{Paths: []string{"."}})
 	require.NoError(t, err)
 	require.NotEmpty(t, fixRes.ApplyEdits)

@@ -439,7 +439,7 @@ func mustMatchMatcher(t *testing.T, dir, rel string, src []byte, cm *CompiledMat
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms, err := matchFileMatcherPol(testSess(), dir, rel, src, rootNode, cm, nil, vm.TapePolicy(rel), nil)
+	ms, err := matchFileMatcherPol(t.Context(), testSess(), dir, rel, src, rootNode, cm, nil, vm.TapePolicy(rel), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -448,7 +448,7 @@ func mustMatchMatcher(t *testing.T, dir, rel string, src []byte, cm *CompiledMat
 
 func TestFileScratchSameMatchesAsFreshTape(t *testing.T) {
 	src := []byte("package p\n\nimport \"fmt\"\n\nfunc Hello(x int) {\n\tfmt.Println(x)\n}\n")
-	pf, err := ingestutil.ParseSource(ccgo.Engine{}, src, "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -483,11 +483,11 @@ func TestFileScratchSameMatchesAsFreshTape(t *testing.T) {
 	scratch := &fileScratch{pol: pol, forLang: vm.tapePolicyForLang, want: want}
 	for i, cm := range cms {
 		p := pats[i]
-		fresh, err := matchFileMatcherPol(sess, ".", "x.go", src, pf.Root, cm, nil, pol, nil)
+		fresh, err := matchFileMatcherPol(t.Context(), sess, ".", "x.go", src, pf.Root, cm, nil, pol, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
-		shared, err := matchFileMatcherPol(sess, ".", "x.go", src, pf.Root, cm, nil, pol, scratch)
+		shared, err := matchFileMatcherPol(t.Context(), sess, ".", "x.go", src, pf.Root, cm, nil, pol, scratch)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -502,7 +502,7 @@ func TestFileScratchSameMatchesAsFreshTape(t *testing.T) {
 
 func TestNodeIndexUnderSameAsWalk(t *testing.T) {
 	src := []byte("package p\n\nfunc A() { x := 1 }\nfunc B() { y := 2; z := 3 }\n")
-	pf, err := ingestutil.ParseSource(ccgo.Engine{}, src, "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -521,12 +521,12 @@ func TestNodeIndexUnderSameAsWalk(t *testing.T) {
 		t.Fatal(err)
 	}
 	pol := vm.TapePolicy("x.go")
-	fresh, err := matchFileMatcherPol(sess, ".", "x.go", src, pf.Root, cm, nil, pol, nil)
+	fresh, err := matchFileMatcherPol(t.Context(), sess, ".", "x.go", src, pf.Root, cm, nil, pol, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	scratch := &fileScratch{pol: pol, want: nodeTypesFromFinder(cm.root)}
-	indexed, err := matchFileMatcherPol(sess, ".", "x.go", src, pf.Root, cm, nil, pol, scratch)
+	indexed, err := matchFileMatcherPol(t.Context(), sess, ".", "x.go", src, pf.Root, cm, nil, pol, scratch)
 	if err != nil {
 		t.Fatal(err)
 	}

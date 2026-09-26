@@ -1,6 +1,8 @@
 package pattern
 
 import (
+	"context"
+
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/sitter"
@@ -11,7 +13,7 @@ import (
 // (and global empty-path paint) also runs on each embed tree so keywords/strings
 // inside islands are not skipped (SPEC.md Regions).
 // Later actions override earlier on the same span.
-func PaintClasses(p *ExtractProgram, sess *project.Session, root *sitter.Node, source []byte, relPath string) map[[2]uint32]string {
+func PaintClasses(ctx context.Context, p *ExtractProgram, sess *project.Session, root *sitter.Node, source []byte, relPath string) map[[2]uint32]string {
 	out := map[[2]uint32]string{}
 	if p == nil || root == nil {
 		return out
@@ -28,9 +30,9 @@ func PaintClasses(p *ExtractProgram, sess *project.Session, root *sitter.Node, s
 		var ms []Match
 		var err error
 		if act.Embed {
-			ms, err = matchEmbedAction(sess, relPath, source, root, act, nil, p)
+			ms, err = matchEmbedAction(ctx, sess, relPath, source, root, act, nil, p)
 		} else {
-			ms, err = MatchFileMatcherPolicy(sess, ".", relPath, source, root, act.Matcher, nil, p.tapePolicy(p.hostLangFor(rel)))
+			ms, err = MatchFileMatcherPolicy(ctx, sess, ".", relPath, source, root, act.Matcher, nil, p.tapePolicy(p.hostLangFor(rel)))
 		}
 		if err != nil {
 			continue
@@ -40,7 +42,7 @@ func PaintClasses(p *ExtractProgram, sess *project.Session, root *sitter.Node, s
 
 	// Host packs for language L (path-scoped) and global paint must also run
 	// on embed regions of language L even when the host file path is not L's glob.
-	embs := uniqueEmbedRegions(sess, p, rel, relPath, source, root, nil)
+	embs := uniqueEmbedRegions(ctx, sess, p, rel, relPath, source, root, nil)
 	for _, emb := range embs {
 		for _, act := range p.Actions {
 			if act.Kind != ExtractPaint || act.Matcher == nil || act.TokenClass == "" {
@@ -52,7 +54,7 @@ func PaintClasses(p *ExtractProgram, sess *project.Session, root *sitter.Node, s
 			if !actionAppliesToLang(act, emb.lang) {
 				continue
 			}
-			ms, err := MatchFileMatcherPolicy(sess, ".", relPath, emb.content, emb.root, act.Matcher, nil, p.tapePolicy(emb.lang))
+			ms, err := MatchFileMatcherPolicy(ctx, sess, ".", relPath, emb.content, emb.root, act.Matcher, nil, p.tapePolicy(emb.lang))
 			if err != nil {
 				continue
 			}
@@ -114,7 +116,7 @@ func (e embedLocus) close() {
 
 // uniqueEmbedRegions finds path-accepted embed claims, reparses each host span
 // once per (span, lang). Caller must close returned loci.
-func uniqueEmbedRegions(sess *project.Session, p *ExtractProgram, rel, relPath string, source []byte, hostRoot *sitter.Node, scratch *fileScratch) []embedLocus {
+func uniqueEmbedRegions(ctx context.Context, sess *project.Session, p *ExtractProgram, rel, relPath string, source []byte, hostRoot *sitter.Node, scratch *fileScratch) []embedLocus {
 	if p == nil || hostRoot == nil {
 		return nil
 	}
@@ -135,7 +137,7 @@ func uniqueEmbedRegions(sess *project.Session, p *ExtractProgram, rel, relPath s
 		if scratch != nil {
 			hostPol = scratch.pol
 		}
-		regs, err := matchFileMatcherPol(sess, ".", relPath, source, hostRoot, act.Region, nil, hostPol, scratch)
+		regs, err := matchFileMatcherPol(ctx, sess, ".", relPath, source, hostRoot, act.Region, nil, hostPol, scratch)
 		if err != nil {
 			continue
 		}
@@ -143,7 +145,7 @@ func uniqueEmbedRegions(sess *project.Session, p *ExtractProgram, rel, relPath s
 		if p != nil {
 			gid = p.grammarID(act.Lang)
 		}
-		if sess == nil || sess.Engine() == nil || !sess.Engine().Has(gid) {
+		if sess == nil || sess.Engine() == nil || !sess.Engine().Has(ctx, gid) {
 			continue
 		}
 		for _, reg := range regs {
@@ -160,7 +162,7 @@ func uniqueEmbedRegions(sess *project.Session, p *ExtractProgram, rel, relPath s
 				continue
 			}
 			seen[k] = struct{}{}
-			pf, err := ingestutil.ParseSource(sess.Engine(), content, relPath+"#"+act.Lang, gid)
+			pf, err := ingestutil.ParseSource(ctx, sess.Engine(), content, relPath+"#"+act.Lang, gid)
 			if err != nil || pf == nil || pf.Root == nil {
 				if pf != nil {
 					pf.Close()

@@ -289,12 +289,12 @@ func (vm *LispVM) PathHasEmbeds(relPath string) bool {
 }
 
 // EmbedRegions lists nested as-language spans on the host tree.
-func (vm *LispVM) EmbedRegions(relPath string, source []byte, hostRoot *sitter.Node) []project.EmbeddedSource {
+func (vm *LispVM) EmbedRegions(ctx context.Context, relPath string, source []byte, hostRoot *sitter.Node) []project.EmbeddedSource {
 	if vm == nil || vm.p == nil || vm.p.Program() == nil {
 		return nil
 	}
 	rel := stringsTrimDotSlash(filepathToSlash(relPath))
-	loci := uniqueEmbedRegions(nil, vm.p.Program(), rel, relPath, source, hostRoot, nil)
+	loci := uniqueEmbedRegions(ctx, nil, vm.p.Program(), rel, relPath, source, hostRoot, nil)
 	out := make([]project.EmbeddedSource, 0, len(loci))
 	for _, e := range loci {
 		out = append(out, project.EmbeddedSource{

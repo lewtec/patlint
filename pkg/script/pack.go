@@ -113,7 +113,7 @@ func DeadImportsAction() Action {
 // EnsureDeadImports prepends the always-on dead-imports action when the program
 // does not already include that builtin, then merges prelude rules_rft.rft
 // rules. Recompiles the spine plan.
-func EnsureDeadImports(prog *Program) *Program {
+func EnsureDeadImports(prog *Program) (*Program, error) {
 	if prog == nil {
 		prog = &Program{Path: "<builtin>"}
 	}

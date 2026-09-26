@@ -85,7 +85,7 @@ func (c *grepCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return errExit{code: 2, err: err}
 	}
-	w, err := walker.NewWalker(sess, vm)
+	w, err := walker.NewWalker(ctx, sess, vm)
 	if err != nil {
 		return errExit{code: 2, err: err}
 	}

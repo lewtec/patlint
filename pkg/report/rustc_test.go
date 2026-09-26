@@ -42,7 +42,7 @@ func TestWriteRustcSnippetUnderline(t *testing.T) {
 		Source:  src,
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(&buf, "", false).write([]Finding{f}); err != nil {
+	if err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f}); err != nil {
 		t.Fatal(err)
 	}
 	got := buf.String()
@@ -71,7 +71,7 @@ func TestWriteRustcExclusiveNewlineEnd(t *testing.T) {
 		Source:  src,
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(&buf, "", false).write([]Finding{f}); err != nil {
+	if err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f}); err != nil {
 		t.Fatal(err)
 	}
 	got := buf.String()
@@ -103,7 +103,7 @@ func TestWriteRustcSnippetFallback(t *testing.T) {
 		Snippet: "foo",
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(&buf, "", false).write([]Finding{f}); err != nil {
+	if err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f}); err != nil {
 		t.Fatal(err)
 	}
 	got := buf.String()
@@ -140,7 +140,7 @@ func TestWriteRustcFixDiff(t *testing.T) {
 		}},
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(&buf, "", false).write([]Finding{f}); err != nil {
+	if err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f}); err != nil {
 		t.Fatal(err)
 	}
 	got := buf.String()
@@ -171,7 +171,7 @@ func TestWriteRustcFixSkipped(t *testing.T) {
 		FixSkipped: true,
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(&buf, "", false).write([]Finding{f}); err != nil {
+	if err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f}); err != nil {
 		t.Fatal(err)
 	}
 	got := buf.String()
@@ -197,7 +197,7 @@ func TestWriteRustcColorAndLink(t *testing.T) {
 		Source:  src,
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(&buf, "/tmp", true).write([]Finding{f}); err != nil {
+	if err := newRustcWriter(t.Context(), &buf, "/tmp", true).write([]Finding{f}); err != nil {
 		t.Fatal(err)
 	}
 	got := buf.String()
@@ -245,7 +245,7 @@ func TestWriteFormatRustc(t *testing.T) {
 		EndLine: 1,
 	}
 	var buf bytes.Buffer
-	if err := WriteFormat(&buf, "rustc", "", []Finding{f}, nil); err != nil {
+	if err := WriteFormat(t.Context(), &buf, "rustc", "", []Finding{f}, nil); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(buf.String(), "error[x]: m") {

@@ -9,10 +9,10 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/git-pkgs/gitignore v1.3.0
 	github.com/google/go-cmp v0.6.0
-	github.com/lewtec/lewkit v0.0.0-20260926004721-11710eb97853
+	github.com/lewtec/lewkit v0.0.0-20260926185415-cd3b4a1313d9
 	github.com/mattn/go-isatty v0.0.24
 	github.com/mattn/go-runewidth v0.0.30
-	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0-20260713221032-8673315d25fc
+	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0-20260801004327-2c4586c945d8
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/astro v0.0.0-20260725174331-dd9b30823ceb
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/c v0.0.0-20260725174331-dd9b30823ceb
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/commonlisp v0.0.0-20260802195525-37cdcab3c8c7

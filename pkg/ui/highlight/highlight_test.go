@@ -16,7 +16,7 @@ import (
 func TestWritePlainCopiesSource(t *testing.T) {
 	src := []byte("package main\n\nfunc Hello() {}\n")
 	var buf bytes.Buffer
-	if err := highlight.Write(&buf, src, "main.go", highlight.Options{Color: false}); err != nil {
+	if err := highlight.Write(t.Context(), &buf, src, "main.go", highlight.Options{Color: false}); err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(buf.Bytes(), src) {
@@ -31,11 +31,11 @@ func TestWriteColorStylesKeywords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := highlight.Write(&buf, src, "main.go", highlight.Options{Color: true, Walker: w}); err != nil {
+	if err := highlight.Write(t.Context(), &buf, src, "main.go", highlight.Options{Color: true, Walker: w}); err != nil {
 		t.Fatal(err)
 	}
 	out := buf.String()
@@ -56,11 +56,11 @@ func TestWriteUnsupportedLanguageFallsBack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := highlight.Write(&buf, src, "notes.txt", highlight.Options{Color: true, Walker: w}); err != nil {
+	if err := highlight.Write(t.Context(), &buf, src, "notes.txt", highlight.Options{Color: true, Walker: w}); err != nil {
 		t.Fatal(err)
 	}
 	// Unparseable: still returns the full source (with or without spans).

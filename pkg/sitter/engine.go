@@ -1,6 +1,7 @@
 package sitter
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -35,14 +36,15 @@ type QueryMatch struct {
 
 // Engine parses source into a product CST.
 // The entry point puts one on Session via [project.Session.WithEngine].
+// ctx is the caller's context. Parse asks the lewkit tree-sitter driver.
 type Engine interface {
 	// Parse builds a CST for language (pack / as-language id).
 	// The returned Tree is a snapshot: no backend lock after return.
-	Parse(src []byte, language string) (*Tree, error)
+	Parse(ctx context.Context, src []byte, language string) (*Tree, error)
 	// Has reports whether language can be parsed.
-	Has(language string) bool
+	Has(ctx context.Context, language string) bool
 	// Query compiles query and runs it on a live parse of src.
-	Query(src []byte, language, query string) ([]QueryMatch, error)
+	Query(ctx context.Context, src []byte, language, query string) ([]QueryMatch, error)
 }
 
 // CheckLanguage reports ErrUnsupportedLanguage when language is empty.

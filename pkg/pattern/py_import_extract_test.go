@@ -30,11 +30,11 @@ func TestPythonFromImportExtract(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+		w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 		if err != nil {
 			t.Fatal(err)
 		}
-		pf, lang, err := w.ParseAttributed([]byte(tc.src), "pkg/app.py")
+		pf, lang, err := w.ParseAttributed(t.Context(), []byte(tc.src), "pkg/app.py")
 		if err != nil {
 			t.Fatalf("%q: %v", tc.src, err)
 		}
@@ -63,11 +63,11 @@ func TestPythonFromImportFansOutNames(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "pkg/app.py")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "pkg/app.py")
 	if err != nil {
 		t.Fatal(err)
 	}

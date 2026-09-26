@@ -51,7 +51,7 @@ func DocFromResult(ctx context.Context, policy PackQueries, dir string, result *
 	if entity == nil {
 		return nil, fmt.Errorf("%w: %s", ErrEntityNotFound, reference)
 	}
-	return docForEntity(policy, dir, result, ref, entity)
+	return docForEntity(ctx, policy, dir, result, ref, entity)
 }
 
 // DocFromProviderResult picks the unique provider symbol in an already-loaded Result.
@@ -98,10 +98,10 @@ func DocFromProviderResult(ctx context.Context, policy PackQueries, result *proj
 
 	entity := &result.Atoms[matches[0]]
 	entityRef := ParseReference(entity.Reference)
-	return docForEntity(policy, target.Dir, result, entityRef, entity)
+	return docForEntity(ctx, policy, target.Dir, result, entityRef, entity)
 }
 
-func docForEntity(policy PackQueries, dir string, result *project.Result, ref Reference, entity *project.Atom) (*DocResult, error) {
+func docForEntity(ctx context.Context, policy PackQueries, dir string, result *project.Result, ref Reference, entity *project.Atom) (*DocResult, error) {
 	relPath := strings.TrimPrefix(ref.Path, "./")
 	filePath := lewpath.New(dir, relPath).String()
 
@@ -116,7 +116,7 @@ func docForEntity(policy PackQueries, dir string, result *project.Result, ref Re
 	if language == "" {
 		return nil, fmt.Errorf("%w for %s", ErrUnsupportedLanguage, filePath)
 	}
-	if err := ingestutil.RequireGrammar(ccgo.Engine{}, language); err != nil {
+	if err := ingestutil.RequireGrammar(ctx, ccgo.Engine{}, language); err != nil {
 		return nil, fmt.Errorf("%w for %s: %v", ErrUnsupportedLanguage, filePath, err)
 	}
 
@@ -124,7 +124,7 @@ func docForEntity(policy PackQueries, dir string, result *project.Result, ref Re
 	if err != nil {
 		return nil, err
 	}
-	pf, err := ingestutil.ParseSource(ccgo.Engine{}, source, filePath, language)
+	pf, err := ingestutil.ParseSource(ctx, ccgo.Engine{}, source, filePath, language)
 	if err != nil {
 		return nil, err
 	}

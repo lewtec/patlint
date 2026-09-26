@@ -18,11 +18,11 @@ func TestJSNamedImportExtract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pf, _, err := w.ParseAttributed(src, "main.js")
+	pf, _, err := w.ParseAttributed(t.Context(), src, "main.js")
 	if err != nil {
 		t.Fatal(err)
 	}

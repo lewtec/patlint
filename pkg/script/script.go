@@ -103,17 +103,20 @@ func Load(path, src string) (*Program, error) {
 const preludeRulesFile = "rules_rft.rft"
 
 // mergePreludeRules appends always-on prelude rule actions not already in prog.
-func mergePreludeRules(prog *Program) *Program {
+func mergePreludeRules(prog *Program) (*Program, error) {
 	if prog == nil {
 		prog = &Program{Path: "<builtin>"}
 	}
 	b, err := fs.ReadFile(prelude.FS, preludeRulesFile)
 	if err != nil {
-		return prog
+		return nil, fmt.Errorf("prelude rules: %w", err)
 	}
 	extra, err := Load(preludeRulesFile, string(b))
-	if err != nil || extra == nil {
-		return prog
+	if err != nil {
+		return nil, fmt.Errorf("prelude rules: %w", err)
+	}
+	if extra == nil {
+		return prog, nil
 	}
 	have := make(map[string]bool, len(prog.Actions))
 	for _, a := range prog.Actions {
@@ -129,11 +132,11 @@ func mergePreludeRules(prog *Program) *Program {
 		add = append(add, a)
 	}
 	if len(add) == 0 {
-		return prog
+		return prog, nil
 	}
 	prog.Actions = append(prog.Actions, add...)
 	prog.plan = CompilePlan(prog)
-	return prog
+	return prog, nil
 }
 
 func decodeVM(path string, vm *pattern.LispVM) (*Program, error) {
@@ -429,7 +432,7 @@ func Run(ctx context.Context, sess *project.Session, prog *Program, opts Options
 	if err != nil {
 		return out, err
 	}
-	walker, err := walker.NewWalker(sess, vm)
+	walker, err := walker.NewWalker(ctx, sess, vm)
 	if err != nil {
 		return out, err
 	}
@@ -446,7 +449,7 @@ func Run(ctx context.Context, sess *project.Session, prog *Program, opts Options
 		if err != nil {
 			return err
 		}
-		pf, err := ingestutil.ParseSource(sess.Engine(), source, abs, ingest.GrammarID(vm, lang))
+		pf, err := ingestutil.ParseSource(ctx, sess.Engine(), source, abs, ingest.GrammarID(vm, lang))
 		if err != nil {
 			return fmt.Errorf("parse %s: %w", rel, err)
 		}
@@ -491,7 +494,7 @@ func Run(ctx context.Context, sess *project.Session, prog *Program, opts Options
 			if ug.Region == nil || !ug.Region.AcceptsFile(rel) {
 				continue
 			}
-			regs, err := pattern.MatchFileMatcherPolicy(sess, rootAbs, rel, source, pf.Root, ug.Region, fileResult, pol)
+			regs, err := pattern.MatchFileMatcherPolicy(ctx, sess, rootAbs, rel, source, pf.Root, ug.Region, fileResult, pol)
 			if err != nil {
 				return fmt.Errorf("spine under region: %w", err)
 			}
@@ -515,7 +518,7 @@ func Run(ctx context.Context, sess *project.Session, prog *Program, opts Options
 			if act.Matcher == nil || !act.Matcher.AcceptsFile(rel) {
 				continue
 			}
-			ms, err := pattern.MatchFileMatcherPolicy(sess, rootAbs, rel, source, pf.Root, act.Matcher, fileResult, pol)
+			ms, err := pattern.MatchFileMatcherPolicy(ctx, sess, rootAbs, rel, source, pf.Root, act.Matcher, fileResult, pol)
 			if err != nil {
 				return fmt.Errorf("%s step %d: match %s: %w", act.Source, act.Index, rel, err)
 			}

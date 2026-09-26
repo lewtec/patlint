@@ -19,11 +19,11 @@ func TestBuildTape_Go(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cells, lang, err := w.BuildTape(src, "main.go")
+	cells, lang, err := w.BuildTape(t.Context(), src, "main.go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,11 +44,11 @@ func TestBuildTape_AstroFrontmatterEmbed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cells, lang, err := w.BuildTape(src, "BaseHead.astro")
+	cells, lang, err := w.BuildTape(t.Context(), src, "BaseHead.astro")
 	if err != nil {
 		t.Fatal(err)
 	}

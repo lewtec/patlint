@@ -59,11 +59,11 @@ func TestProductClaimsRftAndLoadsCommonPaint(t *testing.T) {
 		t.Fatal("program has no paint actions (language_common/highlight not loaded?)")
 	}
 	src := []byte("(under (path \"**/*.go\") (as-language \"go\"))\n")
-	w, err := walker.NewWalker(project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cells, gotLang, err := w.BuildTape(src, "demo.rft")
+	cells, gotLang, err := w.BuildTape(t.Context(), src, "demo.rft")
 	if err != nil {
 		t.Fatal(err)
 	}

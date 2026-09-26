@@ -371,7 +371,7 @@ func parseFile(ctx context.Context, sess *project.Session, dir, absPath string, 
 		}()
 
 		gid := GrammarID(policy, hostLang)
-		if gerr := ingestutil.RequireGrammar(sess.Engine(), gid); gerr != nil {
+		if gerr := ingestutil.RequireGrammar(ctx, sess.Engine(), gid); gerr != nil {
 			parseErr = fmt.Errorf("%s: %w", relPath, gerr)
 			return
 		}
@@ -383,7 +383,7 @@ func parseFile(ctx context.Context, sess *project.Session, dir, absPath string, 
 			"attrib", "policy",
 		)
 		tParse := time.Now()
-		pf, err := ingestutil.ParseSource(sess.Engine(), source, relPath, gid)
+		pf, err := ingestutil.ParseSource(ctx, sess.Engine(), source, relPath, gid)
 		parseDur = time.Since(tParse)
 		if err != nil {
 			parseErr = err

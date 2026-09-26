@@ -11,19 +11,19 @@ func TestParse_contract(t *testing.T) {
 	t.Parallel()
 	e := Engine{}
 	src := []byte("package p\n")
-	if e.Has("") || e.Has("no-such-lang") {
+	if e.Has(t.Context(), "") || e.Has(t.Context(), "no-such-lang") {
 		t.Fatal("Has empty/unknown")
 	}
-	if !e.Has("go") {
+	if !e.Has(t.Context(), "go") {
 		t.Fatal("Has(go)=false")
 	}
-	if _, err := e.Parse(src, ""); !errors.Is(err, sitter.ErrUnsupportedLanguage) {
+	if _, err := e.Parse(t.Context(), src, ""); !errors.Is(err, sitter.ErrUnsupportedLanguage) {
 		t.Fatalf("empty language: err=%v", err)
 	}
-	if _, err := e.Parse(src, "no-such-lang"); !errors.Is(err, sitter.ErrUnsupportedLanguage) {
+	if _, err := e.Parse(t.Context(), src, "no-such-lang"); !errors.Is(err, sitter.ErrUnsupportedLanguage) {
 		t.Fatalf("unknown language: err=%v", err)
 	}
-	tree, err := e.Parse(src, "go")
+	tree, err := e.Parse(t.Context(), src, "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func TestParse_contract(t *testing.T) {
 func TestParse_goFuncFields(t *testing.T) {
 	t.Parallel()
 	src := []byte("package p\nfunc f() {}\n")
-	tree, err := Engine{}.Parse(src, "go")
+	tree, err := Engine{}.Parse(t.Context(), src, "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestParse_goFuncFields(t *testing.T) {
 func TestQuery_goFuncName(t *testing.T) {
 	t.Parallel()
 	src := []byte("package p\nfunc f() {}\n")
-	matches, err := Engine{}.Query(src, "go", `(function_declaration name: (identifier) @name)`)
+	matches, err := Engine{}.Query(t.Context(), src, "go", `(function_declaration name: (identifier) @name)`)
 	if err != nil {
 		t.Fatal(err)
 	}

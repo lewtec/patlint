@@ -5,7 +5,7 @@ import (
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
 )
 
-// newSession is the CLI entry: OS view plus the ccgo grammar engine.
+// newSession is the CLI entry: OS view plus the lewkit tree-sitter engine.
 func newSession(root string) *project.Session {
 	return project.NewSession(root).WithEngine(ccgo.Engine{})
 }

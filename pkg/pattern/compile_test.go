@@ -94,7 +94,7 @@ func mustPatToNode(t *testing.T, p Pat) Node {
 
 func mustParseRoot(t *testing.T, abs string) *sitter.Node {
 	t.Helper()
-	pf, err := ingestutil.ParseSourceFile(ccgo.Engine{}, abs, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, abs, "go")
 	if err != nil {
 		t.Fatal(err)
 	}

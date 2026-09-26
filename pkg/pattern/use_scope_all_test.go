@@ -35,7 +35,7 @@ func TestUseScope_MultiLang(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.path, func(t *testing.T) {
-			pf, err := ingestutil.ParseSource(ccgo.Engine{}, tc.src, tc.path, tc.lang)
+			pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, tc.src, tc.path, tc.lang)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -1,6 +1,7 @@
 package ccgo
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/lewtec/patlint/pkg/sitter"
@@ -8,7 +9,11 @@ import (
 )
 
 // Query implements [sitter.Engine].
-func (Engine) Query(src []byte, language, query string) ([]sitter.QueryMatch, error) {
+// The lewkit driver has no query API yet, so this still uses the ccgo grammar runtime.
+func (Engine) Query(ctx context.Context, src []byte, language, query string) ([]sitter.QueryMatch, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("nil context")
+	}
 	if err := sitter.CheckLanguage(language); err != nil {
 		return nil, err
 	}

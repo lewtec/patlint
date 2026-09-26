@@ -21,7 +21,7 @@ func Max(a, b int) int {
 	return b
 }
 `)
-	pf, err := ingestutil.ParseSource(ccgo.Engine{}, src, "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
 	if err != nil {
 		t.Fatal(err)
 	}

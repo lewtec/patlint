@@ -209,7 +209,7 @@ func AbstractFileResult(ctx context.Context, policy PackQueries, sess *project.S
 	}
 	var out []AbstractUnit
 	if onlyFuncs {
-		out = append(out, abstractUnitsFromEmbedded(ctx, policy, sess, embedRegions(policy, filePath, source, root), filePath, result)...)
+		out = append(out, abstractUnitsFromEmbedded(ctx, policy, sess, embedRegions(ctx, policy, filePath, source, root), filePath, result)...)
 	}
 	out = append(out, abstractUnitsFromTree(ctx, policy, sess, root, source, filePath, onlyFuncs, result)...)
 	return out
@@ -229,7 +229,7 @@ func abstractUnitsFromEmbedded(ctx context.Context, policy PackQueries, sess *pr
 		if hint == "" {
 			hint = filePath
 		}
-		pf, err := ingestutil.ParseSource(sess.Engine(), reg.Source, hint, lang)
+		pf, err := ingestutil.ParseSource(ctx, sess.Engine(), reg.Source, hint, lang)
 		if err != nil || pf == nil || pf.Root == nil {
 			if pf != nil {
 				pf.Close()
