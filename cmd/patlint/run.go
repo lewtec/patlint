@@ -17,12 +17,11 @@ type runCmd struct {
 	projectDir
 	langFilter
 	backupFlag
-	format         cmd.StringArg `long:"format" help:"output format: rustc, text, table, or sarif" default:"rustc"`
-	fix            cmd.Flag      `long:"fix" help:"apply non-conflicting fixes from rewrite actions"`
-	dryRun         cmd.Flag      `short:"n" long:"dry-run" help:"with --fix: show planned edits without writing"`
-	operands       []cmd.StringArg
-	pathsAfterDash []string
-	hasDash        bool
+	format cmd.StringArg `long:"format" help:"output format: rustc, text, table, or sarif" default:"rustc"`
+	fix    cmd.Flag      `long:"fix" help:"apply non-conflicting fixes from rewrite actions"`
+	dryRun cmd.Flag      `short:"n" long:"dry-run" help:"with --fix: show planned edits without writing"`
+	packs  []cmd.StringArg
+	paths  []cmd.StringArg
 }
 
 func (runCmd) Description() string {
@@ -66,11 +65,8 @@ func (c *runCmd) Run(ctx context.Context) error {
 	if _, err := report.NormalizeFormat(format); err != nil {
 		return errExit{code: 2, err: err}
 	}
-	packArgs := cmd.Values(c.operands)
-	var paths []string
-	if c.hasDash {
-		paths = c.pathsAfterDash
-	}
+	packArgs := cmd.Values(c.packs)
+	paths := cmd.Values(c.paths)
 
 	sess := newSession(c.dir.Value())
 	root := sess.Root
@@ -165,19 +161,4 @@ func resolveRunScripts(packArgs []string, start string) (scripts []string, warn 
 		warn = fmt.Sprintf("no .rft scripts under %s (*.rft or %s/*.rft); running builtins only", packRoot, script.PackSubdir)
 	}
 	return scripts, warn, nil
-}
-
-// splitRunArgs separates pack/script operands from file paths.
-// If "--" is present, args before are packs/scripts, after are paths.
-// Without "--", all args are packs/scripts (paths default at call site).
-func splitRunArgs(args []string, dash int) (packs, paths []string) {
-	if dash >= 0 {
-		return args[:dash], args[dash:]
-	}
-	for i, a := range args {
-		if a == "--" {
-			return args[:i], args[i+1:]
-		}
-	}
-	return args, nil
 }

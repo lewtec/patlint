@@ -38,30 +38,9 @@ func Execute(ctx context.Context) error {
 }
 
 func execute(ctx context.Context, args []string) error {
-	left, right, hasDash := peelRunDash(args)
-	app, err := cmd.Parse[cmd.App[cli]](left...)
+	app, err := cmd.Parse[cmd.App[cli]](args...)
 	if err != nil {
 		return err
 	}
-	if app.Args.RunCmd != nil && hasDash {
-		app.Args.RunCmd.pathsAfterDash = right
-		app.Args.RunCmd.hasDash = true
-	}
 	return app.Run(ctx)
-}
-
-// peelRunDash splits argv at the first bare "--" after the run command.
-// lewkit treats "--" as end-of-flags; patlint run uses it as pack/path separator.
-func peelRunDash(args []string) (left, right []string, hasDash bool) {
-	seenRun := false
-	for i, a := range args {
-		if a == "run" {
-			seenRun = true
-			continue
-		}
-		if seenRun && a == "--" {
-			return args[:i], args[i+1:], true
-		}
-	}
-	return args, nil, false
 }
