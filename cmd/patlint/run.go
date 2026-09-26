@@ -61,93 +61,93 @@ Exit 1 if any reported finding remains. Exit 0 when clean.
 Tool errors use a non-zero exit with a message on stderr.`
 }
 
-func (c *runCmd) Run(ctx context.Context) error {
-	format := c.format.Value()
+func (command *runCmd) Run(ctx context.Context) error {
+	format := command.format.Value()
 	if _, err := report.NormalizeFormat(format); err != nil {
-		return errExit{code: 2, err: err}
+		return exitError{exitCode: 2, cause: err}
 	}
-	packArgs := cmd.Values(c.packs)
-	paths := cmd.Values(c.paths)
+	packArguments := cmd.Values(command.packs)
+	paths := cmd.Values(command.paths)
 
-	sess := newSession(c.dir.Value())
-	root := sess.Root
+	session := newSession(command.directory.Value())
+	root := session.Root
 	if len(paths) == 0 {
 		paths = []string{"."}
 	}
 
-	scriptPaths, warn, err := resolveRunScripts(packArgs, root)
+	scriptPaths, warning, err := resolveRunScripts(packArguments, root)
 	if err != nil {
-		return errExit{code: 2, err: err}
+		return exitError{exitCode: 2, cause: err}
 	}
-	if warn != "" {
-		fmt.Fprintln(os.Stderr, "warning:", warn)
+	if warning != "" {
+		fmt.Fprintln(os.Stderr, "warning:", warning)
 	}
 
-	var progs []*script.Program
-	for _, sp := range scriptPaths {
-		prog, err := script.LoadFile(sp)
+	var programs []*script.Program
+	for _, scriptPath := range scriptPaths {
+		program, err := script.LoadFile(scriptPath)
 		if err != nil {
-			return errExit{code: 2, err: err}
+			return exitError{exitCode: 2, cause: err}
 		}
-		progs = append(progs, prog)
+		programs = append(programs, program)
 	}
-	merged := script.MergePrograms(strings.Join(scriptPaths, "+"), progs)
+	merged := script.MergePrograms(strings.Join(scriptPaths, "+"), programs)
 	if merged.Path == "" {
 		merged.Path = "<builtin>"
 	}
 	merged, err = script.EnsureDeadImports(merged)
 	if err != nil {
-		return errExit{code: 2, err: err}
+		return exitError{exitCode: 2, cause: err}
 	}
 
-	opts := script.Options{Paths: paths, LangFilter: c.lang.Value()}
+	options := script.Options{Paths: paths, LangFilter: command.language.Value()}
 	if slog.Default().Enabled(ctx, slog.LevelDebug) {
-		opts.OnFinding = func(f report.Finding) {
-			_ = report.WriteFinding(os.Stderr, f)
+		options.OnFinding = func(finding report.Finding) {
+			_ = report.WriteFinding(os.Stderr, finding)
 		}
 	}
 
-	res, err := script.Run(ctx, sess, merged, opts)
+	result, err := script.Run(ctx, session, merged, options)
 	if err != nil {
-		return errExit{code: 2, err: err}
+		return exitError{exitCode: 2, cause: err}
 	}
 
 	committer := apply.Committer{
 		StandardError: os.Stderr,
 		Input:         os.Stdin,
-		DryRun:        c.dryRun.Value(),
-		Backup:        c.backup.Value(),
+		DryRun:        command.dryRun.Value(),
+		Backup:        command.backup.Value(),
 	}
-	if c.fix.Value() && len(res.ApplyEdits) > 0 {
-		if err := committer.Edits(ctx, root, res.ApplyEdits); err != nil {
-			return errExit{code: 2, err: err}
+	if command.fix.Value() && len(result.ApplyEdits) > 0 {
+		if err := committer.Edits(ctx, root, result.ApplyEdits); err != nil {
+			return exitError{exitCode: 2, cause: err}
 		}
 		if !committer.DryRun {
-			res, err = script.Run(ctx, sess, merged, opts)
+			result, err = script.Run(ctx, session, merged, options)
 			if err != nil {
-				return errExit{code: 2, err: err}
+				return exitError{exitCode: 2, cause: err}
 			}
 		}
 	}
 
-	if err := report.WriteFormat(ctx, os.Stdout, format, root, res.Findings, script.ReportRules(res)); err != nil {
-		return errExit{code: 2, err: err}
+	if err := report.WriteFormat(ctx, os.Stdout, format, root, result.Findings, script.ReportRules(result)); err != nil {
+		return exitError{exitCode: 2, cause: err}
 	}
 
-	if len(res.Findings) > 0 {
-		return errExit{code: 1}
+	if len(result.Findings) > 0 {
+		return exitError{exitCode: 1}
 	}
 	return nil
 }
 
-// resolveRunScripts expands pack operands. Empty packArgs → repo root pack
+// resolveRunScripts expands pack operands. Empty packArguments → repo root pack
 // (warn if no scripts). Non-empty → ExpandScriptArgs only (no discovery merge).
-func resolveRunScripts(packArgs []string, start string) (scripts []string, warn string, err error) {
-	if len(packArgs) > 0 {
-		scripts, err = script.ExpandScriptArgs(packArgs)
+func resolveRunScripts(packArguments []string, startDirectory string) (scripts []string, warning string, err error) {
+	if len(packArguments) > 0 {
+		scripts, err = script.ExpandScriptArgs(packArguments)
 		return scripts, "", err
 	}
-	packRoot, err := reporoot.Find(start)
+	packRoot, err := reporoot.Find(startDirectory)
 	if err != nil {
 		return nil, "", fmt.Errorf("run: pack root: %w", err)
 	}
@@ -156,7 +156,7 @@ func resolveRunScripts(packArgs []string, start string) (scripts []string, warn 
 		return nil, "", err
 	}
 	if len(scripts) == 0 {
-		warn = fmt.Sprintf("no .rft scripts under %s (*.rft or %s/*.rft); running builtins only", packRoot, script.PackSubdir)
+		warning = fmt.Sprintf("no .rft scripts under %s (*.rft or %s/*.rft); running builtins only", packRoot, script.PackSubdir)
 	}
-	return scripts, warn, nil
+	return scripts, warning, nil
 }

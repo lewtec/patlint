@@ -18,11 +18,11 @@ func (cli) Description() string {
 }
 
 type projectDir struct {
-	dir cmd.WorkDirArg `short:"C" long:"dir" help:"project root"`
+	directory cmd.WorkDirArg `short:"C" long:"dir" help:"project root"`
 }
 
 type langFilter struct {
-	lang cmd.StringArg `short:"l" long:"lang" help:"language or family filter" default:""`
+	language cmd.StringArg `short:"l" long:"lang" help:"language or family filter" default:""`
 }
 
 type backupFlag struct {

@@ -17,10 +17,10 @@ import (
 type grepCmd struct {
 	projectDir
 	langFilter
-	showVars cmd.Flag      `long:"vars" help:"with --format=text: print captures under each match"`
-	format   cmd.StringArg `long:"format" help:"output format: text, csv, or jsonl" default:"text"`
-	pat      cmd.StringArg `help:"pattern"`
-	paths    []cmd.StringArg
+	showVariables cmd.Flag      `long:"vars" help:"with --format=text: print captures under each match"`
+	format        cmd.StringArg `long:"format" help:"output format: text, csv, or jsonl" default:"text"`
+	pattern       cmd.StringArg `help:"pattern"`
+	paths         []cmd.StringArg
 }
 
 func (grepCmd) Description() string {
@@ -53,104 +53,104 @@ Formats are pluggable (pattern.GrepFormatter); more can be added later.
 Exit status is 0 if any match, 1 if none, 2 on error.`
 }
 
-func (c *grepCmd) Run(ctx context.Context) error {
-	format := strings.ToLower(strings.TrimSpace(c.format.Value()))
-	op, err := pattern.OpFromCLI("grep", c.lang.Value(), c.pat.Value(), "")
+func (command *grepCmd) Run(ctx context.Context) error {
+	format := strings.ToLower(strings.TrimSpace(command.format.Value()))
+	operation, err := pattern.OpFromCLI("grep", command.language.Value(), command.pattern.Value(), "")
 	if err != nil {
-		return errExit{code: 2, err: err}
+		return exitError{exitCode: 2, cause: err}
 	}
-	sess := newSession(c.dir.Value())
+	session := newSession(command.directory.Value())
 
-	var enc pattern.GrepFormatter
+	var formatter pattern.GrepFormatter
 	switch format {
 	case "text":
-		enc = pattern.NewTextGrepFormatter(c.showVars.Value())
+		formatter = pattern.NewTextGrepFormatter(command.showVariables.Value())
 	default:
-		enc, err = pattern.NewGrepFormatter(format)
+		formatter, err = pattern.NewGrepFormatter(format)
 		if err != nil {
-			return errExit{code: 2, err: err}
+			return exitError{exitCode: 2, cause: err}
 		}
 	}
 
-	varNames := pattern.CaptureNames(op.PatternIR)
-	if op.Matcher != nil {
-		varNames = op.Matcher.CaptureNames()
+	captureNames := pattern.CaptureNames(operation.PatternIR)
+	if operation.Matcher != nil {
+		captureNames = operation.Matcher.CaptureNames()
 	}
-	out := os.Stdout
-	if err := enc.Begin(out, varNames); err != nil {
-		return errExit{code: 2, err: err}
+	output := os.Stdout
+	if err := formatter.Begin(output, captureNames); err != nil {
+		return exitError{exitCode: 2, cause: err}
 	}
 
-	vm, err := pattern.New(prelude.FS)
+	lispVM, err := pattern.New(prelude.FS)
 	if err != nil {
-		return errExit{code: 2, err: err}
+		return exitError{exitCode: 2, cause: err}
 	}
-	w, err := walker.NewWalker(ctx, sess, vm)
+	fileWalker, err := walker.NewWalker(ctx, session, lispVM)
 	if err != nil {
-		return errExit{code: 2, err: err}
+		return exitError{exitCode: 2, cause: err}
 	}
 
 	matchCount := 0
-	err = w.Stream(ctx, op, pattern.StreamOptions{
-		Paths: cmd.Values(c.paths),
-		OnMatch: func(m pattern.Match, source []byte) bool {
-			line, col, snippet, err := matchDisplay(source, m)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "display %s: %v\n", m.File, err)
+	err = fileWalker.Stream(ctx, operation, pattern.StreamOptions{
+		Paths: cmd.Values(command.paths),
+		OnMatch: func(match pattern.Match, source []byte) bool {
+			line, column, snippet, displayErr := matchDisplay(source, match)
+			if displayErr != nil {
+				fmt.Fprintf(os.Stderr, "display %s: %v\n", match.File, displayErr)
 				return true
 			}
 			hit := pattern.GrepHit{
-				File:     m.File,
+				File:     match.File,
 				Line:     line,
-				Col:      col,
+				Col:      column,
 				Match:    snippet,
-				Captures: pattern.PublicCaptures(m, source),
+				Captures: pattern.PublicCaptures(match, source),
 			}
-			if err := enc.Format(out, hit, varNames); err != nil {
+			if err := formatter.Format(output, hit, captureNames); err != nil {
 				return false
 			}
 			matchCount++
 			return true
 		},
 	})
-	if endErr := enc.End(out); endErr != nil && err == nil {
+	if endErr := formatter.End(output); endErr != nil && err == nil {
 		err = endErr
 	}
 	if err != nil {
-		return errExit{code: 2, err: err}
+		return exitError{exitCode: 2, cause: err}
 	}
 	if matchCount == 0 {
-		return errExit{code: 1}
+		return exitError{exitCode: 1}
 	}
 	return nil
 }
 
-func matchDisplay(src []byte, m pattern.Match) (line, col int, snippet string, err error) {
-	if int(m.EndByte) > len(src) || m.StartByte > m.EndByte {
-		return 0, 0, "", fmt.Errorf("%w in %s", ErrMatchSpan, m.File)
+func matchDisplay(source []byte, match pattern.Match) (line, column int, snippet string, err error) {
+	if int(match.EndByte) > len(source) || match.StartByte > match.EndByte {
+		return 0, 0, "", fmt.Errorf("%w in %s", ErrMatchSpan, match.File)
 	}
-	li := text.NewLineIndexBytes(src)
-	l, c0 := li.LineColumnAtU32(m.StartByte)
-	text := string(src[m.StartByte:m.EndByte])
-	if i := strings.IndexByte(text, '\n'); i >= 0 {
-		text = text[:i] + "…"
+	lineIndex := text.NewLineIndexBytes(source)
+	lineNumber, columnIndex := lineIndex.LineColumnAtU32(match.StartByte)
+	matchedText := string(source[match.StartByte:match.EndByte])
+	if newline := strings.IndexByte(matchedText, '\n'); newline >= 0 {
+		matchedText = matchedText[:newline] + "…"
 	}
-	return l, c0 + 1, text, nil
+	return lineNumber, columnIndex + 1, matchedText, nil
 }
 
-// errExit carries a process exit code for main.
-type errExit struct {
-	code int
-	err  error
+// exitError carries a process exit code for main.
+type exitError struct {
+	exitCode int
+	cause    error
 }
 
-func (e errExit) Error() string {
-	if e.err == nil {
+func (exit exitError) Error() string {
+	if exit.cause == nil {
 		return ""
 	}
-	return e.err.Error()
+	return exit.cause.Error()
 }
 
-func (e errExit) ExitCode() int { return e.code }
+func (exit exitError) ExitCode() int { return exit.exitCode }
 
-func (e errExit) Unwrap() error { return e.err }
+func (exit exitError) Unwrap() error { return exit.cause }

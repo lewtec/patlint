@@ -43,31 +43,31 @@ Examples:
     '(seq "\"" (slot) "\"")'`
 }
 
-func (c *rewriteCmd) Run(ctx context.Context) error {
-	patternText, replacement := c.pattern.Value(), c.replacement.Value()
-	language := c.lang.Value()
+func (command *rewriteCmd) Run(ctx context.Context) error {
+	patternText, replacement := command.pattern.Value(), command.replacement.Value()
+	language := command.language.Value()
 	if _, err := pattern.OpFromCLI("rewrite", language, patternText, replacement); err != nil {
 		return err
 	}
-	session := newSession(c.dir.Value())
+	session := newSession(command.directory.Value())
 	source := "(rewrite " + patternText + " " + replacement + ")"
 	if language != "" {
 		source = "(rewrite (under (lang " + language + ") " + patternText + ") " + replacement + ")"
 	}
-	vm, err := pattern.New(prelude.FS, pattern.FromString("rewrite.rft", source))
+	lispVM, err := pattern.New(prelude.FS, pattern.FromString("rewrite.rft", source))
 	if err != nil {
 		return err
 	}
-	out, err := vm.Run(ctx, session, cmd.Values(c.paths)...)
+	result, err := lispVM.Run(ctx, session, cmd.Values(command.paths)...)
 	if err != nil {
 		return err
 	}
 	committer := apply.Committer{
 		StandardError: os.Stderr,
 		Input:         os.Stdin,
-		Interactive:   c.interactive.Value(),
-		DryRun:        c.dryRun.Value(),
-		Backup:        c.backup.Value(),
+		Interactive:   command.interactive.Value(),
+		DryRun:        command.dryRun.Value(),
+		Backup:        command.backup.Value(),
 	}
-	return committer.Session(ctx, out)
+	return committer.Session(ctx, result)
 }
