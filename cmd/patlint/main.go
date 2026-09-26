@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-
-	"github.com/lewtec/lewkit/x/thread"
 )
 
 type exitCoder interface {
@@ -17,7 +15,7 @@ type exitCoder interface {
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-	if err := thread.Run(ctx, Execute); err != nil {
+	if err := Execute(ctx); err != nil {
 		code := 1
 		var ec exitCoder
 		if errors.As(err, &ec) {

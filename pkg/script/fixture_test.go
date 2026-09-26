@@ -1,7 +1,6 @@
 package script_test
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -132,7 +131,7 @@ func TestRunCase_deadImports(t *testing.T) {
 	gold := t.TempDir()
 	require.NoError(t, os.WriteFile(lewpath.New(gold, "main.go").String(), []byte(src), 0o644))
 	prog := script.EnsureDeadImports(&script.Program{Path: "<builtin>"})
-	fixRes, err := script.Run(context.Background(), project.NewSession(gold).WithEngine(ccgo.Engine{}), prog, script.Options{Paths: []string{"."}})
+	fixRes, err := script.Run(t.Context(), project.NewSession(gold).WithEngine(ccgo.Engine{}), prog, script.Options{Paths: []string{"."}})
 	require.NoError(t, err)
 	require.NotEmpty(t, fixRes.ApplyEdits)
 	require.NoError(t, project.ApplyEdits(t.Context(), gold, fixRes.ApplyEdits))
@@ -150,7 +149,7 @@ func TestRunCase_deadImports(t *testing.T) {
 
 	c, err := script.LoadCase(caseDir)
 	require.NoError(t, err)
-	res, err := script.RunCase(context.Background(), c, script.RunCaseOptions{PackRoot: root})
+	res, err := script.RunCase(t.Context(), c, script.RunCaseOptions{PackRoot: root})
 	require.NoError(t, err)
 	require.Empty(t, res.Failures)
 }
