@@ -11,3 +11,5 @@ patlint run .patlint -- .
 Rules are `.rft` files. A directory pack loads `$dir/*.rft` and `$dir/.patlint/*.rft` (not recursive). `patlint run` with no pack uses the git repository root. `patlint run --fix` applies non-overlapping rewrites.
 
 The engine is the structural matcher from [refactree](https://github.com/lucasew/refactree), cut down to grep, rewrite, and rule packs. Symbol move and clone detection are not in this tool.
+
+v1 parses with the grammars compiled into the binary. A later release will load grammars through the lewkit tree-sitter driver.
