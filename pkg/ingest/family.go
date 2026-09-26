@@ -1,25 +1,21 @@
 package ingest
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 	"sync"
 )
 
-// Family is a registered language-family handle. Create with RegisterFamily.
-// Language ids live on pack as-family claims, not on this registry.
+// Family is a registered import resolver for one language id.
+// Create with RegisterFamily. The id matches a pack as-family claim.
 type Family struct {
 	id      string
-	lattice MoveLattice
 	resolve func(spec string, ctx ImportResolveContext) string
 }
 
 // FamilySpec configures a family at registration time.
 type FamilySpec struct {
-	// Lattice is the higher-level move/module model (optional; nil = no mv lattice).
-	Lattice MoveLattice
-	// ResolveImport maps an import spec to a product ref (go.mod, node, …).
+	// ResolveImport maps an import spec to a product ref.
 	ResolveImport func(spec string, ctx ImportResolveContext) string
 }
 
@@ -28,8 +24,8 @@ var (
 	familyByID = map[string]*Family{}
 )
 
-// RegisterFamily registers a family. Panics on empty id, duplicate id, or nil
-// family after conflict checks.
+// RegisterFamily registers a family. Panics on an empty id.
+// A second registration of the same id keeps the first resolver unless it was nil.
 func RegisterFamily(id string, spec FamilySpec) *Family {
 	id = strings.TrimSpace(id)
 	if id == "" {
@@ -40,16 +36,12 @@ func RegisterFamily(id string, spec FamilySpec) *Family {
 	defer familyMu.Unlock()
 
 	if prev, ok := familyByID[id]; ok {
-		// Idempotent only when lattice identity matches (same pointer or both nil).
-		if (prev.lattice == nil && spec.Lattice == nil) || prev.lattice == spec.Lattice {
-			if spec.ResolveImport != nil && prev.resolve == nil {
-				prev.resolve = spec.ResolveImport
-			}
-			return prev
+		if spec.ResolveImport != nil && prev.resolve == nil {
+			prev.resolve = spec.ResolveImport
 		}
-		panic(fmt.Sprintf("ingest: family %q already registered with a different lattice", id))
+		return prev
 	}
-	f := &Family{id: id, lattice: spec.Lattice, resolve: spec.ResolveImport}
+	f := &Family{id: id, resolve: spec.ResolveImport}
 	familyByID[id] = f
 	return f
 }
@@ -62,20 +54,12 @@ func (f *Family) ResolveImport(spec string, ctx ImportResolveContext) string {
 	return f.resolve(spec, ctx)
 }
 
-// ID returns the registry family id (opaque registry string).
+// ID returns the registry family id.
 func (f *Family) ID() string {
 	if f == nil {
 		return ""
 	}
 	return f.id
-}
-
-// Lattice returns the family's move lattice, or nil.
-func (f *Family) Lattice() MoveLattice {
-	if f == nil {
-		return nil
-	}
-	return f.lattice
 }
 
 // FamilyByID looks up a registered family handle.
@@ -86,24 +70,15 @@ func FamilyByID(id string) (*Family, bool) {
 	return f, ok
 }
 
-// LatticeForFamily returns the move lattice registered for family id.
-func LatticeForFamily(familyID string) (MoveLattice, bool) {
-	f, ok := FamilyByID(familyID)
-	if !ok || f.lattice == nil {
-		return nil, false
-	}
-	return f.lattice, true
-}
-
 // IsKnownFamily reports whether family id was registered via RegisterFamily.
 func IsKnownFamily(family string) bool {
 	familyMu.RLock()
 	defer familyMu.RUnlock()
-	_, ok := familyByID[family]
+	_, ok := familyByID[strings.TrimSpace(family)]
 	return ok
 }
 
-// Families returns registered family ids in sorted order.
+// Families returns registered family ids in stable order.
 func Families() []string {
 	familyMu.RLock()
 	defer familyMu.RUnlock()

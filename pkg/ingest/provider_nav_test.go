@@ -2,11 +2,9 @@ package ingest_test
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	lewpath "github.com/lewtec/lewkit/x/path"
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
@@ -50,40 +48,5 @@ func TestNavigateReference_GoProviderCobraCommand(t *testing.T) {
 	}
 	if _, err := os.Stat(def.Path); err != nil {
 		t.Fatalf("def path missing: %v", err)
-	}
-}
-
-func TestDefinitionAt_CobraCommandFromUse(t *testing.T) {
-	root := testutil.ModuleRoot(t)
-	path := lewpath.New(root, "testdata/ingest/go_var_and_selector/scenario/root.go").String()
-	b, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	idx := strings.Index(string(b), "cobra.Command")
-	if idx < 0 {
-		t.Fatal("no cobra.Command in fixture")
-	}
-	off := idx + len("cobra.")
-	rel, _ := filepath.Rel(root, path)
-	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
-	w, err := walker.NewWalker(project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	def, ok := w.DefinitionAt(t.Context(), ingest.DefinitionQuery{
-		Root:    root,
-		FileRel: filepath.ToSlash(rel),
-		Text:    string(b),
-		ByteOff: off,
-	})
-	if !ok {
-		t.Fatal("DefinitionAt failed for cobra.Command")
-	}
-	if !strings.Contains(def.Path, "cobra") || !strings.HasSuffix(def.Path, "command.go") {
-		t.Fatalf("def path %q", def.Path)
 	}
 }

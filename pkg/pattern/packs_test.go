@@ -3,8 +3,6 @@ package pattern_test
 import (
 	"testing"
 
-	_ "github.com/lewtec/patlint/pkg/ingest/ecma"
-	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/pattern"
 )
 

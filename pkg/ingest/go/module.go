@@ -15,38 +15,13 @@ import (
 	goref "github.com/lewtec/patlint/pkg/reference/go"
 )
 
-// FamilyID is the Go package-directory lattice id.
+// FamilyID is the Go import-resolver id. It matches (as-family "go" …).
 const FamilyID = "go"
 
 // Family is the Go family handle (package ≡ directory). Surfaces: go, templ.
 var Family = ingest.RegisterFamily(FamilyID, ingest.FamilySpec{
-	Lattice:       goLattice{},
 	ResolveImport: ResolveImport,
 })
-
-type goLattice struct{}
-
-func (goLattice) Grains() []ingest.MoveGrain {
-	return []ingest.MoveGrain{ingest.MoveGrainAtom, ingest.MoveGrainPackage}
-}
-
-func (goLattice) ModuleKey(filePath string) string { return ingest.DirModuleKey(filePath) }
-
-func (m goLattice) SameModule(a, b string) bool { return m.ModuleKey(a) == m.ModuleKey(b) }
-
-func (goLattice) ListNodes(result *project.Result, grain ingest.MoveGrain, projectFamily string) []ingest.MoveNode {
-	switch grain {
-	case ingest.MoveGrainAtom:
-		return ingest.ListAtomMoveNodes(result, projectFamily, func(name string) bool {
-			// init() is runtime-invoked; not an ordinary move/rename source.
-			return name == "init"
-		})
-	case ingest.MoveGrainPackage:
-		return ingest.ListPackageMoveNodes(result, projectFamily, nil)
-	default:
-		return nil
-	}
-}
 
 func init() {
 	ingest.RegisterReferenceProvider("go", referenceProvider{})

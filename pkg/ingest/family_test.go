@@ -13,17 +13,15 @@ func TestRegisterFamily(t *testing.T) {
 	const famID = "testfam_registry"
 	const lang = "testlang_registry"
 
-	f := ingest.RegisterFamily(famID, ingest.FamilySpec{
-		Lattice: stubLattice{},
-	})
+	f := ingest.RegisterFamily(famID, ingest.FamilySpec{})
 	if f.ID() != famID {
 		t.Fatalf("ID=%q", f.ID())
 	}
 	if got, ok := ingest.FamilyByID(famID); !ok || got.ID() != famID {
 		t.Fatal("FamilyByID")
 	}
-	if _, ok := ingest.LatticeForFamily(famID); !ok {
-		t.Fatal("LatticeForFamily")
+	if !ingest.IsKnownFamily(famID) {
+		t.Fatal("IsKnownFamily")
 	}
 	claims := []project.FamilyClaim{{Lang: lang, Family: famID}}
 	if got := project.FamilyIDForLanguage(claims, lang); got != famID {
@@ -62,13 +60,4 @@ func TestLanguageInFamilyConflictClaims(t *testing.T) {
 	if !project.LanguageInFamily(claims, lang, famA) {
 		t.Fatal("lang claimed by A")
 	}
-}
-
-type stubLattice struct{}
-
-func (stubLattice) Grains() []ingest.MoveGrain  { return []ingest.MoveGrain{ingest.MoveGrainAtom} }
-func (stubLattice) ModuleKey(string) string     { return "" }
-func (stubLattice) SameModule(a, b string) bool { return a == b }
-func (stubLattice) ListNodes(*project.Result, ingest.MoveGrain, string) []ingest.MoveNode {
-	return nil
 }

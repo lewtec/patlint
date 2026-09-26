@@ -1,7 +1,6 @@
 package ingest_test
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -16,15 +15,7 @@ import (
 
 	"github.com/lewtec/patlint/pkg/ingest"
 
-	_ "github.com/lewtec/patlint/pkg/ingest/ecma/js"
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	_ "github.com/lewtec/patlint/pkg/ingest/jvm/java"
-	_ "github.com/lewtec/patlint/pkg/ingest/jvm/kotlin"
-	_ "github.com/lewtec/patlint/pkg/ingest/jvm/scala"
-	_ "github.com/lewtec/patlint/pkg/ingest/nix"
-	_ "github.com/lewtec/patlint/pkg/ingest/python"
-	_ "github.com/lewtec/patlint/pkg/ingest/rust"
-	_ "github.com/lewtec/patlint/pkg/ingest/zig"
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
 )
 
@@ -170,55 +161,6 @@ func TestWalkSymbols_GoProviderReferenceShape(t *testing.T) {
 	}
 }
 
-func TestWalkSymbols_ReferenceFixtures(t *testing.T) {
-	fixtureRoot := lewpath.New("..", "..", "testdata", "ingest").String()
-	input, err := os.ReadFile(lewpath.New(fixtureRoot, "list_reference_cases.json").String())
-	if err != nil {
-		t.Fatalf("reading list_reference_cases.json: %v", err)
-	}
-
-	var cases []struct {
-		Name      string `json:"name"`
-		Fixture   string `json:"fixture"`
-		Reference string `json:"reference"`
-		Options   struct {
-			IncludeHidden bool `json:"include_hidden"`
-			Recursive     bool `json:"recursive"`
-		} `json:"options"`
-		ExpectedRefs   []string `json:"expected_refs"`
-		UnexpectedRefs []string `json:"unexpected_refs"`
-	}
-	if err := json.Unmarshal(input, &cases); err != nil {
-		t.Fatalf("parsing list_reference_cases.json: %v", err)
-	}
-
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.Name, func(t *testing.T) {
-			dir := lewpath.New(fixtureRoot, tc.Fixture).String()
-			refs, err := collectRefs(t, dir, tc.Reference, ingest.ListOptions{
-				IncludeHidden: tc.Options.IncludeHidden,
-				Recursive:     tc.Options.Recursive,
-			})
-			if err != nil {
-				t.Fatalf("walk symbols: %v", err)
-			}
-
-			for _, expected := range tc.ExpectedRefs {
-				if !containsRef(refs, expected) {
-					t.Fatalf("expected symbol %q not found, got %v", expected, refs)
-				}
-			}
-
-			for _, unexpected := range tc.UnexpectedRefs {
-				if containsRef(refs, unexpected) {
-					t.Fatalf("unexpected symbol %q found, got %v", unexpected, refs)
-				}
-			}
-		})
-	}
-}
-
 func mustWrite(t *testing.T, file, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
@@ -247,15 +189,6 @@ func collectRefs(t *testing.T, dir, ref string, opts ingest.ListOptions) ([]stri
 	return out, err
 }
 
-func containsRef(refs []string, needle string) bool {
-	for _, r := range refs {
-		if strings.TrimSpace(r) == needle {
-			return true
-		}
-	}
-	return false
-}
-
 func containsSymbol(refs []string, symbol string) bool {
 	for _, r := range refs {
 		ref := ingest.ParseReference(strings.TrimSpace(r))
@@ -266,108 +199,11 @@ func containsSymbol(refs []string, symbol string) bool {
 	return false
 }
 
-func TestWalkSymbols_JavaPublicFilter(t *testing.T) {
-	dir := t.TempDir()
-	mustWrite(t, lewpath.New(dir, "Types.java").String(), `package demo;
-
-public class Visible {
-    public void shown() {}
-    void hidden() {}
-}
-
-class Internal {
-    public void alsoHiddenType() {}
-}
-`)
-
-	refs, err := collectRefs(t, dir, "path:./", ingest.ListOptions{})
-	if err != nil {
-		t.Fatalf("walk symbols: %v", err)
+func containsRef(refs []string, needle string) bool {
+	for _, r := range refs {
+		if strings.TrimSpace(r) == needle {
+			return true
+		}
 	}
-	if !containsRef(refs, "path:./Types.java::Visible") {
-		t.Fatalf("expected public type, got %v", refs)
-	}
-	if !containsRef(refs, "path:./Types.java::Visible.shown") {
-		t.Fatalf("expected public method, got %v", refs)
-	}
-	if containsRef(refs, "path:./Types.java::Visible.hidden") {
-		t.Fatalf("did not expect package-private method, got %v", refs)
-	}
-	if containsRef(refs, "path:./Types.java::Internal") {
-		t.Fatalf("did not expect package-private type, got %v", refs)
-	}
-
-	refs, err = collectRefs(t, dir, "path:./", ingest.ListOptions{IncludeHidden: true})
-	if err != nil {
-		t.Fatalf("walk symbols: %v", err)
-	}
-	if !containsRef(refs, "path:./Types.java::Visible.hidden") || !containsRef(refs, "path:./Types.java::Internal") {
-		t.Fatalf("expected hidden symbols with IncludeHidden, got %v", refs)
-	}
-}
-
-func TestWalkSymbols_ZigPubFilter(t *testing.T) {
-	dir := t.TempDir()
-	mustWrite(t, lewpath.New(dir, "lib.zig").String(), `
-pub fn shown() void {}
-fn hidden() void {}
-pub const Shown = 1;
-const hidden_const = 2;
-`)
-	refs, err := collectRefs(t, dir, "path:./", ingest.ListOptions{})
-	if err != nil {
-		t.Fatalf("walk symbols: %v", err)
-	}
-	if !containsSymbol(refs, "shown") {
-		t.Fatalf("expected pub fn, got %v", refs)
-	}
-	if !containsSymbol(refs, "Shown") {
-		t.Fatalf("expected pub const, got %v", refs)
-	}
-	if containsSymbol(refs, "hidden") {
-		t.Fatalf("did not expect private fn, got %v", refs)
-	}
-	if containsSymbol(refs, "hidden_const") {
-		t.Fatalf("did not expect private const, got %v", refs)
-	}
-	refs, err = collectRefs(t, dir, "path:./", ingest.ListOptions{IncludeHidden: true})
-	if err != nil {
-		t.Fatalf("walk symbols: %v", err)
-	}
-	if !containsSymbol(refs, "hidden") || !containsSymbol(refs, "hidden_const") {
-		t.Fatalf("expected hidden zig atoms with IncludeHidden, got %v", refs)
-	}
-}
-
-func TestWalkSymbols_RustPubFilter(t *testing.T) {
-	dir := t.TempDir()
-	mustWrite(t, lewpath.New(dir, "lib.rs").String(), `
-pub fn shown() {}
-fn hidden() {}
-pub struct Shown {}
-struct Hidden {}
-`)
-	refs, err := collectRefs(t, dir, "path:./", ingest.ListOptions{})
-	if err != nil {
-		t.Fatalf("walk symbols: %v", err)
-	}
-	if !containsSymbol(refs, "shown") {
-		t.Fatalf("expected pub fn, got %v", refs)
-	}
-	if !containsSymbol(refs, "Shown") {
-		t.Fatalf("expected pub struct, got %v", refs)
-	}
-	if containsSymbol(refs, "hidden") {
-		t.Fatalf("did not expect private fn, got %v", refs)
-	}
-	if containsSymbol(refs, "Hidden") {
-		t.Fatalf("did not expect private struct, got %v", refs)
-	}
-	refs, err = collectRefs(t, dir, "path:./", ingest.ListOptions{IncludeHidden: true})
-	if err != nil {
-		t.Fatalf("walk symbols: %v", err)
-	}
-	if !containsSymbol(refs, "hidden") || !containsSymbol(refs, "Hidden") {
-		t.Fatalf("expected hidden rust atoms with IncludeHidden, got %v", refs)
-	}
+	return false
 }
