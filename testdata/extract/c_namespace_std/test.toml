@@ -1,0 +1,7 @@
+kind = 'extract'
+
+[[atom]]
+name = 'std'
+
+[[atom]]
+name = 'cin'

@@ -1,0 +1,7 @@
+kind = 'extract'
+
+[[atom]]
+name = 'CustomTypeAdaptersTest.Derived'
+
+[[atom]]
+name = 'CustomTypeAdaptersTest.Derived.derivedValue'

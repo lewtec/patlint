@@ -1,0 +1,3 @@
+;; -*- mode: lisp; -*-
+;; Keywords are path-scoped under each language_*.rft pack.
+;; This file intentionally empty (kept so old references stay harmless).

@@ -1,0 +1,4 @@
+kind = 'extract'
+
+[[atom]]
+name = 'FactPointTo.all_ptrs'

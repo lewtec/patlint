@@ -1,0 +1,7 @@
+kind = 'extract'
+
+[[atom]]
+name = 'CGContext'
+
+[[atom]]
+name = 'CGContext.add_effect'

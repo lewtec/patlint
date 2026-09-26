@@ -1,0 +1,13 @@
+kind = 'extract'
+
+[[atom]]
+name = 'ErrorKind'
+
+[[atom]]
+name = 'ErrorKind.StateIDOverflow'
+
+[[atom]]
+name = 'Match'
+
+[[atom]]
+name = 'Match.start'

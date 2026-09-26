@@ -1,0 +1,5 @@
+kind = 'grep'
+description = 'Find fmt.Errorf that nests errors.New (any arg position; alias ok)'
+lang = 'go'
+pattern = '(seq (capture F (ref "go:fmt::Errorf")) "(" (* any) (capture E (ref "go:errors::New")) "(" (* any) ")" (* any) ")")'
+expect_match_count = 4

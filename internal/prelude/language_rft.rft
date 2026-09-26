@@ -1,0 +1,26 @@
+;; -*- mode: lisp; -*-
+;; .rft self-host pack. Grammar id must match prelude blank-import
+;; (grammar/commonlisp → grammar.Get("commonlisp")).
+;; commonlisp leaves: comment, list_lit, str_lit, sym_lit (no keyword node types).
+;; Keyword heads: (token "…") (same as other language packs).
+
+(under (path "**/*.rft")
+  (as-language "commonlisp")
+
+  ;; strings / idents
+  (under (node "str_lit") (as-string))
+  (under (node "sym_lit") (as-ident))
+
+  ;; rft surface heads (token text on sym_lit leaves)
+  (as-keyword (alt
+    (token "under") (token "path") (token "node") (token "take")
+    (token "seq") (token "alt") (token "capture") (token "any")
+    (token "this") (token "scope")
+    (token "as-language") (token "as-family") (token "as-layout") (token "directory-module") (token "directory-manifest") (token "dest-export") (token "reject-dunder-rename") (token "as-directory-representant") (token "as-grammar") (token "as-package") (token "as-atom") (token "public") (token "private") (token "as-use") (token "as-scope") (token "as-decl") (token "as-flow") (token "structural") (token "hybrid")
+    (token "as-import") (token "as-atomic") (token "as-docstring") (token "as-reexport") (token "as-default")
+    (token "as-keyword") (token "as-string") (token "as-number") (token "as-comment")
+    (token "as-type") (token "as-const") (token "as-ident") (token "as-op") (token "as-punct")
+    (token "def") (token "or") (token "and") (token "not")
+    (token "regex") (token "ref") (token "unify") (token "group")
+    (token "until") (token "assert_not_behind") (token "rest")
+    (token "rule") (token "rewrite") (token "builtin"))))

@@ -1,0 +1,13 @@
+kind = 'extract'
+
+[[atom]]
+name = 'Main.Color'
+
+[[atom]]
+name = 'Main.Color.HELPER'
+
+[[atom]]
+name = 'Box'
+
+[[atom]]
+name = 'Box.helper'

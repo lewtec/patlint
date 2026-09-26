@@ -1,0 +1,7 @@
+kind = 'extract'
+
+[[atom]]
+name = 'Fact'
+
+[[atom]]
+name = 'CGOPTIONS_DEFAULT_MAX_NESTED_STRUCT_LEVEL'

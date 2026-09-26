@@ -1,0 +1,13 @@
+kind = 'extract'
+
+[[atom]]
+name = 'TypeAdapters'
+
+[[atom]]
+name = 'TypeAdapters.URI'
+
+[[atom]]
+name = 'URI.read'
+
+[[atom]]
+name = 'TypeAdapters.helper'

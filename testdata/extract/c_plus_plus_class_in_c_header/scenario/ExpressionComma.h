@@ -1,0 +1,4 @@
+class ExpressionComma {
+public:
+    ExpressionComma();
+};

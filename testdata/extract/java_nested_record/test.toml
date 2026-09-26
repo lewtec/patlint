@@ -1,0 +1,4 @@
+kind = 'extract'
+
+[[atom]]
+name = 'Java17RecordTest.PrivateRecord'

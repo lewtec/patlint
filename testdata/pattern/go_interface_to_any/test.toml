@@ -1,0 +1,5 @@
+kind = 'rewrite'
+description = 'A2: rewrite interface{} grammar token to any (exact tree-sitter node text)'
+lang = 'go'
+pattern = '(token "interface{}")'
+emit = 'any'

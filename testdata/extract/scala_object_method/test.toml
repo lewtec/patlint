@@ -1,0 +1,7 @@
+kind = 'extract'
+
+[[atom]]
+name = 'Main'
+
+[[atom]]
+name = 'Main.help'

@@ -1,0 +1,195 @@
+;; -*- mode: lisp; -*-
+;; go — place wraps verb (SPEC.md Extract dialect).
+;; Atoms use (node …) so take "name" is the tree-sitter field, not every identifier.
+;; Uses under def places use (scope name): from-where = enclosing def's name field.
+
+(under (path "**/*.go")
+  (as-language "go")
+  (as-layout package import body)
+  (as-family "go" directory-module package-scoped-bare-names nested-type-members)
+  (as-import (seq "import" "\"" path "\""))
+  (as-package (seq "package" pkg))
+  (as-atomic "interface{}")
+  (as-docstring comment-before)
+
+  (under (node "package_clause")
+    (under (node "package_identifier")
+      (as-package)))
+
+  ;; function_declaration fields: name, parameters, result, body
+  ;; Prefer qualified/selector uses before bare type_identifier (same name span).
+  (under (node "function_declaration")
+    (as-scope (this))
+    (under (take "name" (node "function_declaration"))
+      (as-atom public (seq (capture name (regex "^\\p{Lu}"))))
+      (as-atom private (seq (capture name (regex "^[^\\p{Lu}]")))))
+    (under (node "parameter_declaration")
+      (as-atom private (take "name" (node "parameter_declaration"))))
+    (under (node "qualified_type")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "selector_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "selector_expression")
+      (as-use (scope name) (take "field" (node "selector_expression"))))
+    (under (node "identifier")
+      (as-use (scope name)))
+    (under (node "type_identifier")
+      (as-use (scope name))))
+
+  ;; method: name+name → T.Method (last name is the leaf)
+  (under (node "method_declaration")
+    (as-scope (this))
+    (as-atom public
+      (take "name"
+        (alt
+          (seq "func" "(" (capture name any) ")" (capture name (regex "^\\p{Lu}")) "(")
+          (seq "func" "(" "*" (capture name any) ")" (capture name (regex "^\\p{Lu}")) "(")
+          (seq "func" "(" any "*" (capture name any) ")" (capture name (regex "^\\p{Lu}")) "(")
+          (seq "func" "(" any (capture name any) ")" (capture name (regex "^\\p{Lu}")) "("))))
+    (as-atom private
+      (take "name"
+        (alt
+          (seq "func" "(" (capture name any) ")" (capture name (regex "^[^\\p{Lu}]")) "(")
+          (seq "func" "(" "*" (capture name any) ")" (capture name (regex "^[^\\p{Lu}]")) "(")
+          (seq "func" "(" any "*" (capture name any) ")" (capture name (regex "^[^\\p{Lu}]")) "(")
+          (seq "func" "(" any (capture name any) ")" (capture name (regex "^[^\\p{Lu}]")) "("))))
+    (under (alt
+        (seq "func" "(" (capture name any) "[")
+        (seq "func" "(" "*" (capture name any) "[")
+        (seq "func" "(" any "*" (capture name any) "[")
+        (seq "func" "(" any (capture name any) "["))
+      (under (take "name" (node "method_declaration"))
+        (as-atom public (seq (capture name (regex "^\\p{Lu}"))))
+        (as-atom private (seq (capture name (regex "^[^\\p{Lu}]"))))))
+    (under (node "parameter_declaration")
+      (as-atom private (take "name" (node "parameter_declaration"))))
+    (under (node "qualified_type")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "selector_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "selector_expression")
+      (as-use (scope name) (take "field" (node "selector_expression"))))
+    (under (node "identifier")
+      (as-use (scope name)))
+    (under (node "type_identifier")
+      (as-use (scope name))))
+
+  (under (node "func_literal")
+    (as-scope (this)))
+
+  (under (node "type_declaration")
+    (as-decl (this)))
+  (under (node "var_declaration")
+    (as-decl (this)))
+  (under (node "const_declaration")
+    (as-decl (this)))
+
+  ;; type_spec fields: name, type — only the name field becomes the atom
+  (under (node "type_spec")
+    (as-scope (this))
+    (under (take "name" (node "type_spec"))
+      (as-atom public (seq (capture name (regex "^\\p{Lu}"))))
+      (as-atom private (seq (capture name (regex "^[^\\p{Lu}]")))))
+    ;; struct fields / interface methods → Type.F (rename-only; not a movable decl)
+    (under (node "field_declaration")
+      (under (take "name" (node "field_declaration"))
+        (as-atom public (seq (capture name (regex "^\\p{Lu}"))))
+        (as-atom private (seq (capture name (regex "^[^\\p{Lu}]"))))))
+    (under (node "method_elem")
+      (under (take "name" (node "method_elem"))
+        (as-atom public (seq (capture name (regex "^\\p{Lu}"))))
+        (as-atom private (seq (capture name (regex "^[^\\p{Lu}]")))))))
+
+  (under (node "type_alias")
+    (as-scope (this))
+    (under (take "name" (node "type_alias"))
+      (as-atom public (seq (capture name (regex "^\\p{Lu}"))))
+      (as-atom private (seq (capture name (regex "^[^\\p{Lu}]")))))
+    (under (node "method_elem")
+      (under (take "name" (node "method_elem"))
+        (as-atom public (seq (capture name (regex "^\\p{Lu}"))))
+        (as-atom private (seq (capture name (regex "^[^\\p{Lu}]"))))))
+    (under (node "field_declaration")
+      (under (take "name" (node "field_declaration"))
+        (as-atom public (seq (capture name (regex "^\\p{Lu}"))))
+        (as-atom private (seq (capture name (regex "^[^\\p{Lu}]")))))))
+
+  (under (node "const_spec")
+    (as-scope (this))
+    (under (take "name" (node "const_spec"))
+      (as-atom public (seq (capture name (regex "^\\p{Lu}"))))
+      (as-atom private (seq (capture name (regex "^[^\\p{Lu}]"))))))
+
+  (under (node "var_spec")
+    (as-scope (this))
+    (under (take "name" (node "var_spec"))
+      (as-atom public (seq (capture name (regex "^\\p{Lu}"))))
+      (as-atom private (seq (capture name (regex "^[^\\p{Lu}]"))))))
+
+  (under (node "import_spec")
+    (as-import
+      (take "path"
+        (alt
+          (seq (capture name any) (capture path any))
+          (capture path any)))))
+
+  ;; file-level uses (outside funcs/methods): no (scope …) → file home only
+  (under (node "selector_expression")
+    (as-use
+      (take "name"
+        (seq (capture name any) "." (capture name any)))))
+  (under (node "selector_expression")
+    (as-use (take "field" (node "selector_expression"))))
+
+  (under (node "qualified_type")
+    (as-use
+      (take "name"
+        (seq (capture name any) "." (capture name any)))))
+
+  (under (node "type_identifier")
+    (as-use))
+
+  (under (node "identifier")
+    (as-use))
+
+  ;; keyword paint (token text — constant leaf glyphs)
+  (as-keyword (alt
+    (token "break") (token "case") (token "chan") (token "const")
+    (token "continue") (token "default") (token "defer") (token "else")
+    (token "fallthrough") (token "for") (token "func") (token "go")
+    (token "goto") (token "if") (token "import") (token "interface")
+    (token "map") (token "package") (token "range") (token "return")
+    (token "select") (token "struct") (token "switch") (token "type")
+    (token "var")))
+  (as-ident (or (node "identifier") (node "field_identifier") (node "package_identifier") (node "label_name") (node "blank_identifier")))
+  (as-type (node "type_identifier"))
+  (as-string (or (node "interpreted_string_literal") (node "raw_string_literal") (node "rune_literal") (node "escape_sequence")))
+  (as-number (or (node "int_literal") (node "float_literal") (node "imaginary_literal")))
+  (as-comment (node "comment"))
+  (as-const (alt (token "true") (token "false") (token "nil") (token "iota")))
+  (as-op (alt (token ":=") (token "<-") (token "...")))
+
+  ;; as-flow: body spans. Host turns else-if (alternative if) into hybrid.
+  (under (node "if_statement")
+    (as-flow structural (take "consequence" (node "if_statement"))))
+  (under (node "if_statement")
+    (as-flow hybrid (take "alternative" (node "if_statement"))))
+  (under (node "for_statement")
+    (as-flow structural (take "body" (node "for_statement"))))
+  (under (node "expression_switch_statement")
+    (as-flow structural (this)))
+  (under (node "type_switch_statement")
+    (as-flow structural (this)))
+  (under (node "select_statement")
+    (as-flow structural (this)))
+  (under (node "func_literal")
+    (as-flow structural (this)))
+)

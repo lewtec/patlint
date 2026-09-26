@@ -1,0 +1,27 @@
+;; -*- mode: lisp; -*-
+;; vim: set ft=lisp:
+;; Helix: common-lisp (.helix/languages.toml maps .rft → common-lisp)
+;;
+;; prelude/core.rft — expand-time standard library for Core sexpr patterns.
+;; All prelude/*.rft load in one world (defs + language extract packs).
+;; Spec: SPEC.md Pattern algebra §10, Extract dialect.
+;;
+;; Top-level forms only (no wrapping progn): def*.
+;; * is a match-time Kleene NFA primitive (not defined here).
+;; ? + until are expand macros derived from ε / *.
+;;
+
+(def ? (p)
+  "Optional: match ε or p at the cursor (contiguous)."
+  (alt (seq) p))
+
+(def + (p)
+  "One or more: p then zero-or-more p (* is the Kleene primitive)."
+  (seq p (* p)))
+
+(def until (t)
+  "Zero or more tokens that are not t, then t."
+  ;; Cost is the gap to the first t. Body stops (, {, fun, fn, . walk the node.
+  ;; Atoms on the grammar node; Type.leaf from as-scope / as-decl.
+  ;; Header-only until is fine when t cannot appear in the remaining header.
+  (seq (* (not t)) t))

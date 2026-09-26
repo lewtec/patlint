@@ -1,0 +1,23 @@
+# Warning: Do not unify this file with others. Keep tool definitions localized.
+[tools]
+go = "1.27.1"
+
+[tasks."install:go"]
+description = "Go module download"
+run = "go mod tidy && go get -v ./..."
+
+[tasks.install]
+description = "Install Go dependencies"
+depends = ["install:go"]
+
+[tasks.build]
+description = "Build the patlint binary"
+run = "go build -o patlint ./cmd/patlint"
+
+[tasks.format]
+description = "Format source packages"
+run = "go fmt ./..."
+
+[tasks.test]
+description = "Test the lint engine and CLI"
+run = "go test ./cmd/patlint ./pkg/pattern ./pkg/script ./pkg/report"

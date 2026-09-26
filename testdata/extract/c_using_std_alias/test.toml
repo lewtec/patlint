@@ -1,0 +1,7 @@
+kind = 'extract'
+
+[[atom]]
+name = 'vector'
+
+[[atom]]
+name = 'stringstream'

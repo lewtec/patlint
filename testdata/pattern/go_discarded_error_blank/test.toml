@@ -1,0 +1,5 @@
+kind = 'grep'
+description = 'Blank identifier immediately before :=/= and a call (discarded return, often error)'
+lang = 'go'
+pattern = '(seq (capture blank (regex "^_$")) (capture op (regex "^(:=|=)$" 1)) (group (alt (seq (capture f (regex "^[A-Za-z_]")) "(" (* any) ")") (seq (capture f (regex "^[A-Za-z_]")) "[" (* any) "]" "(" (* any) ")") (seq (capture p (regex "^[A-Za-z_]")) "." (capture f (regex "^[A-Za-z_]")) "(" (* any) ")") (seq (capture p (regex "^[A-Za-z_]")) "." (capture f (regex "^[A-Za-z_]")) "[" (* any) "]" "(" (* any) ")"))))'
+expect_match_count = 10

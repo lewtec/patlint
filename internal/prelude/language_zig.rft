@@ -1,0 +1,84 @@
+;; -*- mode: lisp; -*-
+;; zig — place wraps verb (SPEC.md Extract dialect).
+;; Uses under def places use (scope name).
+
+(under (path "**/*.zig")
+  (as-language "zig")
+  (as-layout import body)
+  (as-family "zig" nested-type-members)
+  (as-import (seq "const" qual "=" "@import" "(" "\"" path "\"" ")" ";"))
+
+  (under (node "function_declaration")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "pub" "fn" (capture name (regex "^[^_]")))))
+    (as-atom private (take "name" (seq "pub" "fn" (capture name (regex "^_")))))
+    (as-atom private (take "name" (seq (assert_not_behind (token "pub")) "fn" (capture name any))))
+    (under (node "field_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "identifier")
+      (as-use (scope name))))
+
+  ;; variable_declaration has no name field. Type.leaf comes from as-decl
+  ;; scope + the const/var atom; members are container_field / fn places.
+  (under (node "variable_declaration")
+    (as-decl (this))
+    (as-atom public (take "name" (seq "pub" (alt "const" "var") (capture name (regex "^[^_]")))))
+    (as-atom private (take "name" (seq "pub" (alt "const" "var") (capture name (regex "^_")))))
+    (as-atom private (take "name" (seq (assert_not_behind (token "pub")) (alt "const" "var") (capture name any))))
+    (under (node "container_field")
+      (as-atom public (take "name" (node "container_field")))
+      (as-atom public (take "name" (seq "pub" (capture name (regex "^[^_]")))))
+      (as-atom private (take "name" (seq "pub" (capture name (regex "^_")))))
+      (as-atom private (take "name" (seq (assert_not_behind (token "pub")) (capture name any)))))
+    (under (node "function_declaration")
+      (under (node "identifier")
+        (as-use (scope name)))))
+
+  (under (node "test_declaration")
+    (as-scope (this))
+    (as-atom private (take "name" (seq "test" (capture name any))))
+    (under (node "field_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "identifier")
+      (as-use (scope name))))
+
+  (as-import
+    (take "path"
+      (seq "@import" "(" (capture path any) ")")))
+
+  (under (node "field_expression")
+    (as-use
+      (take "name"
+        (seq (capture name any) "." (capture name any)))))
+
+  (under (node "identifier")
+    (as-use))
+
+  ;; keyword paint (token text — constant leaf glyphs)
+  (as-keyword (alt
+    (token "async") (token "await") (token "break") (token "comptime")
+    (token "const") (token "defer") (token "else") (token "errdefer")
+    (token "export") (token "extern") (token "fn") (token "for")
+    (token "if") (token "inline") (token "pub") (token "resume")
+    (token "return") (token "suspend") (token "switch") (token "test")
+    (token "try") (token "var") (token "while")))
+
+  (under (node "if_statement")
+    (as-flow structural (take "consequence" (node "if_statement"))))
+  (under (node "if_statement")
+    (as-flow hybrid (take "alternative" (node "if_statement"))))
+  (under (node "if_expression")
+    (as-flow structural (take "consequence" (node "if_expression"))))
+  (under (node "if_expression")
+    (as-flow hybrid (take "alternative" (node "if_expression"))))
+  (under (node "for_statement")
+    (as-flow structural (this)))
+  (under (node "while_statement")
+    (as-flow structural (this)))
+  (under (node "switch_expression")
+    (as-flow structural (this)))
+)

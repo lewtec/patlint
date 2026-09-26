@@ -1,0 +1,171 @@
+;; -*- mode: lisp; -*-
+;; cpp — place wraps verb (SPEC.md Extract dialect).
+;; Uses under def places use (scope name).
+
+(under (path "**/*.cpp" "**/*.cc" "**/*.cxx" "**/*.hpp" "**/*.hh" "**/*.hxx")
+  (as-language "cpp")
+  (as-layout package import body)
+  (as-family "c" nested-type-members include-file-exports-bare)
+  (as-import (seq "#include" "\"" path "\""))
+  (as-docstring comment-before-c)
+
+  (under (node "preproc_call")
+    (as-package (seq "#pragma" (capture name any))))
+  (under (node "preproc_ifdef")
+    (as-package (take "pkg" (seq "#ifndef" (capture name any) "#define" (capture pkg any)))))
+  (under (node "preproc_if")
+    (as-package (take "pkg" (seq "#if" "!" "defined" "(" (capture name any) ")" "#define" (capture pkg any)))))
+
+  (under (node "function_declarator")
+    (as-atom public
+      (take "name"
+        (alt
+          (seq (capture name any) "::" (capture name (seq "~" any)) "(")
+          (seq (capture name any) "::" (capture name any) "(")
+          (seq (capture name (seq "~" any)) "(")
+          (seq (capture name any) "(")))))
+
+  (under (node "function_definition")
+    (as-scope (this))
+    (under (node "field_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "qualified_identifier")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "::" (capture name any)))))
+    (under (node "identifier")
+      (as-use (scope name)))
+    (under (node "type_identifier")
+      (as-use (scope name)))
+    (under (node "field_identifier")
+      (as-use (scope name))))
+
+  (under (node "class_specifier")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "class" (capture name any))))
+    (under (node "function_declarator")
+      (as-atom public (take "name" (seq (capture name any) "("))))
+    (under (node "field_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "qualified_identifier")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "::" (capture name any)))))
+    (under (node "identifier")
+      (as-use (scope name)))
+    (under (node "type_identifier")
+      (as-use (scope name)))
+    (under (node "field_identifier")
+      (as-use (scope name))))
+
+  (under (node "struct_specifier")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "struct" (capture name any)))))
+
+  (under (node "namespace_definition")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "namespace" (capture name any)))))
+
+  (under (node "type_definition")
+    (as-atom public (take "declarator" (node "type_definition"))))
+
+  (under (node "using_declaration")
+    (as-atom public
+      (take "name"
+        (seq "using" (* (not ":")) "::" (capture name any) ";"))))
+
+  ;; local / init: int bound = …;
+  (under (node "declaration")
+    (as-atom private (take "name"
+      (seq (alt "int" "bool" "long" "unsigned" "char")
+           (capture name any) "="))))
+
+  (under (node "declaration")
+    (as-atom public (take "name"
+      (seq (? "inline") "constexpr"
+           (* (alt "int" "long" "unsigned" "short" "char" "bool"
+                   "const" "static" "inline" "float" "double"))
+           (capture name any) "="))))
+
+  ;; Type::field;  (not `= Type::field;`)
+  (under (node "declaration")
+    (as-atom public (take "name"
+      (seq (assert_not_behind "=")
+           (capture name any) "::" (capture name any) ";"))))
+
+  ;; file-scope bool name;
+  (under (node "declaration")
+    (as-atom public (take "name"
+      (seq (alt "bool" "int" "long" "unsigned" "short" "char")
+           (capture name any) ";"))))
+
+  (under (node "preproc_include")
+    (as-import (take "path" (node "preproc_include"))))
+
+  (under (node "field_expression")
+    (as-use
+      (take "name"
+        (seq (capture name any) "." (capture name any)))))
+
+  (under (node "qualified_identifier")
+    (as-use
+      (take "name"
+        (seq (capture name any) "::" (capture name any)))))
+
+  (under (node "identifier")
+    (as-use))
+
+  (under (node "type_identifier")
+    (as-use))
+
+  (under (node "field_identifier")
+    (as-use))
+
+  ;; keyword paint (token text — constant leaf glyphs)
+  (as-keyword (alt
+    (token "auto") (token "break") (token "case") (token "catch")
+    (token "class") (token "const") (token "constexpr") (token "continue")
+    (token "decltype") (token "default") (token "delete") (token "do")
+    (token "else") (token "enum") (token "explicit") (token "export")
+    (token "extern") (token "for") (token "friend") (token "goto")
+    (token "if") (token "inline") (token "mutable") (token "namespace")
+    (token "new") (token "noexcept") (token "operator") (token "private")
+    (token "protected") (token "public") (token "register") (token "return")
+    (token "sizeof") (token "static") (token "static_assert") (token "struct")
+    (token "switch") (token "template") (token "this") (token "throw")
+    (token "try") (token "typedef") (token "typeid") (token "typename")
+    (token "union") (token "using") (token "virtual") (token "volatile")
+    (token "while") (token "alignas") (token "alignof") (token "concept")
+    (token "consteval") (token "constinit") (token "co_await") (token "co_return")
+    (token "co_yield") (token "requires") (token "thread_local") (token "restrict")
+    (token "_Atomic") (token "_Bool") (token "_Complex") (token "_Generic")
+    (token "_Imaginary") (token "_Noreturn") (token "_Static_assert") (token "_Thread_local")))
+  (as-ident (or (node "identifier") (node "field_identifier") (node "statement_identifier") (node "namespace_identifier")))
+  (as-type (or (node "type_identifier") (node "primitive_type") (node "sized_type_specifier")))
+  (as-string (or (node "string_literal") (node "string_content") (node "char_literal") (node "escape_sequence") (node "system_lib_string") (node "raw_string_literal")))
+  (as-number (node "number_literal"))
+  (as-comment (node "comment"))
+  (as-const (alt (token "true") (token "false") (token "null") (token "nullptr") (token "NULL")))
+  (as-op (alt (token "->") (token "::") (token "...")))
+
+  (under (node "if_statement")
+    (as-flow structural (take "consequence" (node "if_statement"))))
+  (under (node "if_statement")
+    (as-flow hybrid (take "alternative" (node "if_statement"))))
+  (under (node "for_statement")
+    (as-flow structural (take "body" (node "for_statement"))))
+  (under (node "while_statement")
+    (as-flow structural (take "body" (node "while_statement"))))
+  (under (node "do_statement")
+    (as-flow structural (take "body" (node "do_statement"))))
+  (under (node "switch_statement")
+    (as-flow structural (this)))
+  (under (node "catch_clause")
+    (as-flow structural (this)))
+  (under (node "lambda_expression")
+    (as-flow structural (this)))
+)

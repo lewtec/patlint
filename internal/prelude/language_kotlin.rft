@@ -1,0 +1,155 @@
+;; -*- mode: lisp; -*-
+;; kotlin — place wraps verb (SPEC.md Extract dialect).
+;; Uses under def places use (scope name).
+
+(under (path "**/*.kt" "**/*.kts")
+  (as-language "kotlin")
+  (as-layout package import body)
+  (as-family "jvm" directory-module package-scoped-bare-names empty-package-dir-scoped nested-type-members)
+  (as-import (seq "import" path))
+  (as-docstring comment-before-c)
+
+  (under (node "package_header")
+    (under (node "identifier")
+      (as-package)))
+
+  (under (node "class_declaration")
+    (as-scope (this))
+    (as-atom public (take "name" (seq (assert_not_behind (token "::")) "class" (capture name (regex "^[A-Za-z_]")))))
+    (under (node "property_declaration")
+      (as-atom public (take "name"
+        (alt
+          (seq (alt "internal" "public" "private" "protected" "override")
+               (alt "val" "var") (capture name any))
+          (seq (alt "val" "var") (capture name any))))))
+    (under (node "function_declaration")
+      (as-scope (this))
+      (as-atom public (take "name" (seq "fun" (capture name any))))
+      (under (node "navigation_expression")
+        (as-use (scope name)
+          (take "name"
+            (seq (capture name any) "." (capture name any)))))
+      (under (node "simple_identifier")
+        (as-use (scope name)))
+      (under (node "type_identifier")
+        (as-use (scope name))))
+    (under (node "class_parameter")
+      (as-atom public (take "name"
+        (seq "public" (alt "val" "var") (capture name any)))))
+    (under (node "class_declaration")
+      (as-scope (this))
+      (as-atom public (take "name" (seq (assert_not_behind (token "::")) "class" (capture name (regex "^[A-Za-z_]")))))
+      (under (node "function_declaration")
+        (as-scope (this))
+        (as-atom public (take "name" (seq "fun" (capture name any)))))
+      (under (node "property_declaration")
+        (as-atom public (take "name"
+          (alt
+            (seq (alt "internal" "public" "private" "protected")
+                 (alt "val" "var") (capture name any))
+            (seq (alt "val" "var") (capture name any))))))
+      (under (node "class_parameter")
+        (as-atom public (take "name"
+          (seq "public" (alt "val" "var") (capture name any)))))))
+
+  (under (node "object_declaration")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "object" (capture name any))))
+    (under (node "function_declaration")
+      (as-scope (this))
+      (as-atom public (take "name" (seq "fun" (capture name any) "(")))
+      (under (node "simple_identifier")
+        (as-use (scope name)))))
+
+  (under (node "function_declaration")
+    (as-scope (this))
+    (as-atom public
+      (take "name"
+        (alt
+          (seq "fun" any "." (capture name (regex "^[A-Za-z_]")))
+          (seq "fun" (capture name any) "(")
+          (seq (alt "public" "internal" "private" "protected")
+               (* (alt "inline" "suspend" "override" "open" "actual" "expect"))
+               "fun" any "." (capture name (regex "^[A-Za-z_]")))
+          (seq (alt "public" "internal" "private" "protected")
+               (* (alt "inline" "suspend" "override" "open" "actual" "expect"))
+               "fun" (capture name any) "("))))
+    (under (node "navigation_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "simple_identifier")
+      (as-use (scope name)))
+    (under (node "type_identifier")
+      (as-use (scope name))))
+
+  (under (node "secondary_constructor")
+    (as-scope (this)))
+  (under (node "anonymous_function")
+    (as-scope (this)))
+
+  (under (node "property_declaration")
+    ;; no name field — val/var then identifier
+    (as-atom public (take "name" (seq (alt "val" "var") (capture name any)))))
+
+  (under (node "import_header")
+    (as-import (take "path" (capture path any))))
+
+  (under (node "navigation_expression")
+    (as-use
+      (take "name"
+        (seq (capture name any) "." (capture name any)))))
+
+  (under (node "simple_identifier")
+    (as-use))
+
+  (under (node "type_identifier")
+    (as-use))
+
+  ;; keyword paint (token text — constant leaf glyphs)
+  (as-keyword (alt
+    (token "abstract") (token "actual") (token "annotation") (token "as")
+    (token "break") (token "by") (token "catch") (token "class")
+    (token "companion") (token "const") (token "constructor") (token "continue")
+    (token "crossinline") (token "data") (token "delegate") (token "do")
+    (token "dynamic") (token "else") (token "enum") (token "expect")
+    (token "external") (token "final") (token "finally") (token "for")
+    (token "fun") (token "get") (token "if") (token "import")
+    (token "in") (token "infix") (token "init") (token "inline")
+    (token "inner") (token "interface") (token "internal") (token "is")
+    (token "lateinit") (token "noinline") (token "object") (token "open")
+    (token "operator") (token "out") (token "override") (token "package")
+    (token "private") (token "protected") (token "public") (token "reified")
+    (token "return") (token "sealed") (token "set") (token "super")
+    (token "suspend") (token "tailrec") (token "this") (token "throw")
+    (token "try") (token "typealias") (token "typeof") (token "val")
+    (token "var") (token "vararg") (token "when") (token "where")
+    (token "while") (token "field") (token "file") (token "property")
+    (token "receiver") (token "param") (token "setparam") (token "value")
+    (token "context")))
+  (as-ident (or (node "simple_identifier") (node "identifier")))
+  (as-type (node "type_identifier"))
+  (as-string (or (node "string_literal") (node "character_literal") (node "string_content") (node "character_escape_seq")))
+  (as-number (or (node "integer_literal") (node "long_literal") (node "hex_literal") (node "bin_literal") (node "real_literal") (node "unsigned_literal")))
+  (as-comment (or (node "line_comment") (node "multiline_comment") (node "shebang_line")))
+  (as-const (alt (token "true") (token "false") (token "null") (token "this") (token "super")))
+  (as-const (or (node "null_literal") (node "this_expression") (node "super_expression")))
+  (as-op (alt (token "->") (token "=>") (token "..") (token "..<") (token "?:") (token "::") (token "!!.") (token "?.") (token "&&") (token "||") (token "!in") (token "!is")))
+
+  (under (node "if_expression")
+    (as-flow structural (take "consequence" (node "if_expression"))))
+  (under (node "if_expression")
+    (as-flow hybrid (take "alternative" (node "if_expression"))))
+  (under (node "for_statement")
+    (as-flow structural (take "body" (node "for_statement"))))
+  (under (node "while_statement")
+    (as-flow structural (take "body" (node "while_statement"))))
+  (under (node "do_while_statement")
+    (as-flow structural (take "body" (node "do_while_statement"))))
+  (under (node "when_expression")
+    (as-flow structural (this)))
+  (under (node "catch_block")
+    (as-flow structural (this)))
+  (under (node "lambda_literal")
+    (as-flow structural (this)))
+)

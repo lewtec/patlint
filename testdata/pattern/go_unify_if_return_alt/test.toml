@@ -1,0 +1,5 @@
+kind = 'rewrite'
+description = 'Group alt: if a>b return a; return b OR else return b -> max; unify rejects preferY'
+lang = 'go'
+pattern = '(seq (token "if") (unify a any) (capture op (regex ">=?")) (unify b any) "{" (token "return") (unify a any) "}" (group (alt (seq (token "return") (unify b any)) (seq (token "else") "{" (token "return") (unify b any) "}"))))'
+emit = '"return max(x, y)"'

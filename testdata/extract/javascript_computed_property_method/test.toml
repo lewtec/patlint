@@ -1,0 +1,10 @@
+kind = 'extract'
+
+[[atom]]
+name = 'Resource'
+
+[[atom]]
+name = 'Resource.close'
+
+[[atom]]
+name = 'Resource.[Symbol.asyncDispose]'

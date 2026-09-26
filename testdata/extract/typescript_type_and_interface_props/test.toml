@@ -1,0 +1,13 @@
+kind = 'extract'
+
+[[atom]]
+name = 'RetryOptions.shouldRetry'
+
+[[atom]]
+name = 'MockServices.http'
+
+[[atom]]
+name = 'SearchResult.source'
+
+[[atom]]
+name = 'DefaultErrorHandler.constructor'

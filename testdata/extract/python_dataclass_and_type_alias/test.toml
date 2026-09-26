@@ -1,0 +1,13 @@
+kind = 'extract'
+
+[[atom]]
+name = 'Box'
+
+[[atom]]
+name = 'Box.value'
+
+[[atom]]
+name = 'Box.count'
+
+[[atom]]
+name = 'BoxAlias'

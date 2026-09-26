@@ -1,0 +1,5 @@
+kind = 'rewrite'
+description = 'Unify a/b: if a>b { return a }; return b → return max(a,b); reject when returns differ'
+lang = 'go'
+pattern = '(seq (token "if") (unify a any) ">" (unify b any) "{" (token "return") (unify a any) "}" (token "return") (unify b any))'
+emit = '"return max(x, y)"'
