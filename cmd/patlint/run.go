@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/lewtec/lewkit/x/cmd"
+	"github.com/lewtec/patlint/pkg/apply"
 	"github.com/lewtec/patlint/pkg/reporoot"
 	"github.com/lewtec/patlint/pkg/report"
 	"github.com/lewtec/patlint/pkg/script"
@@ -114,19 +115,17 @@ func (c *runCmd) Run(ctx context.Context) error {
 	applyNow := c.fix.Value() && !c.dryRun.Value()
 	if c.dryRun.Value() && c.fix.Value() {
 		if len(res.ApplyEdits) > 0 {
-			if err := applyEditPlan(ctx, os.Stderr, os.Stdin, root, res.ApplyEdits, applyEditPlanOptions{
-				DryRun: true,
-			}); err != nil {
+			if err := apply.PrintEdits(os.Stderr, res.ApplyEdits); err != nil {
 				return errExit{code: 2, err: err}
 			}
 		}
 	}
 	if applyNow && len(res.ApplyEdits) > 0 {
-		overlay, err := sessionFromEdits(root, res.ApplyEdits)
+		overlay, err := apply.SessionFromEdits(root, res.ApplyEdits)
 		if err != nil {
 			return errExit{code: 2, err: err}
 		}
-		if err := commitOverlay(ctx, os.Stderr, os.Stdin, overlay, applyEditPlanOptions{Backup: c.backup.Value()}); err != nil {
+		if err := apply.Commit(ctx, os.Stderr, os.Stdin, overlay, apply.Options{Backup: c.backup.Value()}); err != nil {
 			return errExit{code: 2, err: err}
 		}
 		res, err = script.Run(ctx, sess, merged, opts)

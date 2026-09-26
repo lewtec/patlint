@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 
-	"github.com/lewtec/patlint/internal/prelude"
+	"os"
 
 	"github.com/lewtec/lewkit/x/cmd"
+	"github.com/lewtec/patlint/internal/prelude"
+	"github.com/lewtec/patlint/pkg/apply"
 	"github.com/lewtec/patlint/pkg/pattern"
-	"os"
 )
 
 type rewriteCmd struct {
@@ -61,7 +62,7 @@ func (c *rewriteCmd) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return commitOverlay(ctx, os.Stderr, os.Stdin, out, applyEditPlanOptions{
+	return apply.Commit(ctx, os.Stderr, os.Stdin, out, apply.Options{
 		Interactive: c.interactive.Value(),
 		DryRun:      c.dryRun.Value(),
 		Backup:      c.backup.Value(),
