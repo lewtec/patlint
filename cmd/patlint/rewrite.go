@@ -44,27 +44,30 @@ Examples:
 }
 
 func (c *rewriteCmd) Run(ctx context.Context) error {
-	pat, repl := c.pattern.Value(), c.replacement.Value()
-	lang := c.lang.Value()
-	if _, err := pattern.OpFromCLI("rewrite", lang, pat, repl); err != nil {
+	patternText, replacement := c.pattern.Value(), c.replacement.Value()
+	language := c.lang.Value()
+	if _, err := pattern.OpFromCLI("rewrite", language, patternText, replacement); err != nil {
 		return err
 	}
-	sess := newSession(c.dir.Value())
-	src := "(rewrite " + pat + " " + repl + ")"
-	if lang != "" {
-		src = "(rewrite (under (lang " + lang + ") " + pat + ") " + repl + ")"
+	session := newSession(c.dir.Value())
+	source := "(rewrite " + patternText + " " + replacement + ")"
+	if language != "" {
+		source = "(rewrite (under (lang " + language + ") " + patternText + ") " + replacement + ")"
 	}
-	vm, err := pattern.New(prelude.FS, pattern.FromString("rewrite.rft", src))
+	vm, err := pattern.New(prelude.FS, pattern.FromString("rewrite.rft", source))
 	if err != nil {
 		return err
 	}
-	out, err := vm.Run(ctx, sess, cmd.Values(c.paths)...)
+	out, err := vm.Run(ctx, session, cmd.Values(c.paths)...)
 	if err != nil {
 		return err
 	}
-	return apply.Commit(ctx, os.Stderr, os.Stdin, out, apply.Options{
-		Interactive: c.interactive.Value(),
-		DryRun:      c.dryRun.Value(),
-		Backup:      c.backup.Value(),
-	})
+	committer := apply.Committer{
+		StandardError: os.Stderr,
+		Input:         os.Stdin,
+		Interactive:   c.interactive.Value(),
+		DryRun:        c.dryRun.Value(),
+		Backup:        c.backup.Value(),
+	}
+	return committer.Session(ctx, out)
 }

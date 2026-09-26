@@ -112,25 +112,21 @@ func (c *runCmd) Run(ctx context.Context) error {
 		return errExit{code: 2, err: err}
 	}
 
-	applyNow := c.fix.Value() && !c.dryRun.Value()
-	if c.dryRun.Value() && c.fix.Value() {
-		if len(res.ApplyEdits) > 0 {
-			if err := apply.PrintEdits(os.Stderr, res.ApplyEdits); err != nil {
+	committer := apply.Committer{
+		StandardError: os.Stderr,
+		Input:         os.Stdin,
+		DryRun:        c.dryRun.Value(),
+		Backup:        c.backup.Value(),
+	}
+	if c.fix.Value() && len(res.ApplyEdits) > 0 {
+		if err := committer.Edits(ctx, root, res.ApplyEdits); err != nil {
+			return errExit{code: 2, err: err}
+		}
+		if !committer.DryRun {
+			res, err = script.Run(ctx, sess, merged, opts)
+			if err != nil {
 				return errExit{code: 2, err: err}
 			}
-		}
-	}
-	if applyNow && len(res.ApplyEdits) > 0 {
-		overlay, err := apply.SessionFromEdits(root, res.ApplyEdits)
-		if err != nil {
-			return errExit{code: 2, err: err}
-		}
-		if err := apply.Commit(ctx, os.Stderr, os.Stdin, overlay, apply.Options{Backup: c.backup.Value()}); err != nil {
-			return errExit{code: 2, err: err}
-		}
-		res, err = script.Run(ctx, sess, merged, opts)
-		if err != nil {
-			return errExit{code: 2, err: err}
 		}
 	}
 
