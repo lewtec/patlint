@@ -2,11 +2,12 @@ package highlight_test
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/walker"
-	"strings"
-	"testing"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
@@ -16,62 +17,57 @@ import (
 func TestWritePlainCopiesSource(t *testing.T) {
 	src := []byte("package main\n\nfunc Hello() {}\n")
 	var buf bytes.Buffer
-	if err := highlight.Write(t.Context(), &buf, src, "main.go", highlight.Options{Color: false}); err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(buf.Bytes(), src) {
-		t.Fatalf("plain write changed source:\n got %q\nwant %q", buf.Bytes(), src)
-	}
+	err := highlight.Write(t.Context(), &buf, src, "main.go", highlight.Options{Color: false})
+	require.NoError(t, err)
+	require.True(t, bytes.Equal(buf.Bytes(), src),
+		"plain write changed source:\n got %q\nwant %q", buf.Bytes(), src)
+
 }
 
 func TestWriteColorStylesKeywords(t *testing.T) {
 	src := []byte("package main\n")
 	var buf bytes.Buffer
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
+	require.NoError(t, err)
+	{
+
+		err := highlight.Write(t.Context(), &buf, src, "main.go", highlight.Options{Color: true, Walker: w})
+		require.NoError(t, err)
 	}
-	if err := highlight.Write(t.Context(), &buf, src, "main.go", highlight.Options{Color: true, Walker: w}); err != nil {
-		t.Fatal(err)
-	}
+
 	out := buf.String()
 	// lipgloss / termenv emit ESC sequences when Color is forced.
-	if !strings.Contains(out, "\x1b[") {
-		t.Fatalf("expected ANSI escapes in colored output, got %q", out)
-	}
+	require.Contains(t, out, "\x1b[")
 	// Visible text still contains the source words.
-	if !strings.Contains(out, "package") || !strings.Contains(out, "main") {
-		t.Fatalf("colored output missing source text: %q", out)
-	}
+	require.Contains(t, out, "package")
+	require.Contains(t, out, "main")
+
 }
 
 func TestWriteUnsupportedLanguageFallsBack(t *testing.T) {
 	src := []byte("just plain text\n")
 	var buf bytes.Buffer
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := highlight.Write(t.Context(), &buf, src, "notes.txt", highlight.Options{Color: true, Walker: w}); err != nil {
-		t.Fatal(err)
+	require.NoError(t, err)
+	{
+
+		err := highlight.Write(t.Context(), &buf, src, "notes.txt", highlight.Options{Color: true, Walker: w})
+		require.NoError(t, err)
 	}
 	// Unparseable: still returns the full source (with or without spans).
-	if !strings.Contains(buf.String(), "just plain text") {
-		t.Fatalf("missing source: %q", buf.String())
-	}
+	require.Contains(t, buf.String(), "just plain text")
+
 }
 
 func TestAutoColorRespectsNO_COLOR(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
-	if highlight.AutoColor(nil) {
-		t.Fatal("NO_COLOR set: AutoColor must be false")
-	}
+	require.False(t, highlight.AutoColor(nil),
+		"NO_COLOR set: AutoColor must be false")
+
 }

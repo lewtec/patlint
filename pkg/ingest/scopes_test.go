@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScopeTree_AtNested(t *testing.T) {
@@ -15,15 +16,22 @@ func TestScopeTree_AtNested(t *testing.T) {
 		},
 	}
 	tr := buildScopeTree(fe, &refCache{})
-	if got := tr.At(0); got != 0 {
-		t.Fatalf("At(0)=%d want 0", got)
+	{
+		got := tr.At(0)
+		require.Equal(t, 0, got,
+			"At(0)=%d want 0", got)
 	}
-	if got := tr.At(25); got != 1 {
-		t.Fatalf("At(25)=%d want 1", got)
+	{
+
+		got := tr.At(25)
+		require.Equal(t, 1, got,
+			"At(25)=%d want 1", got)
 	}
-	if got := tr.At(80); got != 0 {
-		t.Fatalf("At(80)=%d want 0", got)
-	}
+
+	got := tr.At(80)
+	require.Equal(t, 0, got,
+		"At(80)=%d want 0", got)
+
 }
 
 func TestScopeTree_LookupShadows(t *testing.T) {
@@ -43,23 +51,36 @@ func TestScopeTree_LookupShadows(t *testing.T) {
 		},
 	}
 	tr := buildScopeTree(fe, &refCache{})
-	// In B.m, local x is visible; run is B.run (class), not A.run.
-	if got := tr.Lookup(130, "x"); got != "path:./Types.java::x" {
-		t.Fatalf("x=%q", got)
+	{
+		// In B.m, local x is visible; run is B.run (class), not A.run.
+		got := tr.Lookup(130, "x")
+		require.Equal(t, "path:./Types.java::x", got,
+			"x=%q", got)
 	}
-	if got := tr.Lookup(130, "run"); got != "path:./Types.java::B.run" {
-		t.Fatalf("run in B.m=%q", got)
+	{
+
+		got := tr.Lookup(130, "run")
+		require.Equal(t, "path:./Types.java::B.run", got,
+			"run in B.m=%q", got)
 	}
-	if got := tr.Lookup(10, "run"); got != "path:./Types.java::A.run" {
-		t.Fatalf("run in A=%q", got)
+	{
+
+		got := tr.Lookup(10, "run")
+		require.Equal(t, "path:./Types.java::A.run", got,
+			"run in A=%q", got)
 	}
-	// File-level: types, not methods.
-	if got := tr.Lookup(5, "A"); got != "path:./Types.java::A" {
-		t.Fatalf("A=%q", got)
+	{
+
+		// File-level: types, not methods.
+		got := tr.Lookup(5, "A")
+		require.Equal(t, "path:./Types.java::A", got,
+			"A=%q", got)
 	}
-	if got := tr.Lookup(5, "run"); got != "" {
-		t.Fatalf("file run=%q want empty", got)
-	}
+
+	got := tr.Lookup(5, "run")
+	require.Empty(t, got,
+		"file run=%q want empty", got)
+
 }
 
 func TestScopeTree_TypeInNamespaceVisibleToSibling(t *testing.T) {
@@ -77,9 +98,10 @@ func TestScopeTree_TypeInNamespaceVisibleToSibling(t *testing.T) {
 		},
 	}
 	tr := buildScopeTree(fe, &refCache{})
-	if got := tr.Lookup(45, "Base"); got != "path:./features.cpp::Base" {
-		t.Fatalf("Base from Box=%q", got)
-	}
+	got := tr.Lookup(45, "Base")
+	require.Equal(t, "path:./features.cpp::Base", got,
+		"Base from Box=%q", got)
+
 }
 
 func TestScopeTree_DottedLocalStaysInMethod(t *testing.T) {
@@ -99,12 +121,16 @@ func TestScopeTree_DottedLocalStaysInMethod(t *testing.T) {
 		},
 	}
 	tr := buildScopeTree(fe, &refCache{})
-	if got := tr.Lookup(60, "m"); got != "path:./Main.java::Main.use.m" {
-		t.Fatalf("use m=%q", got)
+	{
+		got := tr.Lookup(60, "m")
+		require.Equal(t, "path:./Main.java::Main.use.m", got,
+			"use m=%q", got)
 	}
-	if got := tr.Lookup(200, "m"); got != "path:./Main.java::Main.main.m" {
-		t.Fatalf("main m=%q", got)
-	}
+
+	got := tr.Lookup(200, "m")
+	require.Equal(t, "path:./Main.java::Main.main.m", got,
+		"main m=%q", got)
+
 }
 
 func TestScopeTree_TypeTypeNotOnClassTable(t *testing.T) {
@@ -120,10 +146,14 @@ func TestScopeTree_TypeTypeNotOnClassTable(t *testing.T) {
 		},
 	}
 	tr := buildScopeTree(fe, &refCache{})
-	if got := tr.Lookup(25, "Helper"); got != "path:./t.go::Helper" {
-		t.Fatalf("Helper in class=%q want type", got)
+	{
+		got := tr.Lookup(25, "Helper")
+		require.Equal(t, "path:./t.go::Helper", got,
+			"Helper in class=%q want type", got)
 	}
-	if got := tr.Lookup(0, "Helper"); got != "path:./t.go::Helper" {
-		t.Fatalf("Helper at file=%q", got)
-	}
+
+	got := tr.Lookup(0, "Helper")
+	require.Equal(t, "path:./t.go::Helper", got,
+		"Helper at file=%q", got)
+
 }

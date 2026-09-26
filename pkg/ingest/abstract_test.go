@@ -1,7 +1,6 @@
 package ingest_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/lewtec/patlint/internal/prelude"
@@ -13,14 +12,14 @@ import (
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
 	"github.com/lewtec/patlint/pkg/tape"
 	"github.com/lewtec/patlint/pkg/walker"
+	"github.com/stretchr/testify/require"
 )
 
 func parseGo(t *testing.T, src string) (*sitter.Node, []byte, func()) {
 	t.Helper()
 	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, []byte(src), "x.go", "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	return pf.Root, pf.Source, pf.Close
 }
 
@@ -38,31 +37,27 @@ func Max(a, b int) int {
 
 	sess := project.NewSession(".").WithEngine(ccgo.Engine{})
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	bindings := ingest.LocalBindingsForLanguage(t.Context(), vm, sess, root, source, "go", "x.go")
 	w, err := walker.NewWalker(t.Context(), sess, vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cells, _, err := w.BuildTape(t.Context(), source, "x.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	// Project whole file; look for the if/return shape with holes
 	terms := ingest.ProjectAbstract(cells, source, "x.go", bindings, ingest.DefaultAbstractOptions())
 	got := ingest.FormatTerms(terms)
 	// Expect %r1 / %r2 for a,b and structural if/>/return
-	if !strings.Contains(got, "if") || !strings.Contains(got, ">") || !strings.Contains(got, "return") {
-		t.Fatalf("missing control tokens: %s", got)
-	}
-	if !strings.Contains(got, "%r1") || !strings.Contains(got, "%r2") {
-		t.Fatalf("expected numbered holes, got: %s", got)
-	}
-	if strings.Contains(got, " a ") || strings.Contains(got, " b ") {
-		t.Fatalf("surface names should be holes: %s", got)
-	}
+	require.Contains(t, got, "if")
+	require.Contains(t, got, ">")
+	require.Contains(t, got, "return")
+	require.Contains(t, got, "%r1")
+	require.Contains(t, got, "%r2")
+	require.NotContains(t, got, " a ")
+	require.NotContains(t, got, " b ")
+
 }
 
 func TestProjectAbstract_LitKeepsValue(t *testing.T) {
@@ -71,22 +66,18 @@ func TestProjectAbstract_LitKeepsValue(t *testing.T) {
 	defer cleanup()
 	sess := project.NewSession(".").WithEngine(ccgo.Engine{})
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), sess, vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cells, _, err := w.BuildTape(t.Context(), source, "x.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	terms := ingest.ProjectAbstract(cells, source, "x.go", nil, ingest.DefaultAbstractOptions())
 	got := ingest.FormatTerms(terms)
-	if !strings.Contains(got, `LIT("hi")`) {
-		t.Fatalf("want LIT(\"hi\") in %s", got)
-	}
+	require.Contains(t, got, `LIT("hi")`)
+
 }
 
 func TestProjectAbstract_ProductRef(t *testing.T) {
@@ -98,9 +89,8 @@ func TestProjectAbstract_ProductRef(t *testing.T) {
 	}}
 	src := []byte("xxxxx")
 	terms := ingest.ProjectAbstract(cells, src, "x.go", nil, ingest.DefaultAbstractOptions())
-	if len(terms) != 1 || terms[0] != "@go:fmt::Println" {
-		t.Fatalf("terms=%v", terms)
-	}
+	require.Equal(t, []string{"@go:fmt::Println"}, terms)
+
 }
 
 func TestFormatTermsSexp(t *testing.T) {
@@ -108,13 +98,13 @@ func TestFormatTermsSexp(t *testing.T) {
 		"{", "if", "%r1", ">", "%r2", "{", "return", "%r1", "}", "return", "%r2", "}",
 	})
 	want := `(seq "{" "if" (unify r1 any) ">" (unify r2 any) "{" "return" (unify r1 any) "}" "return" (unify r2 any) "}")`
-	if got != want {
-		t.Fatalf("got %s\nwant %s", got, want)
-	}
+	require.Equal(t, want, got)
+
 	got2 := ingest.FormatTermsSexp([]string{"LIT(42)", "@go:fmt::Println", "%r3"})
-	if !strings.Contains(got2, `"42"`) || !strings.Contains(got2, `(ref "go:fmt::Println")`) || !strings.Contains(got2, `(unify r3 any)`) {
-		t.Fatalf("got2=%s", got2)
-	}
+	require.Contains(t, got2, `"42"`)
+	require.Contains(t, got2, `(ref "go:fmt::Println")`)
+	require.Contains(t, got2, `(unify r3 any)`)
+
 }
 
 func TestAbstractFile_MaxMinDiffer(t *testing.T) {
@@ -135,20 +125,15 @@ func Min(a, b int) int {
 	root, source, cleanup := parseGo(t, src)
 	defer cleanup()
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	units, err := w.AbstractFile(t.Context(), root, source, "x.go", true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(units) < 2 {
-		t.Fatalf("units=%d want >=2", len(units))
-	}
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(units), 2)
+
 	var maxT, minT string
 	for _, u := range units {
 		s := ingest.FormatTerms(u.Terms)
@@ -159,16 +144,13 @@ func Min(a, b int) int {
 			minT = s
 		}
 	}
-	if maxT == "" || minT == "" {
-		t.Fatalf("max=%q min=%q units=%v", maxT, minT, names(units))
-	}
-	if maxT == minT {
-		t.Fatalf("Max and Min should differ with numbered holes:\nMax %s\nMin %s", maxT, minT)
-	}
+	require.NotEmpty(t, maxT, "units=%v", names(units))
+	require.NotEmpty(t, minT, "units=%v", names(units))
+	require.NotEqual(t, maxT, minT, "Max and Min should differ with numbered holes")
 	// Both should share the comparison skeleton
-	if !strings.Contains(maxT, "if") || !strings.Contains(minT, "if") {
-		t.Fatalf("both need if: max=%s min=%s", maxT, minT)
-	}
+	require.Contains(t, maxT, "if")
+	require.Contains(t, minT, "if")
+
 	t.Logf("Max: %s", maxT)
 	t.Logf("Min: %s", minT)
 }

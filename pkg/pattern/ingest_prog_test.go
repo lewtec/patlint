@@ -5,6 +5,7 @@ import (
 
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/store"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIngestClauses_AsAtom(t *testing.T) {
@@ -15,29 +16,23 @@ func TestIngestClauses_AsAtom(t *testing.T) {
     (as-scope (this))
     (as-atom public (take "name" (node "function_declaration")))))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cl := prog.IngestClauses("x.go")
-	if len(cl) != 2 {
-		t.Fatalf("clauses=%d", len(cl))
-	}
+	require.Len(t, cl, 2)
+
 	var sawAtom, sawScope bool
 	for _, c := range cl {
 		if c.Head.Rel == store.RelationAtom {
 			sawAtom = true
-			if len(c.Body) != 1 || c.Body[0].Rel != "$as" {
-				t.Fatalf("atom body: %+v", c.Body)
-			}
+			require.Len(t, c.Body, 1)
+			require.Equal(t, "$as", c.Body[0].Rel)
 		}
 		if c.Head.Rel == store.RelationScope {
 			sawScope = true
 		}
 	}
-	if !sawAtom || !sawScope {
-		t.Fatalf("want atom+scope, got %+v", cl)
-	}
-	if n := len(prog.IngestClauses("x.js")); n != 0 {
-		t.Fatalf("js path should skip go actions, got %d", n)
-	}
+	require.True(t, sawAtom, "want atom, got %+v", cl)
+	require.True(t, sawScope, "want scope, got %+v", cl)
+	require.Empty(t, prog.IngestClauses("x.js"), "js path should skip go actions")
 }

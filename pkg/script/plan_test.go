@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/project"
@@ -28,26 +29,20 @@ func TestCompilePlan_FusesFullFileLeaves(t *testing.T) {
       (under (token "x") (token "y")))))
 `
 	prog, err := Load("t.rft", script)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	p := prog.EnsurePlan()
-	if p == nil {
-		t.Fatal("nil plan")
-	}
+	require.NotNil(t, p,
+		"nil plan")
 	// a+b full-file; c flat under→body leaf → under group; d nested non-leaf body → residual
-	if len(p.Groups) != 1 {
-		t.Fatalf("groups=%d summary=%s", len(p.Groups), p.PlanSummary())
-	}
-	if len(p.Groups[0].Arms) != 2 {
-		t.Fatalf("arms=%d want 2: %s", len(p.Groups[0].Arms), p.PlanSummary())
-	}
-	if len(p.Unders) != 1 || len(p.Unders[0].Arms) != 1 {
-		t.Fatalf("under=%d arms=%v: %s", len(p.Unders), p.Unders, p.PlanSummary())
-	}
-	if len(p.Residual) != 1 {
-		t.Fatalf("residual=%v want 1 nested under: %s", p.Residual, p.PlanSummary())
-	}
+	require.Len(t, p.Groups, 1, "summary=%s", p.PlanSummary())
+	require.Len(t, p.Groups[0].Arms, 2,
+		"arms=%d want 2: %s", len(p.Groups[0].Arms), p.PlanSummary())
+	require.False(t, len(p.Unders) != 1 || len(p.Unders[0].Arms) != 1,
+		"under=%d arms=%v: %s", len(p.Unders), p.Unders, p.PlanSummary())
+	require.Len(t, p.Residual, 1,
+		"residual=%v want 1 nested under: %s", p.Residual, p.PlanSummary())
+
 }
 
 func TestCompilePlan_FusesUnderBodies(t *testing.T) {
@@ -78,19 +73,16 @@ func TestCompilePlan_FusesUnderBodies(t *testing.T) {
       (token "return"))))
 `
 	prog, err := Load("t.rft", script)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	p := prog.EnsurePlan()
-	if len(p.Unders) != 1 {
-		t.Fatalf("under_groups=%d want 1: %s", len(p.Unders), p.PlanSummary())
-	}
-	if len(p.Unders[0].Arms) != 2 {
-		t.Fatalf("under arms=%d want 2: %s", len(p.Unders[0].Arms), p.PlanSummary())
-	}
-	if p.Unders[0].Multi == nil || p.Unders[0].Region == nil {
-		t.Fatalf("want region+multi: %#v", p.Unders[0])
-	}
+	require.Len(t, p.Unders, 1,
+		"under_groups=%d want 1: %s", len(p.Unders), p.PlanSummary())
+	require.Len(t, p.Unders[0].Arms, 2,
+		"under arms=%d want 2: %s", len(p.Unders[0].Arms), p.PlanSummary())
+	require.False(t, p.Unders[0].Multi == nil || p.Unders[0].Region == nil,
+		"want region+multi: %#v", p.Unders[0])
+
 }
 
 func TestFormatPlan_ShowsMultiPrimitive(t *testing.T) {
@@ -101,35 +93,33 @@ func TestFormatPlan_ShowsMultiPrimitive(t *testing.T) {
   (under (lang go) (rewrite (token "return") "return")))
 `
 	prog, err := Load("t.rft", script)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	dump := FormatPlan(prog, false, "")
-	if !strings.Contains(dump, "MatchFileMultiLeaves") {
-		t.Fatalf("want multi primitive name: %s", dump)
-	}
-	if !strings.Contains(dump, "spine group[0]") {
-		t.Fatalf("want spine group: %s", dump)
-	}
-	if !strings.Contains(dump, "MultiLeafNFA collapsed") {
-		t.Fatalf("want collapsed multi dump: %s", dump)
-	}
-	if !strings.Contains(dump, "tag id=") {
-		t.Fatalf("want tagged accepts/handlers: %s", dump)
-	}
+	require.True(t, strings.Contains(dump, "MatchFileMultiLeaves"),
+		"want multi primitive name: %s", dump)
+	require.True(t, strings.Contains(dump, "spine group[0]"),
+		"want spine group: %s", dump)
+	require.True(t, strings.Contains(dump, "MultiLeafNFA collapsed"),
+		"want collapsed multi dump: %s", dump)
+	require.True(t, strings.Contains(dump, "tag id="),
+		"want tagged accepts/handlers: %s", dump)
+
 	// filter one arm (rule id "a")
 	one := FormatPlan(prog, false, "a")
-	if strings.Count(one, "### arm action[") != 1 {
-		t.Fatalf("want single arm for filter a: %s", one)
-	}
+	require.Equal(t, 1, strings.Count(one, "### arm action["),
+		"want single arm for filter a: %s", one)
+
 }
 
 func TestRun_SpineSameAsPreferAny(t *testing.T) {
 	dir := t.TempDir()
 	src := []byte("package p\n\nfunc f(x interface{}) {}\nfunc g() { return }\n")
-	if err := os.WriteFile(lewpath.New(dir, "x.go").String(), src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(lewpath.New(dir, "x.go").String(), src, 0o644)
+		require.NoError(t, err)
 	}
+
 	script := `
 (rule go/prefer-any
   warning
@@ -141,18 +131,15 @@ func TestRun_SpineSameAsPreferAny(t *testing.T) {
   (under (lang go) (token "return")))
 `
 	prog, err := Load("t.rft", script)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	sum := prog.EnsurePlan().PlanSummary()
-	if !strings.Contains(sum, "arms=2") {
-		t.Fatalf("want fused arms: %s", sum)
-	}
+	require.True(t, strings.Contains(sum, "arms=2"),
+		"want fused arms: %s", sum)
+
 	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Findings) < 2 {
-		t.Fatalf("findings=%d want >=2", len(res.Findings))
-	}
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(res.Findings), 2,
+		"findings=%d want >=2", len(res.Findings))
+
 }

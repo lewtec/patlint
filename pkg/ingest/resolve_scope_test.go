@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScopeTree_ReplacesAncestorWalk(t *testing.T) {
@@ -20,15 +21,22 @@ func TestScopeTree_ReplacesAncestorWalk(t *testing.T) {
 		},
 	}
 	tr := buildScopeTree(fe, &refCache{})
-	if got := tr.Lookup(130, "value"); got != "path:./Types.java::B.value" {
-		t.Fatalf("B.m value=%q", got)
+	{
+		got := tr.Lookup(130, "value")
+		require.Equal(t, "path:./Types.java::B.value", got,
+			"B.m value=%q", got)
 	}
-	if got := tr.Lookup(10, "value"); got != "path:./Types.java::A.value" {
-		t.Fatalf("A value=%q", got)
+	{
+
+		got := tr.Lookup(10, "value")
+		require.Equal(t, "path:./Types.java::A.value", got,
+			"A value=%q", got)
 	}
-	if got := tr.Lookup(5, "value"); got != "" {
-		t.Fatalf("file value=%q want empty", got)
-	}
+
+	got := tr.Lookup(5, "value")
+	require.Empty(t, got,
+		"file value=%q want empty", got)
+
 }
 
 func TestScopeTree_LocalShadowsField(t *testing.T) {
@@ -45,7 +53,8 @@ func TestScopeTree_LocalShadowsField(t *testing.T) {
 		},
 	}
 	tr := buildScopeTree(fe, &refCache{})
-	if got := tr.Lookup(90, "map"); got != "path:./T.java::map" {
-		t.Fatalf("local map=%q", got)
-	}
+	got := tr.Lookup(90, "map")
+	require.Equal(t, "path:./T.java::map", got,
+		"local map=%q", got)
+
 }

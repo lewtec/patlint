@@ -10,6 +10,7 @@ import (
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPruneNamedUnusedFromExtract(t *testing.T) {
@@ -24,16 +25,12 @@ func TestPruneNamedUnusedFromExtract(t *testing.T) {
 		},
 	}
 	edits := ingest.PruneNamedUnusedFromExtract("x.dsl", src, fe, ingest.PruneImportOpts{})
-	if len(edits) != 1 {
-		t.Fatalf("edits=%d", len(edits))
-	}
+	require.Len(t, edits, 1)
+
 	got := string(project.ApplyEditsInMemory(src, edits))
-	if strings.Contains(got, "./dead") {
-		t.Fatalf("dead remains: %q", got)
-	}
-	if !strings.Contains(got, "./used") {
-		t.Fatalf("used dropped: %q", got)
-	}
+	require.NotContains(t, got, "./dead")
+	require.Contains(t, got, "./used")
+
 }
 
 func TestPruneNamedUnusedFromExtract_GoImportBlock(t *testing.T) {
@@ -41,9 +38,10 @@ func TestPruneNamedUnusedFromExtract_GoImportBlock(t *testing.T) {
 	fmtPath := strings.Index(string(src), `"fmt"`)
 	strPath := strings.Index(string(src), `"strings"`)
 	use := strings.Index(string(src), "fmt.Println()")
-	if fmtPath < 0 || strPath < 0 || use < 0 {
-		t.Fatal("fixture")
-	}
+	require.GreaterOrEqual(t, fmtPath, 0, "fixture")
+	require.GreaterOrEqual(t, strPath, 0, "fixture")
+	require.GreaterOrEqual(t, use, 0, "fixture")
+
 	fe := &project.FileExtract{
 		Imports: []project.ImportDef{
 			{LocalName: "fmt", SourcePath: "fmt", StartByte: uint32(fmtPath), EndByte: uint32(fmtPath + len(`"fmt"`))},
@@ -54,24 +52,19 @@ func TestPruneNamedUnusedFromExtract_GoImportBlock(t *testing.T) {
 		MaskSpans:      []ingestutil.Span{{StartByte: uint32(use), EndByte: uint32(use + len("fmt.Println()"))}},
 		OnlyCandidates: []string{"fmt"},
 	})
-	if len(edits) == 0 {
-		t.Fatal("expected prune of fmt")
-	}
+	require.NotEmpty(t, edits, "expected prune of fmt")
+
 	got := string(project.ApplyEditsInMemory(src, edits))
-	if strings.Contains(got, `"fmt"`) {
-		t.Fatalf("fmt should be pruned:\n%s", got)
-	}
-	if !strings.Contains(got, `"strings"`) {
-		t.Fatalf("strings must remain:\n%s", got)
-	}
+	require.NotContains(t, got, `"fmt"`)
+	require.Contains(t, got, `"strings"`)
+
 }
 
 func TestPruneNamedUnusedFromExtract_GoImportBlockKeepsUsedNeighbor(t *testing.T) {
 	src := []byte("package p\n\nimport (\n\t\"context\"\n\t\"fmt\"\n)\n\nfunc f() {\n\t_ = context.Background()\n\tfmt.Println()\n}\n")
 	use := strings.Index(string(src), "context.Background()")
-	if use < 0 {
-		t.Fatal("fixture")
-	}
+	require.GreaterOrEqual(t, use, 0, "fixture")
+
 	ctxLine := strings.Index(string(src), "\t\"context\"\n")
 	fmtLine := strings.Index(string(src), "\t\"fmt\"\n")
 	fe := &project.FileExtract{
@@ -84,12 +77,9 @@ func TestPruneNamedUnusedFromExtract_GoImportBlockKeepsUsedNeighbor(t *testing.T
 		MaskSpans: []ingestutil.Span{{StartByte: uint32(use), EndByte: uint32(use + len("context.Background()"))}},
 	})
 	got := string(project.ApplyEditsInMemory(src, edits))
-	if strings.Contains(got, `"context"`) {
-		t.Fatalf("context should be pruned:\n%s", got)
-	}
-	if !strings.Contains(got, `"fmt"`) {
-		t.Fatalf("fmt must remain:\n%s", got)
-	}
+	require.NotContains(t, got, `"context"`)
+	require.Contains(t, got, `"fmt"`)
+
 }
 
 func TestEnsureImportAfterLastMarked(t *testing.T) {
@@ -107,13 +97,12 @@ func TestEnsureImportAfterLastMarked(t *testing.T) {
 		}},
 	}
 	edits := ingest.EnsureImportAfterLastMarked("x.dsl", src, fe, []ingest.ImportNeed{{ImportPath: "./new"}})
-	if len(edits) != 1 {
-		t.Fatalf("edits=%d", len(edits))
-	}
+	require.Len(t, edits, 1)
+
 	got := string(project.ApplyEditsInMemory(src, edits))
-	if !strings.Contains(got, `"./new"`) || !strings.Contains(got, `"./old"`) {
-		t.Fatalf("got %q", got)
-	}
+	require.Contains(t, got, `"./new"`)
+	require.Contains(t, got, `"./old"`)
+
 }
 
 func TestEnsureImportFirst(t *testing.T) {
@@ -122,80 +111,62 @@ func TestEnsureImportFirst(t *testing.T) {
 	ps := strings.Index(string(src), pkg)
 	fe := &project.FileExtract{Package: "p", PackageEnd: uint32(ps + len(pkg))}
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	edits := ingest.EnsureImportFirst("p.go", src, fe, vm.ImportLineInfo("go"), vm, []ingest.ImportNeed{{ImportPath: "fmt"}})
-	if len(edits) != 1 {
-		t.Fatalf("edits=%d", len(edits))
-	}
+	require.Len(t, edits, 1)
+
 	got := string(project.ApplyEditsInMemory(src, edits))
-	if !strings.Contains(got, "import \"fmt\"") {
-		t.Fatalf("got %q", got)
-	}
-	if !strings.HasPrefix(got, "package p\n") {
-		t.Fatalf("package lost: %q", got)
-	}
+	require.Contains(t, got, "import \"fmt\"")
+	require.True(t, strings.HasPrefix(got, "package p\n"), "package lost: %q", got)
+
 }
 
 func TestEnsureImportFirst_CIncludeAfterGuard(t *testing.T) {
 	src := []byte("#ifndef FOO_H\n#define FOO_H\n\nclass Foo {};\n\n#endif\n")
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "foo.h", "c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "c", pf.Root, src, "foo.h")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if fe.PackageEnd == 0 {
-		t.Fatal("as-package did not mark include guard")
-	}
+	require.NoError(t, err)
+	require.NotZero(t, fe.PackageEnd, "as-package did not mark include guard")
+
 	edits := ingest.EnsureImportFirst("foo.h", src, fe, vm.ImportLineInfo("c"), vm, []ingest.ImportNeed{{ImportPath: "bar.h"}})
-	if len(edits) != 1 {
-		t.Fatalf("edits=%d", len(edits))
-	}
+	require.Len(t, edits, 1)
+
 	got := string(project.ApplyEditsInMemory(src, edits))
-	if !strings.Contains(got, "#define FOO_H") || !strings.Contains(got, "#include \"bar.h\"") {
-		t.Fatalf("got %q", got)
-	}
-	if i, j := strings.Index(got, "#define FOO_H"), strings.Index(got, "#include"); i < 0 || j < i {
-		t.Fatalf("include before guard: %q", got)
-	}
+	require.Contains(t, got, "#define FOO_H")
+	require.Contains(t, got, "#include \"bar.h\"")
+
+	i, j := strings.Index(got, "#define FOO_H"), strings.Index(got, "#include")
+	require.GreaterOrEqual(t, i, 0)
+	require.GreaterOrEqual(t, j, i, "include before guard: %q", got)
+
 }
 
 func TestEnsureImportFirst_CIncludeAfterPragmaOnce(t *testing.T) {
 	src := []byte("#pragma once\n\nclass Foo {};\n")
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "foo.h", "c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "c", pf.Root, src, "foo.h")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if fe.PackageEnd == 0 {
-		t.Fatal("as-package did not mark pragma once")
-	}
+	require.NoError(t, err)
+	require.NotZero(t, fe.PackageEnd, "as-package did not mark pragma once")
+
 	edits := ingest.EnsureImportFirst("foo.h", src, fe, vm.ImportLineInfo("c"), vm, []ingest.ImportNeed{{ImportPath: "bar.h"}})
-	if len(edits) != 1 {
-		t.Fatalf("edits=%d", len(edits))
-	}
+	require.Len(t, edits, 1)
+
 	got := string(project.ApplyEditsInMemory(src, edits))
-	if !strings.HasPrefix(got, "#pragma once\n") || !strings.Contains(got, "#include \"bar.h\"") {
-		t.Fatalf("got %q", got)
-	}
-	if strings.HasPrefix(got, "#include") {
-		t.Fatalf("include before pragma: %q", got)
-	}
+	require.True(t, strings.HasPrefix(got, "#pragma once\n"), "got %q", got)
+	require.Contains(t, got, "#include \"bar.h\"")
+	require.False(t, strings.HasPrefix(got, "#include"), "include before pragma: %q", got)
+
 }

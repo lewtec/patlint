@@ -7,6 +7,7 @@ import (
 
 	lewpath "github.com/lewtec/lewkit/x/path"
 	"github.com/lewtec/patlint/pkg/ingestutil"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/sitter"
@@ -17,44 +18,36 @@ func TestSexpTextAndJSONSameMatches(t *testing.T) {
 	dir := t.TempDir()
 	src := []byte("package p\nfunc f(x interface{}) {}\n")
 	path := lewpath.New(dir, "x.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
 
 	text, err := ParseToPat(`(token "interface{}")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	raw, err := json.Marshal(patToJSON(text))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	fromJSON, err := DecodePatJSON(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if FormatSexp(text) != FormatSexp(fromJSON) {
-		t.Fatalf("sexpr round-trip diverged:\n  text %s\n  json %s", FormatSexp(text), FormatSexp(fromJSON))
-	}
+	require.NoError(t, err)
+	require.Equal(t, FormatSexp(fromJSON), FormatSexp(text),
+		"sexpr round-trip diverged:\n  text %s\n  json %s", FormatSexp(text), FormatSexp(fromJSON))
 
 	msText := mustMatchFile(t, dir, path, "x.go", src, mustPatToNode(t, text))
 	msJSON := mustMatchFile(t, dir, path, "x.go", src, mustPatToNode(t, fromJSON))
-	if len(msText) != len(msJSON) || len(msText) == 0 {
-		t.Fatalf("text matches=%d json=%d", len(msText), len(msJSON))
-	}
+	require.False(t, len(msText) != len(msJSON) || len(msText) == 0,
+		"text matches=%d json=%d", len(msText), len(msJSON))
 
 	// Direct MatchFilePat (no Node in match path)
 	vm, err := New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	msPat, err := matchFilePatPol(testSess(), dir, "x.go", src, mustParseRoot(t, path), text, nil, vm.TapePolicy("x.go"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(msPat) != len(msText) {
-		t.Fatalf("MatchFilePat=%d want %d", len(msPat), len(msText))
-	}
+	require.NoError(t, err)
+	require.Len(t, msPat, len(msText),
+		"MatchFilePat=%d want %d", len(msPat), len(msText))
+
 }
 
 func TestCompilePatVsLegacyNode(t *testing.T) {
@@ -66,19 +59,21 @@ func TestCompilePatVsLegacyNode(t *testing.T) {
 	} {
 		t.Run(s, func(t *testing.T) {
 			n, err := ParsePattern(s)
-			if err != nil {
-				t.Fatal(err)
+			require.NoError(t, err)
+			{
+
+				_, err := compilePattern(n)
+				require.NoError(t, err)
 			}
-			if _, err := compilePattern(n); err != nil {
-				t.Fatal(err)
-			}
+
 			p, err := ParseToPat(s)
-			if err != nil {
-				t.Fatal(err)
+			require.NoError(t, err)
+			{
+
+				_, err := CompilePat(p)
+				require.NoError(t, err)
 			}
-			if _, err := CompilePat(p); err != nil {
-				t.Fatal(err)
-			}
+
 		})
 	}
 }
@@ -86,18 +81,16 @@ func TestCompilePatVsLegacyNode(t *testing.T) {
 func mustPatToNode(t *testing.T, p Pat) Node {
 	t.Helper()
 	n, err := PatToNode(p)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	return n
 }
 
 func mustParseRoot(t *testing.T, abs string) *sitter.Node {
 	t.Helper()
 	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, abs, "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	t.Cleanup(func() { pf.Close() })
 	return pf.Root
 }

@@ -1,17 +1,20 @@
 package ingest
 
-import "github.com/lewtec/patlint/pkg/ingestutil"
+import (
+	"testing"
 
-import "testing"
+	"github.com/lewtec/patlint/pkg/ingestutil"
+	"github.com/stretchr/testify/require"
+)
 
 func TestChildByTypeNil(t *testing.T) {
-	if ingestutil.ChildByType(nil, "identifier") != nil {
-		t.Fatal("expected nil for nil node")
-	}
+	require.Nil(t, ingestutil.ChildByType(nil, "identifier"),
+		"expected nil for nil node")
+
 }
 
 func TestChildByFieldNil(t *testing.T) {
-	if ingestutil.ChildByField(nil, "name") != nil {
-		t.Fatal("expected nil for nil node")
-	}
+	require.Nil(t, ingestutil.ChildByField(nil, "name"),
+		"expected nil for nil node")
+
 }

@@ -1,28 +1,28 @@
 package ingest
 
 import (
-	"github.com/lewtec/patlint/pkg/project"
 	"testing"
+
+	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInsertAt(t *testing.T) {
 	e := InsertAt("./f.go", 3, "x")
-	if e.File != "f.go" || e.StartByte != 3 || e.EndByte != 3 || e.NewText != "x" {
-		t.Fatalf("%+v", e)
-	}
-	if InsertAt("f", 0, "") != (project.Edit{}) {
-		t.Fatal("empty text")
-	}
+	require.Equal(t, "f.go", e.File)
+	require.Equal(t, uint32(3), e.StartByte)
+	require.Equal(t, uint32(3), e.EndByte)
+	require.Equal(t, "x", e.NewText)
+	require.Equal(t, project.Edit{}, InsertAt("f", 0, ""))
+
 }
 
 func TestInsertLinesAt(t *testing.T) {
 	edits := InsertLinesAt("f.go", 0, []string{"import A", "import B"})
-	if len(edits) != 1 || edits[0].NewText != "import A\nimport B\n" {
-		t.Fatalf("%+v", edits)
-	}
-	if InsertLinesAt("f.go", 0, nil) != nil {
-		t.Fatal("nil lines")
-	}
+	require.Len(t, edits, 1)
+	require.Equal(t, "import A\nimport B\n", edits[0].NewText)
+	require.Nil(t, InsertLinesAt("f.go", 0, nil))
+
 }
 
 func TestLocalDepsInDeclSpan(t *testing.T) {
@@ -42,11 +42,9 @@ func TestLocalDepsInDeclSpan(t *testing.T) {
 	src := ParseReference("path:./a.js::moved")
 	decl := DeclExtract{RemoveStart: 0, RemoveEnd: 50}
 	deps := LocalDepsInDeclSpan(result, src, decl, LocalDepOpts{})
-	if len(deps) != 2 {
-		t.Fatalf("all names: %v", deps)
-	}
+	require.Len(t, deps, 2)
+
 	deps = LocalDepsInDeclSpan(result, src, decl, LocalDepOpts{TopLevelOnly: true})
-	if len(deps) != 1 || deps[0] != "helper" {
-		t.Fatalf("top-level: %v", deps)
-	}
+	require.Equal(t, []string{"helper"}, deps)
+
 }

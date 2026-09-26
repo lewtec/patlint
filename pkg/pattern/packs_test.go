@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lewtec/patlint/pkg/pattern"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLoadFilesHostAndFamily(t *testing.T) {
@@ -15,22 +16,16 @@ func TestLoadFilesHostAndFamily(t *testing.T) {
   (as-family "ecma"))
 `,
 	}})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	lang, ok, err := p.HostLanguage("app.js")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !ok || lang != "javascript" {
-		t.Fatalf("host=%q ok=%v", lang, ok)
-	}
-	if got := p.FamilyForLanguage("javascript"); got != "ecma" {
-		t.Fatalf("family=%q", got)
-	}
-	if p.RulesForLanguage("javascript").DirectoryModule {
-		t.Fatal("ecma directory-module")
-	}
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.Equal(t, "javascript", lang)
+	require.Equal(t, "ecma", p.FamilyForLanguage("javascript"))
+	require.False(t, p.RulesForLanguage("javascript").DirectoryModule,
+		"ecma directory-module")
+
 	goPack, err := pattern.LoadFiles([]pattern.PackFile{{
 		Name: "go.rft",
 		Src: `
@@ -39,14 +34,11 @@ func TestLoadFilesHostAndFamily(t *testing.T) {
   (as-family "go" directory-module package-scoped-bare-names nested-type-members))
 `,
 	}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := goPack.FamilyForLanguage("go"); got != "go" {
-		t.Fatalf("go family=%q", got)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "go", goPack.FamilyForLanguage("go"))
+
 	got := goPack.RulesForLanguage("go")
-	if !got.DirectoryModule || !got.NestedTypeMembers {
-		t.Fatalf("go rules=%#v", got)
-	}
+	require.True(t, got.DirectoryModule, "go rules=%#v", got)
+	require.True(t, got.NestedTypeMembers, "go rules=%#v", got)
+
 }

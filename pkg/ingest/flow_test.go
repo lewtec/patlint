@@ -1,10 +1,10 @@
 package ingest
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScoreFlow_NestingAndHybrid(t *testing.T) {
@@ -20,17 +20,14 @@ func TestScoreFlow_NestingAndHybrid(t *testing.T) {
 		{StartByte: 45, EndByte: 50, Class: project.FlowStructural},
 	}
 	rep := ScoreFlow(0, 100, flows)
-	if rep.Score != 1+2+1+2 {
-		t.Fatalf("score=%d want 6 incs=%+v", rep.Score, rep.Incs)
-	}
+	require.Equal(t, 6, rep.Score, "incs=%+v", rep.Incs)
+
 	// equal-span flow is not a proper subset of the unit
 	rep2 := ScoreFlow(10, 40, []project.FlowDef{
 		{StartByte: 10, EndByte: 40, Class: project.FlowStructural},
 		{StartByte: 15, EndByte: 20, Class: project.FlowStructural},
 	})
-	if rep2.Score != 1 {
-		t.Fatalf("inner unit score=%d want 1 (outer mark excluded) incs=%+v", rep2.Score, rep2.Incs)
-	}
+	require.Equal(t, 1, rep2.Score, "outer mark excluded; incs=%+v", rep2.Incs)
 }
 
 func TestFormatFlowMermaid(t *testing.T) {
@@ -40,13 +37,7 @@ func TestFormatFlowMermaid(t *testing.T) {
 		{StartByte: 15, EndByte: 20, Class: project.FlowStructural},
 	})
 	out := FormatFlowMermaid("Demo", rep)
-	if !strings.Contains(out, "flowchart TD") {
-		t.Fatalf("missing flowchart: %s", out)
-	}
-	if !strings.Contains(out, "score=3") {
-		t.Fatalf("missing score: %s", out)
-	}
-	if !strings.Contains(out, "U -->") {
-		t.Fatalf("missing edge: %s", out)
-	}
+	require.Contains(t, out, "flowchart TD")
+	require.Contains(t, out, "score=3")
+	require.Contains(t, out, "U -->")
 }

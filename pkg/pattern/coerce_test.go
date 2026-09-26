@@ -2,24 +2,22 @@ package pattern
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCoercePatternStringSexp(t *testing.T) {
 	p, err := CoercePattern(`(token "interface{}")`, CoerceOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := p.(Token); !ok {
-		t.Fatalf("%#v", p)
-	}
+	require.NoError(t, err)
+
+	_, ok := p.(Token)
+	require.True(t, ok, "%#v", p)
 }
 
 func TestCoercePatternArraySexp(t *testing.T) {
 	p, err := CoercePattern([]any{"token", "interface{}"}, CoerceOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if tok, ok := p.(Token); !ok || tok.Text != "interface{}" {
-		t.Fatalf("%#v", p)
-	}
+	require.NoError(t, err)
+	tok, ok := p.(Token)
+	require.True(t, ok, "%#v", p)
+	require.Equal(t, "interface{}", tok.Text)
 }

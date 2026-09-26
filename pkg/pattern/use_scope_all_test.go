@@ -1,12 +1,14 @@
 package pattern_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
@@ -30,20 +32,17 @@ func TestUseScope_MultiLang(t *testing.T) {
 		{"a.zig", "zig", []byte("fn main() void {\n    helper();\n}\n"), "helper", "main"},
 	}
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	for _, tc := range cases {
 		t.Run(tc.path, func(t *testing.T) {
 			pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, tc.src, tc.path, tc.lang)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			defer pf.Close()
 			fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, tc.src, tc.path)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			var got string
 			for _, u := range fe.Usages {
 				if u.Name == tc.useName {
@@ -53,7 +52,7 @@ func TestUseScope_MultiLang(t *testing.T) {
 					}
 				}
 			}
-			t.Fatalf("Scope for %q = %q want %q; usages=%+v", tc.useName, got, tc.wantScope, fe.Usages)
+			require.FailNow(t, fmt.Sprintf("Scope for %q = %q want %q; usages=%+v", tc.useName, got, tc.wantScope, fe.Usages))
 		})
 	}
 }

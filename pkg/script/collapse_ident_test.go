@@ -2,12 +2,14 @@ package script
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/internal/prelude"
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
@@ -32,9 +34,11 @@ func wrap(err error) error {
 	return fmt.Errorf("failed to open file: %w", err)
 }
 `)
-	if err := os.WriteFile(lewpath.New(dir, "x.go").String(), src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(lewpath.New(dir, "x.go").String(), src, 0o644)
+		require.NoError(t, err)
 	}
+
 	// Mirrors janitor.rft go/failed-to-fmt-errorf (take MSG, re-quote slot).
 	scriptSrc := `
 (rule go/prefer-any
@@ -61,32 +65,25 @@ func wrap(err error) error {
       (seq "\"" (slot) "\""))))
 `
 	prog, err := Load("t.rft", scriptSrc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !prog.EnsurePlan().NeedLinks {
-		t.Fatal("failed-to rule needs (ref …) links")
-	}
+	require.NoError(t, err)
+	require.True(t, prog.EnsurePlan().NeedLinks,
+		"failed-to rule needs (ref …) links")
+
 	// Spine path (collapsed multi-ε-NFA)
 	resSpine, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	// Solo path: each matcher independently, same handlers
 	resSolo, err := runSolo(t.Context(), dir, prog)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(normFindings(resSpine), normFindings(resSolo)) {
-		t.Fatalf("findings differ\nspine=%#v\nsolo=%#v", normFindings(resSpine), normFindings(resSolo))
-	}
-	if !reflect.DeepEqual(normApply(resSpine), normApply(resSolo)) {
-		t.Fatalf("apply edits differ\nspine=%#v\nsolo=%#v", normApply(resSpine), normApply(resSolo))
-	}
-	if len(resSpine.ApplyEdits) < 2 {
-		t.Fatalf("expected rewrites for interface{} and failed-to Errorf; apply=%#v findings=%#v",
-			normApply(resSpine), normFindings(resSpine))
-	}
+	require.NoError(t, err)
+	require.True(t, reflect.DeepEqual(normFindings(resSpine), normFindings(resSolo)),
+		"findings differ\nspine=%#v\nsolo=%#v", normFindings(resSpine), normFindings(resSolo))
+	require.True(t, reflect.DeepEqual(normApply(resSpine), normApply(resSolo)),
+		"apply edits differ\nspine=%#v\nsolo=%#v", normApply(resSpine), normApply(resSolo))
+	require.GreaterOrEqual(t, len(resSpine.ApplyEdits), 2,
+		"expected rewrites for interface{} and failed-to Errorf; apply=%#v findings=%#v",
+		normApply(resSpine), normFindings(resSpine))
+
 	// failed-to should rewrite the MSG span (slot = capture group 1 text).
 	var sawFailedTo bool
 	for _, e := range resSpine.ApplyEdits {
@@ -101,8 +98,8 @@ func wrap(err error) error {
 				t.Logf("finding fixable=%v edits=%#v line=%d col=%d", f.Fixable, f.SiteEdits, f.Line, f.Column)
 			}
 		}
-		t.Fatalf("expected failed-to fmt.Errorf rewrite; apply=%#v findings=%#v",
-			normApply(resSpine), normFindings(resSpine))
+		require.FailNow(t, fmt.Sprintf("expected failed-to fmt.Errorf rewrite; apply=%#v findings=%#v",
+			normApply(resSpine), normFindings(resSpine)))
 	}
 }
 
@@ -161,13 +158,12 @@ func TestPlanUsesCollapsedMulti(t *testing.T) {
 (rule a warning "A" (under (lang go) (token "x")))
 (rule b warning "B" (under (lang go) (token "y")))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	p := prog.EnsurePlan()
-	if len(p.Groups) != 1 || p.Groups[0].Multi == nil {
-		t.Fatalf("want collapsed multi: %+v", p)
-	}
+	require.False(t, len(p.Groups) != 1 || p.Groups[0].Multi == nil,
+		"want collapsed multi: %+v", p)
+
 }
 
 // Shared under(region, body) with two body rules: spine under group == solo.
@@ -179,9 +175,11 @@ func helper(a int, b int, c int, d int) {
 	return
 }
 `)
-	if err := os.WriteFile(lewpath.New(dir, "x.go").String(), src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(lewpath.New(dir, "x.go").String(), src, 0o644)
+		require.NoError(t, err)
 	}
+
 	// Same region for both; bodies differ. rewrite/take stay handlers.
 	scriptSrc := `
 (rule go/iface-in-func
@@ -202,28 +200,22 @@ func helper(a int, b int, c int, d int) {
       (token "return"))))
 `
 	prog, err := Load("t.rft", scriptSrc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	p := prog.EnsurePlan()
-	if len(p.Unders) != 1 || len(p.Unders[0].Arms) != 2 {
-		t.Fatalf("want 1 under group with 2 arms: %s", p.PlanSummary())
-	}
+	require.False(t, len(p.Unders) != 1 || len(p.Unders[0].Arms) != 2,
+		"want 1 under group with 2 arms: %s", p.PlanSummary())
+
 	spine, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	solo, err := runSolo(t.Context(), dir, prog)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(normFindings(spine), normFindings(solo)) {
-		t.Fatalf("under findings differ\nspine=%#v\nsolo=%#v", normFindings(spine), normFindings(solo))
-	}
-	if !reflect.DeepEqual(normApply(spine), normApply(solo)) {
-		t.Fatalf("under apply differ\nspine=%#v\nsolo=%#v", normApply(spine), normApply(solo))
-	}
-	if len(spine.ApplyEdits) == 0 {
-		t.Fatalf("want interface{} rewrite; findings=%#v", normFindings(spine))
-	}
+	require.NoError(t, err)
+	require.True(t, reflect.DeepEqual(normFindings(spine), normFindings(solo)),
+		"under findings differ\nspine=%#v\nsolo=%#v", normFindings(spine), normFindings(solo))
+	require.True(t, reflect.DeepEqual(normApply(spine), normApply(solo)),
+		"under apply differ\nspine=%#v\nsolo=%#v", normApply(spine), normApply(solo))
+	require.NotEmpty(t, spine.ApplyEdits,
+		"want interface{} rewrite; findings=%#v", normFindings(spine))
+
 }

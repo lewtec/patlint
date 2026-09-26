@@ -1,45 +1,43 @@
 package ingestutil
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestDottedReceiver(t *testing.T) {
-	if _, ok := DottedReceiver(""); ok {
-		t.Fatal("empty")
-	}
-	if _, ok := DottedReceiver("plain"); ok {
-		t.Fatal("no dot")
-	}
+	_, ok := DottedReceiver("")
+	require.False(t, ok, "empty")
+	_, ok = DottedReceiver("plain")
+	require.False(t, ok, "no dot")
+
 	recv, ok := DottedReceiver("Class.method")
-	if !ok || recv != "Class" {
-		t.Fatalf("got %q %v", recv, ok)
-	}
+	require.True(t, ok)
+	require.Equal(t, "Class", recv)
+
 	recv, ok = DottedReceiver("Outer.Inner.m")
-	if !ok || recv != "Outer.Inner" {
-		t.Fatalf("nested: %q", recv)
-	}
+	require.True(t, ok)
+	require.Equal(t, "Outer.Inner", recv)
 }
 
 func TestIdentUsedJava(t *testing.T) {
-	if !IdentUsedJava("$foo bar", "$foo") {
-		t.Fatal("want hit")
-	}
-	if IdentUsedJava("a$foo", "$foo") {
-		t.Fatal("mid-ident")
-	}
+	require.True(t, IdentUsedJava("$foo bar", "$foo"),
+		"want hit")
+	require.False(t, IdentUsedJava("a$foo", "$foo"),
+		"mid-ident")
+
 }
 
 func TestMissingSubstrings(t *testing.T) {
 	got := MissingSubstrings("import A\n", []string{"import A", "import B", ""})
-	if len(got) != 1 || got[0] != "import B" {
-		t.Fatalf("%v", got)
-	}
+	require.Equal(t, []string{"import B"}, got)
+
 }
 
 func TestIsCStyleDocCommentLine(t *testing.T) {
-	if !IsCStyleDocCommentLine("// x") || !IsCStyleDocCommentLine("* x") {
-		t.Fatal("cstyle")
-	}
-	if IsSlashSlashCommentLine("* x") {
-		t.Fatal("slash only")
-	}
+	require.True(t, IsCStyleDocCommentLine("// x"))
+	require.True(t, IsCStyleDocCommentLine("* x"))
+	require.False(t, IsSlashSlashCommentLine("* x"))
+
 }

@@ -1,9 +1,11 @@
 package ingest_test
 
 import (
+	"testing"
+
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/walker"
-	"testing"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/ingest"
@@ -25,30 +27,25 @@ func TestFingerprint_GradualVsAvalanche(t *testing.T) {
 
 	hamMN := ingest.Hamming64(fm.SimHash, fn.SimHash)
 	hamMO := ingest.Hamming64(fm.SimHash, fo.SimHash)
-	if hamMN >= hamMO {
-		t.Fatalf("Max~Min hamming %d should be < Max~other %d", hamMN, hamMO)
-	}
+	require.Less(t, hamMN, hamMO,
+		"Max~Min hamming %d should be < Max~other %d", hamMN, hamMO)
 
 	simMN := fm.Similarity(fn)
 	simMO := fm.Similarity(fo)
-	if simMN <= simMO {
-		t.Fatalf("Max~Min sim %v should be > Max~other %v", simMN, simMO)
-	}
+	require.Greater(t, simMN, simMO,
+		"Max~Min sim %v should be > Max~other %v", simMN, simMO)
 	// Max vs Min share structure but differ in return-arm order (trigrams).
-	if simMN >= 0.999 {
-		t.Fatalf("Max and Min should not be identical fingerprints: sim=%v", simMN)
-	}
+	require.Less(t, simMN, 0.999, "Max and Min should not be identical fingerprints")
 	// Identical → perfect
-	if fm.Similarity(fm) < 0.999 {
-		t.Fatalf("self sim %v", fm.Similarity(fm))
-	}
+	require.GreaterOrEqual(t, fm.Similarity(fm), 0.999)
+
 	// One-term edit should not go to ~0 similarity
 	edited := append([]string(nil), maxT...)
 	edited[len(edited)-1] = "return" // small change
 	fe := ingest.FingerprintTerms(edited)
-	if fm.Similarity(fe) < 0.5 {
-		t.Fatalf("one-term edit sim too low: %v hamming=%d", fm.Similarity(fe), ingest.Hamming64(fm.SimHash, fe.SimHash))
-	}
+	require.GreaterOrEqual(t, fm.Similarity(fe), 0.5,
+		"one-term edit sim too low: %v hamming=%d", fm.Similarity(fe), ingest.Hamming64(fm.SimHash, fe.SimHash))
+
 	t.Logf("Max~Min jaccard/sim=%v ham=%d; Max~other sim=%v ham=%d", simMN, hamMN, simMO, hamMO)
 }
 
@@ -69,23 +66,20 @@ func Loop(xs []int) {
 	root, source, cleanup := parseGo(t, src)
 	defer cleanup()
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	units, err := w.AbstractFile(t.Context(), root, source, "x.go", true)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	by := map[string]ingest.AbstractFingerprint{}
 	for _, u := range units {
 		by[u.Name] = ingest.FingerprintTerms(u.Terms)
 	}
-	if by["Max"].Similarity(by["Min"]) <= by["Max"].Similarity(by["Loop"]) {
-		t.Fatalf("Max should be closer to Min than Loop: Max~Min=%v Max~Loop=%v",
-			by["Max"].Similarity(by["Min"]), by["Max"].Similarity(by["Loop"]))
-	}
+	require.Greater(t, by["Max"].Similarity(by["Min"]), by["Max"].Similarity(by["Loop"]),
+		"Max should be closer to Min than Loop: Max~Min=%v Max~Loop=%v",
+		by["Max"].Similarity(by["Min"]), by["Max"].Similarity(by["Loop"]))
+
 }

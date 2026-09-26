@@ -5,6 +5,7 @@ import (
 
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPartitionMethodRename(t *testing.T) {
@@ -17,13 +18,8 @@ func TestPartitionMethodRename(t *testing.T) {
 	}
 	scope := PartitionMethodRename(result, []string{"path:./a.go::Box.m"}, "m", "n",
 		ingestutil.DottedReceiver, nil)
-	if !scope.Sources.Has("path:./a.go::Box.m") || !scope.Our.Has("Box") {
-		t.Fatalf("sources/our: %+v %+v", scope.Sources, scope.Our)
-	}
-	if !scope.Foreign.Has("Other") {
-		t.Fatalf("foreign: %+v", scope.Foreign)
-	}
-	if scope.Foreign.Has("Box") {
-		t.Fatal("our not foreign")
-	}
+	require.True(t, scope.Sources.Has("path:./a.go::Box.m"), "sources: %+v", scope.Sources)
+	require.True(t, scope.Our.Has("Box"), "our: %+v", scope.Our)
+	require.True(t, scope.Foreign.Has("Other"), "foreign: %+v", scope.Foreign)
+	require.False(t, scope.Foreign.Has("Box"), "our not foreign")
 }

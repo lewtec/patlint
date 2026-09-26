@@ -10,6 +10,7 @@ import (
 	lewpath "github.com/lewtec/lewkit/x/path"
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
@@ -40,46 +41,47 @@ func TestMatchPathGlob(t *testing.T) {
 
 func TestParseMatcherPathUnder(t *testing.T) {
 	m, err := ParseMatcher(`(path "**/*_test.go" (token "interface{}"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pm, ok := m.(PathM)
-	if !ok || pm.Glob != "**/*_test.go" {
-		t.Fatalf("%#v", m)
-	}
-	if _, ok := pm.Body.(LeafM); !ok {
-		t.Fatalf("body %#v", pm.Body)
+	require.False(t, !ok || pm.Glob != "**/*_test.go",
+		"%#v", m)
+	{
+
+		_, ok := pm.Body.(LeafM)
+		require.True(t, ok,
+			"body %#v", pm.Body)
 	}
 
 	m2, err := ParseMatcher(`(under (token "func") (token "x"))`)
-	if err != nil {
-		t.Fatal(err)
+	require.NoError(t, err)
+	{
+
+		_, ok := m2.(UnderM)
+		require.True(t, ok,
+			"%#v", m2)
 	}
-	if _, ok := m2.(UnderM); !ok {
-		t.Fatalf("%#v", m2)
-	}
+
 }
 
 func TestCompileMatcherRejectsDoubleFinderAnd(t *testing.T) {
 	m, err := ParseMatcher(`(and (token "a") (token "b"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	_, err = CompileMatcher(m)
-	if err == nil {
-		t.Fatal("want error for and of two finders")
-	}
+	require.Error(t, err,
+		"want error for and of two finders")
+
 }
 
 func TestCompileMatcherRejectsNotFinder(t *testing.T) {
 	m, err := ParseMatcher(`(not (token "a"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	_, err = CompileMatcher(m)
-	if err == nil {
-		t.Fatal("want error for not of finder")
-	}
+	require.Error(t, err,
+		"want error for not of finder")
+
 }
 
 func TestMatcherPathGatesFile(t *testing.T) {
@@ -89,28 +91,23 @@ func TestMatcherPathGatesFile(t *testing.T) {
 	mustWrite(t, lewpath.New(dir, "a_test.go").String(), src)
 
 	m, err := ParseMatcher(`(path "**/*_test.go" (token "interface{}"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cm.AcceptsFile("a.go") {
-		t.Fatal("a.go should be rejected by path")
-	}
-	if !cm.AcceptsFile("a_test.go") {
-		t.Fatal("a_test.go should be accepted")
-	}
+	require.NoError(t, err)
+	require.False(t, cm.AcceptsFile("a.go"),
+		"a.go should be rejected by path")
+	require.True(t, cm.AcceptsFile("a_test.go"),
+		"a_test.go should be accepted")
 
 	ms := mustMatchMatcher(t, dir, "a_test.go", src, cm)
-	if len(ms) < 1 {
-		t.Fatalf("want hits in test file, got %d", len(ms))
-	}
+	require.GreaterOrEqual(t, len(ms), 1,
+		"want hits in test file, got %d", len(ms))
+
 	ms2 := mustMatchMatcher(t, dir, "a.go", src, cm)
-	if len(ms2) != 0 {
-		t.Fatalf("want no hits when AcceptsFile false path still enforced in MatchFileMatcher, got %d", len(ms2))
-	}
+	require.Empty(t, ms2,
+		"want no hits when AcceptsFile false path still enforced in MatchFileMatcher, got %d", len(ms2))
+
 }
 
 func TestMatcherUnderRestrictsDomain(t *testing.T) {
@@ -129,50 +126,41 @@ func g() { var _ interface{} }
 	m, err := ParseMatcher(`(under
   (seq (token "func") (token "g") "(" ")" "{" (* any) "}")
   (token "interface{}"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchMatcher(t, dir, "x.go", src, cm)
-	if len(ms) != 1 {
-		t.Fatalf("want 1 hit inside g, got %d", len(ms))
-	}
+	require.Len(t, ms, 1,
+		"want 1 hit inside g, got %d", len(ms))
 
 	// Region only f — no interface{}
 	m2, err := ParseMatcher(`(under
   (seq (token "func") (token "f") "(" ")" "{" (* any) "}")
   (token "interface{}"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm2, err := CompileMatcher(m2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms2 := mustMatchMatcher(t, dir, "x.go", src, cm2)
-	if len(ms2) != 0 {
-		t.Fatalf("want 0 hits inside f, got %d", len(ms2))
-	}
+	require.Empty(t, ms2,
+		"want 0 hits inside f, got %d", len(ms2))
+
 }
 
 func TestMatcherAndPathNot(t *testing.T) {
 	m, err := ParseMatcher(`(and (path "**/*.go") (not (path "**/skip/**")) (token "interface{}"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !cm.AcceptsFile("pkg/a.go") {
-		t.Fatal("want accept pkg/a.go")
-	}
-	if cm.AcceptsFile("pkg/skip/a.go") {
-		t.Fatal("want reject skip/")
-	}
+	require.NoError(t, err)
+	require.True(t, cm.AcceptsFile("pkg/a.go"),
+		"want accept pkg/a.go")
+	require.False(t, cm.AcceptsFile("pkg/skip/a.go"),
+		"want reject skip/")
+
 }
 
 func TestMatcherUnderMergesRegionCaptures(t *testing.T) {
@@ -187,66 +175,59 @@ func TestBar(t *testing.T) { }
   (under
     (seq (token "func") (capture func (regex "^Test")) "(" (* any) ")" "{" (* any) "}")
     (seq (token "t") "." (token "Context"))))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchMatcher(t, dir, "x_test.go", src, cm)
-	if len(ms) != 1 {
-		t.Fatalf("want 1 hit, got %d", len(ms))
-	}
+	require.Len(t, ms, 1,
+		"want 1 hit, got %d", len(ms))
+
 	sp, ok := ms[0].CaptureFirst("func")
-	if !ok {
-		t.Fatalf("missing func capture: %#v", ms[0].Captures)
-	}
+	require.True(t, ok,
+		"missing func capture: %#v", ms[0].Captures)
+
 	name := string(src[sp.StartByte:sp.EndByte])
-	if name != "TestFoo" {
-		t.Fatalf("func=%q want TestFoo", name)
-	}
+	require.Equal(t, "TestFoo", name,
+		"func=%q want TestFoo", name)
+
 	// Hit span should be around t.Context, not the whole function.
 	hit := string(src[ms[0].StartByte:ms[0].EndByte])
-	if !strings.Contains(hit, "Context") {
-		t.Fatalf("hit span %q should be t.Context site", hit)
-	}
+	require.True(t, strings.Contains(hit, "Context"),
+		"hit span %q should be t.Context site", hit)
+
 }
 
 func TestMatcherLeafCLI(t *testing.T) {
 	m, err := ParseMatcher(`(token "interface{}")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	dir := t.TempDir()
 	src := []byte("package p\nfunc f(x interface{}) {}\n")
 	mustWrite(t, lewpath.New(dir, "x.go").String(), src)
 	ms := mustMatchMatcher(t, dir, "x.go", src, cm)
-	if len(ms) < 1 {
-		t.Fatal("want leaf match")
-	}
+	require.GreaterOrEqual(t, len(ms), 1,
+		"want leaf match")
+
 }
 
 func TestCompileMatcherPrecompilesLeafNFA(t *testing.T) {
 	m, err := ParseMatcher(`(token "interface{}")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	leaf, ok := cm.root.(*finderLeaf)
-	if !ok {
-		t.Fatalf("root type %T want *finderLeaf", cm.root)
-	}
-	if leaf.nfa == nil || len(leaf.nfa.states) == 0 {
-		t.Fatal("leaf NFA not precompiled")
-	}
+	require.True(t, ok,
+		"root type %T want *finderLeaf", cm.root)
+	require.False(t, leaf.nfa == nil || len(leaf.nfa.states) == 0,
+		"leaf NFA not precompiled")
+
 	// Same hits as MatchFilePat (compile-on-match path).
 	dir := t.TempDir()
 	src := []byte("package p\nfunc f(x interface{}) {}\n")
@@ -254,16 +235,13 @@ func TestCompileMatcherPrecompilesLeafNFA(t *testing.T) {
 	msPlan := mustMatchMatcher(t, dir, "x.go", src, cm)
 	rootNode := mustParseRoot(t, lewpath.New(dir, "x.go").String())
 	vm, err := New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	msPat, err := matchFilePatPol(testSess(), dir, "x.go", src, rootNode, leaf.pat, nil, vm.TapePolicy("x.go"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(msPlan) != len(msPat) {
-		t.Fatalf("plan=%d pat=%d", len(msPlan), len(msPat))
-	}
+	require.NoError(t, err)
+	require.Len(t, msPlan, len(msPat),
+		"plan=%d pat=%d", len(msPlan), len(msPat))
+
 }
 
 func TestMatcherNodeRestrictsDomain(t *testing.T) {
@@ -276,35 +254,30 @@ func g() { var _ interface{} }
 	mustWrite(t, lewpath.New(dir, "x.go").String(), src)
 
 	m, err := ParseMatcher(`(under (node "function_declaration") (token "interface{}"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchMatcher(t, dir, "x.go", src, cm)
-	if len(ms) != 1 {
-		t.Fatalf("want 1 hit inside function, got %d", len(ms))
-	}
+	require.Len(t, ms, 1,
+		"want 1 hit inside function, got %d", len(ms))
+
 	hit := string(src[ms[0].StartByte:ms[0].EndByte])
-	if hit != "interface{}" {
-		t.Fatalf("hit=%q", hit)
-	}
+	require.Equal(t, "interface{}", hit,
+		"hit=%q", hit)
 
 	// Without node, both sites match.
 	m2, err := ParseMatcher(`(token "interface{}")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm2, err := CompileMatcher(m2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms2 := mustMatchMatcher(t, dir, "x.go", src, cm2)
-	if len(ms2) != 2 {
-		t.Fatalf("want 2 full-file hits, got %d", len(ms2))
-	}
+	require.Len(t, ms2, 2,
+		"want 2 full-file hits, got %d", len(ms2))
+
 }
 
 func TestMatcherAsLanguageReparse(t *testing.T) {
@@ -316,118 +289,109 @@ func TestMatcherAsLanguageReparse(t *testing.T) {
 	m, err := ParseMatcher(`(as-language "javascript"
   (node "raw_string_literal")
   (token "curl"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchMatcher(t, dir, "x.go", src, cm)
-	if len(ms) != 1 {
-		t.Fatalf("want 1 hit, got %d spans=%v", len(ms), ms)
-	}
+	require.Len(t, ms, 1,
+		"want 1 hit, got %d spans=%v", len(ms), ms)
+
 	hit := string(src[ms[0].StartByte:ms[0].EndByte])
-	if hit != "curl" {
-		t.Fatalf("hit=%q want curl (host bytes)", hit)
-	}
+	require.Equal(t, "curl", hit,
+		"hit=%q want curl (host bytes)", hit)
+
 	// Host-only match must not see curl as a Go token.
 	m2, err := ParseMatcher(`(token "curl")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm2, err := CompileMatcher(m2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms2 := mustMatchMatcher(t, dir, "x.go", src, cm2)
-	if len(ms2) != 0 {
-		t.Fatalf("host tape should not match curl, got %d", len(ms2))
-	}
+	require.Empty(t, ms2,
+		"host tape should not match curl, got %d", len(ms2))
+
 }
 
 func TestParseMatcherNodeAndAsLanguage(t *testing.T) {
 	m, err := ParseMatcher(`(node "function_declaration")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	nm, ok := m.(NodeM)
-	if !ok || nm.Type != "function_declaration" {
-		t.Fatalf("%#v", m)
-	}
+	require.False(t, !ok || nm.Type != "function_declaration",
+		"%#v", m)
 
 	m2, err := ParseMatcher(`(as-language "javascript" (node "raw_string_literal") (token "x"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	al, ok := m2.(AsLangM)
-	if !ok || al.Lang != "javascript" {
-		t.Fatalf("%#v", m2)
+	require.False(t, !ok || al.Lang != "javascript",
+		"%#v", m2)
+	{
+
+		_, ok := al.Region.(NodeM)
+		require.True(t, ok,
+			"region %#v", al.Region)
 	}
-	if _, ok := al.Region.(NodeM); !ok {
-		t.Fatalf("region %#v", al.Region)
-	}
+
 }
 
 func TestNodeBindsFieldCaptures(t *testing.T) {
 	m, err := ParseMatcher(`(node "function_declaration")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	dir := t.TempDir()
 	src := []byte("package p\n\nfunc Hello(x int) int {\n\treturn x\n}\n")
 	mustWrite(t, lewpath.New(dir, "x.go").String(), src)
 	ms := mustMatchMatcher(t, dir, "x.go", src, cm)
-	if len(ms) != 1 {
-		t.Fatalf("want 1 function, got %d", len(ms))
-	}
+	require.Len(t, ms, 1,
+		"want 1 function, got %d", len(ms))
+
 	pub := PublicCaptures(ms[0], src)
-	if pub["name"] != "Hello" {
-		t.Fatalf("name=%q want Hello; caps=%v", pub["name"], pub)
-	}
-	if !strings.Contains(pub["parameters"], "x int") {
-		t.Fatalf("parameters=%q want param list; caps=%v", pub["parameters"], pub)
-	}
-	if !strings.Contains(pub["body"], "return") {
-		t.Fatalf("body=%q want block; caps=%v", pub["body"], pub)
-	}
-	if pub["result"] != "int" {
-		t.Fatalf("result=%q want int; caps=%v", pub["result"], pub)
-	}
+	require.Equal(t, "Hello", pub["name"],
+		"name=%q want Hello; caps=%v", pub["name"], pub)
+	require.True(t, strings.Contains(pub["parameters"], "x int"),
+		"parameters=%q want param list; caps=%v", pub["parameters"], pub)
+	require.True(t, strings.Contains(pub["body"], "return"),
+		"body=%q want block; caps=%v", pub["body"], pub)
+	require.Equal(t, "int", pub["result"],
+		"result=%q want int; caps=%v", pub["result"], pub)
+
 }
 
 func TestCompileMatcherFlattensNestedOr(t *testing.T) {
 	m, err := ParseMatcher(`(or (or (token "a") (token "b")) (token "c"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	or, ok := cm.root.(*finderOr)
-	if !ok {
-		t.Fatalf("root %T", cm.root)
-	}
-	if len(or.arms) != 3 {
-		t.Fatalf("arms=%d want 3 (flattened)", len(or.arms))
-	}
+	require.True(t, ok,
+		"root %T", cm.root)
+	require.Len(t, or.arms, 3,
+		"arms=%d want 3 (flattened)", len(or.arms))
+
 	for i, a := range or.arms {
-		if _, ok := a.(*finderLeaf); !ok {
-			t.Fatalf("arm %d type %T want *finderLeaf", i, a)
+		{
+			_, ok := a.(*finderLeaf)
+			require.True(t, ok,
+				"arm %d type %T want *finderLeaf", i, a)
 		}
+
 	}
 }
 
 func mustWrite(t *testing.T, path string, data []byte) {
 	t.Helper()
-	if err := os.WriteFile(path, data, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(path, data, 0o644)
+	require.NoError(t, err)
+
 }
 
 func mustMatchMatcher(t *testing.T, dir, rel string, src []byte, cm *CompiledMatcher) []Match {
@@ -436,22 +400,19 @@ func mustMatchMatcher(t *testing.T, dir, rel string, src []byte, cm *CompiledMat
 	// parse via MatchFile path helpers
 	rootNode := mustParseRoot(t, abs)
 	vm, err := New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms, err := matchFileMatcherPol(t.Context(), testSess(), dir, rel, src, rootNode, cm, nil, vm.TapePolicy(rel), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	return ms
 }
 
 func TestFileScratchSameMatchesAsFreshTape(t *testing.T) {
 	src := []byte("package p\n\nimport \"fmt\"\n\nfunc Hello(x int) {\n\tfmt.Println(x)\n}\n")
 	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	t.Cleanup(pf.Close)
 	pats := []string{
 		`(seq "func" (capture name any) "(")`,
@@ -462,21 +423,20 @@ func TestFileScratchSameMatchesAsFreshTape(t *testing.T) {
 	}
 	sess := testSess()
 	vm, err := New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pol := vm.TapePolicy("x.go")
 	cms := make([]*CompiledMatcher, 0, len(pats))
 	want := map[string]struct{}{}
 	for _, p := range pats {
 		m, err := ParseMatcher(p)
-		if err != nil {
-			t.Fatalf("%s: %v", p, err)
-		}
+		require.NoError(t, err,
+			"%s: %v", p, err)
+
 		cm, err := CompileMatcher(m)
-		if err != nil {
-			t.Fatalf("compile %s: %v", p, err)
-		}
+		require.NoError(t, err,
+			"compile %s: %v", p, err)
+
 		addFinderNodeTypes(cm.root, want)
 		cms = append(cms, cm)
 	}
@@ -484,58 +444,53 @@ func TestFileScratchSameMatchesAsFreshTape(t *testing.T) {
 	for i, cm := range cms {
 		p := pats[i]
 		fresh, err := matchFileMatcherPol(t.Context(), sess, ".", "x.go", src, pf.Root, cm, nil, pol, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		shared, err := matchFileMatcherPol(t.Context(), sess, ".", "x.go", src, pf.Root, cm, nil, pol, scratch)
-		if err != nil {
-			t.Fatal(err)
+		require.NoError(t, err)
+		{
+
+			got, want := matchKey(shared), matchKey(fresh)
+			require.Equal(t, want, got,
+				"%s: scratch matches differ from fresh tape\nfresh=%s\nshared=%s", p, want, got)
 		}
-		if got, want := matchKey(shared), matchKey(fresh); got != want {
-			t.Fatalf("%s: scratch matches differ from fresh tape\nfresh=%s\nshared=%s", p, want, got)
-		}
+
 	}
-	if !scratch.built {
-		t.Fatal("scratch tape was not built")
-	}
+	require.True(t, scratch.built,
+		"scratch tape was not built")
+
 }
 
 func TestNodeIndexUnderSameAsWalk(t *testing.T) {
 	src := []byte("package p\n\nfunc A() { x := 1 }\nfunc B() { y := 2; z := 3 }\n")
 	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	t.Cleanup(pf.Close)
 	m, err := ParseMatcher(`(under (node "function_declaration") (node "identifier"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	sess := testSess()
 	vm, err := New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pol := vm.TapePolicy("x.go")
 	fresh, err := matchFileMatcherPol(t.Context(), sess, ".", "x.go", src, pf.Root, cm, nil, pol, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	scratch := &fileScratch{pol: pol, want: nodeTypesFromFinder(cm.root)}
 	indexed, err := matchFileMatcherPol(t.Context(), sess, ".", "x.go", src, pf.Root, cm, nil, pol, scratch)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got, want := matchKey(indexed), matchKey(fresh); got != want {
-		t.Fatalf("under+node index differs from walk\nfresh=%s\nindex=%s", want, got)
-	}
-	if scratch.index == nil {
-		t.Fatal("expected node index")
-	}
+	require.NoError(t, err)
+
+	got, want := matchKey(indexed), matchKey(fresh)
+	require.Equal(t, want, got,
+		"under+node index differs from walk\nfresh=%s\nindex=%s", want, got)
+	require.NotNil(t, scratch.index,
+		"expected node index")
+
 }
 
 func matchKey(ms []Match) string {

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 )
@@ -13,31 +14,36 @@ func TestNamedRegexCaptures(t *testing.T) {
 	dir := t.TempDir()
 	src := []byte("package p\n\nfunc TestFoo(t *testing.T) {}\n")
 	path := lewpath.New(dir, "x_test.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
+
 	pat, err := ParsePattern(`(seq (token "func") (capture name (regex "^Test(?P<rest>.*)")))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "x_test.go", src, pat)
-	if len(ms) != 1 {
-		t.Fatalf("matches=%d", len(ms))
-	}
+	require.Len(t, ms, 1,
+		"matches=%d", len(ms))
+
 	if got := ms[0].Captures["name"][0].Text(src); got != "TestFoo" {
 		t.Logf("name=%q caps=%v", got, PublicCaptures(ms[0], src))
 	}
 	rests := ms[0].Captures["rest"]
-	if len(rests) == 0 {
-		t.Fatal("empty rest")
-	}
+	require.NotEmpty(t, rests,
+		"empty rest")
+
 	rest := rests[0]
-	if got := rest.Text(src); got != "Foo" {
-		t.Fatalf("rest=%q want Foo", got)
+	{
+		got := rest.Text(src)
+		require.Equal(t, "Foo", got,
+			"rest=%q want Foo", got)
 	}
-	if got := string(src[rest.StartByte:rest.EndByte]); got != "Foo" {
-		t.Fatalf("rest span text=%q want Foo [%d:%d]", got, rest.StartByte, rest.EndByte)
-	}
+
+	got := string(src[rest.StartByte:rest.EndByte])
+	require.Equal(t, "Foo", got,
+		"rest span text=%q want Foo [%d:%d]", got, rest.StartByte, rest.EndByte)
+
 }
 
 func TestMatchDualRestClosingBrace(t *testing.T) {
@@ -59,28 +65,33 @@ func Helper() {
 }
 `)
 	path := lewpath.New(dir, "x_test.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
+
 	pat, err := ParsePattern(`(seq (token "func") (regex "Test.*") "(" (token "t") "*" (token "testing") "." (token "T") ")" "{" (* any) (capture c (ref "go:context::Background")) (* any) "}")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "x_test.go", src, pat)
-	if len(ms) != 1 {
-		t.Fatalf("matches=%d want 1; caps=%v", len(ms), capsOf(ms, src))
-	}
+	require.Len(t, ms, 1,
+		"matches=%d want 1; caps=%v", len(ms), capsOf(ms, src))
+
 	cs := ms[0].Captures["c"]
-	if len(cs) == 0 {
-		t.Fatal("empty c")
-	}
+	require.NotEmpty(t, cs,
+		"empty c")
+
 	c := cs[0]
-	if got := c.Text(src); got != "context.Background" {
-		t.Fatalf("c=%q want context.Background", got)
+	{
+		got := c.Text(src)
+		require.Equal(t, "context.Background", got,
+			"c=%q want context.Background", got)
 	}
-	if got := string(src[c.StartByte:c.EndByte]); got != "context.Background" {
-		t.Fatalf("c span text=%q", got)
-	}
+
+	got := string(src[c.StartByte:c.EndByte])
+	require.Equal(t, "context.Background", got,
+		"c span text=%q", got)
+
 }
 
 func capsOf(ms []Match, src []byte) []map[string]string {

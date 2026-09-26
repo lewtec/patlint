@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 )
 
 // Pattern under test: nested errors.New inside fmt.Errorf (any arg position).
@@ -25,45 +26,49 @@ func f() error {
 }
 `)
 	path := lewpath.New(dir, "x.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
-	if err := os.WriteFile(lewpath.New(dir, "go.mod").String(), []byte("module example.com/t\n\ngo 1.22\n"), 0o644); err != nil {
-		t.Fatal(err)
+	{
+
+		err := os.WriteFile(lewpath.New(dir, "go.mod").String(), []byte("module example.com/t\n\ngo 1.22\n"), 0o644)
+		require.NoError(t, err)
 	}
 
 	pat, err := ParsePattern(errNewInErrorfPat)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "x.go", src, pat)
-	if len(ms) != 1 {
-		t.Fatalf("matches=%d want 1; caps=%v", len(ms), capsOf(ms, src))
-	}
+	require.Len(t, ms, 1,
+		"matches=%d want 1; caps=%v", len(ms), capsOf(ms, src))
+
 	m := ms[0]
 
 	// Match span should be the call, not the whole file.
 	gotSpan := m.Span.Text(src)
 	wantSpan := `fmt.Errorf("boom: %w", errors.New("inner"))`
-	if gotSpan != wantSpan {
-		t.Fatalf("match span=%q want %q", gotSpan, wantSpan)
-	}
+	require.Equal(t, wantSpan, gotSpan,
+		"match span=%q want %q", gotSpan, wantSpan)
 
 	f := m.Captures["F"]
-	if len(f) != 1 {
-		t.Fatalf("F sites=%d want 1; caps=%v", len(f), PublicCaptures(m, src))
-	}
-	if got := f[0].Text(src); got != "fmt.Errorf" {
-		t.Fatalf("F=%q want fmt.Errorf", got)
+	require.Len(t, f, 1,
+		"F sites=%d want 1; caps=%v", len(f), PublicCaptures(m, src))
+	{
+
+		got := f[0].Text(src)
+		require.Equal(t, "fmt.Errorf", got,
+			"F=%q want fmt.Errorf", got)
 	}
 
 	e := m.Captures["E"]
-	if len(e) != 1 {
-		t.Fatalf("E sites=%d want 1; caps=%v", len(e), PublicCaptures(m, src))
-	}
-	if got := e[0].Text(src); got != "errors.New" {
-		t.Fatalf("E=%q want errors.New", got)
-	}
+	require.Len(t, e, 1,
+		"E sites=%d want 1; caps=%v", len(e), PublicCaptures(m, src))
+
+	got := e[0].Text(src)
+	require.Equal(t, "errors.New", got,
+		"E=%q want errors.New", got)
+
 }
 
 func TestErrorsNewInErrorf_Variants(t *testing.T) {
@@ -106,17 +111,19 @@ func missIndirect() error {
 }
 `)
 	path := lewpath.New(dir, "x.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
-	if err := os.WriteFile(lewpath.New(dir, "go.mod").String(), []byte("module example.com/t\n\ngo 1.22\n"), 0o644); err != nil {
-		t.Fatal(err)
+	{
+
+		err := os.WriteFile(lewpath.New(dir, "go.mod").String(), []byte("module example.com/t\n\ngo 1.22\n"), 0o644)
+		require.NoError(t, err)
 	}
 
 	pat, err := ParsePattern(errNewInErrorfPat)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "x.go", src, pat)
 
 	// Ideal: exactly the four hit* sites. Report what we got.

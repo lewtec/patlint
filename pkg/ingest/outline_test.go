@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOutlineFromExtract_NestsByScope(t *testing.T) {
@@ -30,13 +31,13 @@ func TestOutlineFromExtract_NestsByScope(t *testing.T) {
 		{Depth: 1, Name: "T.F", Kind: "def", StartByte: 30, EndByte: 31},
 		{Depth: 0, Name: "F", Kind: "def", StartByte: 95, EndByte: 96},
 	}
-	if len(got) != len(want) {
-		t.Fatalf("rows=%d want %d: %+v", len(got), len(want), got)
-	}
+	require.Len(t, got, len(want),
+		"rows=%d want %d: %+v", len(got), len(want), got)
+
 	for i := range want {
-		if got[i].Depth != want[i].Depth || got[i].Name != want[i].Name || got[i].Kind != want[i].Kind {
-			t.Fatalf("row %d = %+v want %+v", i, got[i], want[i])
-		}
+		require.False(t, got[i].Depth != want[i].Depth || got[i].Name != want[i].Name || got[i].Kind != want[i].Kind,
+			"row %d = %+v want %+v", i, got[i], want[i])
+
 	}
 }
 
@@ -52,9 +53,9 @@ func TestOutlineFromExtract_NestedScopes(t *testing.T) {
 		},
 	}
 	got := OutlineFromExtract(fe)
-	if len(got) != 2 || got[0].Name != "C" || got[0].Depth != 0 || got[1].Name != "m" || got[1].Depth != 1 {
-		t.Fatalf("got %+v", got)
-	}
+	require.False(t, len(got) != 2 || got[0].Name != "C" || got[0].Depth != 0 || got[1].Name != "m" || got[1].Depth != 1,
+		"got %+v", got)
+
 }
 
 func TestOutlineFromExtract_EmptyScopesDropped(t *testing.T) {
@@ -67,7 +68,7 @@ func TestOutlineFromExtract_EmptyScopesDropped(t *testing.T) {
 		},
 	}
 	got := OutlineFromExtract(fe)
-	if len(got) != 1 || got[0].Name != "X" || got[0].Depth != 0 {
-		t.Fatalf("got %+v", got)
-	}
+	require.False(t, len(got) != 1 || got[0].Name != "X" || got[0].Depth != 0,
+		"got %+v", got)
+
 }

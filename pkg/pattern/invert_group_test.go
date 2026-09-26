@@ -1,11 +1,13 @@
 package pattern
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/ingestutil"
@@ -15,33 +17,29 @@ import (
 
 func TestParse_InvertGroup(t *testing.T) {
 	n, err := ParsePattern(`(seq (assert_not_behind (seq (capture NAME (regex "^Err")) "=" (capture PKG any) ".")) (capture E (ref "go:errors::New")) "(" (* any) ")")`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Top-level is a seq: invert-group, then call sugar tokens for New(...).
-	if n.Kind != "seq" || len(n.Args) < 2 {
-		t.Fatalf("want seq, got %s", mustJSON(n))
-	}
+	require.NoError(t, err)
+	require.False(t, // Top-level is a seq: invert-group, then call sugar tokens for New(...).
+		n.Kind != "seq" || len(n.Args) < 2,
+		"want seq, got %s", mustJSON(n))
+
 	g := n.Args[0]
-	if g.Kind != "group" || !g.Invert || g.As != "_" {
-		t.Fatalf("invert group: %s", mustJSON(g))
-	}
+	require.False(t, g.Kind != "group" || !g.Invert || g.As != "_",
+		"invert group: %s", mustJSON(g))
+
 	var sawRef bool
 	for _, a := range n.Args[1:] {
 		if a.Kind == "ref" && a.Ref == "go:errors::New" {
 			sawRef = true
 		}
 	}
-	if !sawRef {
-		t.Fatalf("missing New ref in %s", mustJSON(n))
-	}
+	require.True(t, sawRef,
+		"missing New ref in %s", mustJSON(n))
+
 	bare, err := ParsePattern(`(seq (assert_not_behind (token "x")) (token "y"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if bare.Kind != "seq" || !bare.Args[0].Invert {
-		t.Fatalf("bare: %s", mustJSON(bare))
-	}
+	require.NoError(t, err)
+	require.False(t, bare.Kind != "seq" || !bare.Args[0].Invert,
+		"bare: %s", mustJSON(bare))
+
 }
 
 func TestMatch_InvertGroup_ErrorsNewNotAfterErrAssign(t *testing.T) {
@@ -77,19 +75,21 @@ func slice() []error {
 }
 `)
 	path := lewpath.New(dir, "x.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
-	if err := os.WriteFile(lewpath.New(dir, "go.mod").String(), []byte("module example.com/t\n\ngo 1.22\n"), 0o644); err != nil {
-		t.Fatal(err)
+	{
+
+		err := os.WriteFile(lewpath.New(dir, "go.mod").String(), []byte("module example.com/t\n\ngo 1.22\n"), 0o644)
+		require.NoError(t, err)
 	}
 
 	// Negative lookbehind: not immediately "Err* = <pkg> ." before New.
 	// (Use capture PKG, not rest, so lookbehind cannot stretch from an earlier Err row.)
 	pat, err := ParsePattern(`(seq (assert_not_behind (seq (capture NAME (regex "^Err")) "=" (capture PKG any) ".")) (capture E (ref "go:errors::New")) "(" (* any) ")")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "x.go", src, pat)
 
 	var got []string
@@ -102,9 +102,8 @@ func slice() []error {
 	for _, g := range got {
 		if strings.Contains(g, `"a"`) || strings.Contains(g, `"b"`) || strings.Contains(g, `"c"`) {
 			// only if it's the New call itself
-			if g == `errors.New("a")` || g == `errors.New("b")` || g == `errors.New("c")` {
-				t.Fatalf("sentinel New should be excluded: %q in %v", g, got)
-			}
+			require.NotContains(t, []string{`errors.New("a")`, `errors.New("b")`, `errors.New("c")`}, g)
+
 		}
 	}
 
@@ -139,28 +138,29 @@ func TestMatch_InvertGroup_AltArms(t *testing.T) {
 	src := []byte("package p\n\nfunc f() {\n\t_ = foo baz\n\t_ = bar baz\n\t_ = qux baz\n}\n")
 	// Use token stream: foo, baz etc as idents — no refs needed.
 	path := lewpath.New(dir, "x.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
+
 	pat, err := ParsePattern(`(seq (assert_not_behind (alt (token "foo") (token "bar"))) (token "baz"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "x.go", src, pat)
-	if len(ms) != 1 {
-		t.Fatalf("matches=%d want 1 (qux baz only); caps=%v text=%v", len(ms), capsOf(ms, src), func() []string {
+	require.Len(t, ms, 1,
+		"matches=%d want 1 (qux baz only); caps=%v text=%v", len(ms), capsOf(ms, src), func() []string {
 			var s []string
 			for _, m := range ms {
 				s = append(s, m.Span.Text(src))
 			}
 			return s
 		}())
-	}
+
 	if got := ms[0].Span.Text(src); got != "baz" {
 		// covering may expand — at least must include baz and not foo/bar line only
-		if !strings.Contains(got, "baz") || strings.Contains(got, "foo") {
-			t.Fatalf("span=%q", got)
-		}
+		require.Contains(t, got, "baz")
+		require.NotContains(t, got, "foo")
+
 	}
 }
 
@@ -189,62 +189,59 @@ func TestLookbehindTokenConsumeBound(t *testing.T) {
 			{},
 		},
 	}
-	if got := nfaMaxTokenConsume(cycle); got != -1 {
-		t.Fatalf("cycle tokenConsumeBound=%d want -1", got)
-	}
+	got := nfaMaxTokenConsume(cycle)
+	require.Equal(t, -1, got,
+		"cycle tokenConsumeBound=%d want -1", got)
+
 }
 
 func TestLookbehindStarNotRecognized(t *testing.T) {
 	sub := lookbehindSubNFA(t, `(seq (assert_not_behind (seq "public" (* (not "class")))) (token "class"))`)
-	if !sub.lookbehindStarNot {
-		t.Fatal("want star-not lookbehind fast path")
-	}
-	if sub.lookbehindStarNotFirst.text != "public" {
-		t.Fatalf("first=%q", sub.lookbehindStarNotFirst.text)
-	}
+	require.True(t, sub.lookbehindStarNot,
+		"want star-not lookbehind fast path")
+	require.Equal(t, "public", sub.lookbehindStarNotFirst.text,
+		"first=%q", sub.lookbehindStarNotFirst.text)
+
 	bounded := lookbehindSubNFA(t, `(seq (assert_not_behind (token "pub")) (token "fn"))`)
-	if bounded.lookbehindStarNot {
-		t.Fatal("token lookbehind must stay bounded, not star-not")
-	}
+	require.False(t, bounded.lookbehindStarNot,
+		"token lookbehind must stay bounded, not star-not")
+
 }
 
 func TestLookbehindStarNotSameAsNFA(t *testing.T) {
 	src := []byte("public class A {\n  public void foo() {}\n  void bar() {}\n  class Inner {}\n}\n")
 	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "A.java", "java")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	t.Cleanup(pf.Close)
 	tokens := tokensFromTape(pf.Root, src, nil, tape.DefaultPolicy())
-	if len(tokens) == 0 {
-		t.Fatal("no tokens")
-	}
+	require.NotEmpty(t, tokens,
+		"no tokens")
+
 	sub := lookbehindSubNFA(t, `(seq (assert_not_behind (seq "public" (* (not "(")))) (token "foo"))`)
-	if !sub.lookbehindStarNot {
-		t.Fatal("want star-not lookbehind")
-	}
+	require.True(t, sub.lookbehindStarNot,
+		"want star-not lookbehind")
+
 	var look epsScratch
 	for endPos := 0; endPos <= len(tokens); endPos++ {
 		sub.lookbehindStarNot = false
 		want := nfaMatchesEndingAt(sub, tokens, endPos, src, &look)
 		sub.lookbehindStarNot = true
 		got := nfaMatchesEndingAt(sub, tokens, endPos, src, &look)
-		if got != want {
-			t.Fatalf("endPos=%d fast=%v nfa=%v", endPos, got, want)
-		}
+		require.Equal(t, want, got,
+			"endPos=%d fast=%v nfa=%v", endPos, got, want)
+
 	}
 }
 
 func lookbehindSubNFA(t *testing.T, sexp string) *nfa {
 	t.Helper()
 	pat, err := ParsePattern(sexp)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	n, err := compilePattern(pat)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	for _, st := range n.states {
 		for _, e := range st.eps {
 			if e.negLookbehind != nil {
@@ -252,6 +249,6 @@ func lookbehindSubNFA(t *testing.T, sexp string) *nfa {
 			}
 		}
 	}
-	t.Fatalf("no lookbehind in %s", sexp)
+	require.FailNow(t, fmt.Sprintf("no lookbehind in %s", sexp))
 	return nil
 }

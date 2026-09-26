@@ -1,25 +1,24 @@
 package pattern
 
 import (
-	"errors"
-	"github.com/lewtec/patlint/pkg/ingestutil"
 	"testing"
+
+	"github.com/lewtec/patlint/pkg/ingestutil"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAppendSpanBind(t *testing.T) {
 	var c CapSpan = AppendSpan{}
 	c, err := c.Bind(ingestutil.Span{StartByte: 0, EndByte: 1}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	c, err = c.Bind(ingestutil.Span{StartByte: 2, EndByte: 3}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	sp := c.Spans()
-	if len(sp) != 2 || sp[0].StartByte != 0 || sp[1].StartByte != 2 {
-		t.Fatalf("spans=%v", sp)
-	}
+	require.False(t, len(sp) != 2 || sp[0].StartByte != 0 || sp[1].StartByte != 2,
+		"spans=%v", sp)
+
 }
 
 func TestUnifySpanBind(t *testing.T) {
@@ -30,45 +29,52 @@ func TestUnifySpanBind(t *testing.T) {
 
 	var c CapSpan = UnifySpan{}
 	c, err := c.Bind(a, src)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	c, err = c.Bind(b, src)
-	if err != nil {
-		t.Fatalf("equal text should unify: %v", err)
-	}
-	if len(c.Spans()) != 1 {
-		t.Fatalf("len=%d", len(c.Spans()))
-	}
+	require.NoError(t, err,
+		"equal text should unify: %v", err)
+	require.Len(t, c.Spans(), 1,
+		"len=%d", len(c.Spans()))
+
 	_, err = c.Bind(y, src)
-	if !errors.Is(err, ErrUnifyMismatch) {
-		t.Fatalf("want ErrUnifyMismatch, got %v", err)
-	}
+	require.ErrorIs(t, err, ErrUnifyMismatch,
+		"want ErrUnifyMismatch, got %v", err)
+
 }
 
 func TestBindIntoFirstAndDiscipline(t *testing.T) {
 	src := []byte("ab")
 	caps := map[string]CapSpan{}
-	if err := bindInto(caps, "a", ingestutil.Span{0, 1}, src, true); err != nil {
-		t.Fatal(err)
+	{
+		err := bindInto(caps, "a", ingestutil.Span{0, 1}, src, true)
+		require.NoError(t, err)
 	}
-	if _, ok := caps["a"].(UnifySpan); !ok {
-		t.Fatalf("type %T", caps["a"])
+	{
+
+		_, ok := caps["a"].(UnifySpan)
+		require.True(t, ok,
+			"type %T", caps["a"])
 	}
-	if err := bindInto(caps, "a", ingestutil.Span{0, 1}, src, true); err != nil {
-		t.Fatal(err)
+	{
+
+		err := bindInto(caps, "a", ingestutil.Span{0, 1}, src, true)
+		require.NoError(t, err)
 	}
-	// second name append
-	if err := bindInto(caps, "b", ingestutil.Span{1, 2}, src, false); err != nil {
-		t.Fatal(err)
+	{
+
+		// second name append
+		err := bindInto(caps, "b", ingestutil.Span{1, 2}, src, false)
+		require.NoError(t, err)
 	}
-	if _, ok := caps["b"].(AppendSpan); !ok {
-		t.Fatalf("type %T", caps["b"])
-	}
-	if err := bindInto(caps, "b", ingestutil.Span{1, 2}, src, false); err != nil {
-		t.Fatal(err)
-	}
-	if len(caps["b"].Spans()) != 2 {
-		t.Fatalf("append len=%d", len(caps["b"].Spans()))
-	}
+
+	_, ok := caps["b"].(AppendSpan)
+	require.True(t, ok,
+		"type %T", caps["b"])
+
+	err := bindInto(caps, "b", ingestutil.Span{1, 2}, src, false)
+	require.NoError(t, err)
+	require.Len(t, caps["b"].Spans(), 2,
+		"append len=%d", len(caps["b"].Spans()))
+
 }

@@ -7,6 +7,7 @@ import (
 	lewpath "github.com/lewtec/lewkit/x/path"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/walker"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
@@ -21,22 +22,18 @@ export default function Thing() {}
 export function real() {}
 `)
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "barrel.js")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "barrel.js")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	t.Logf("DefaultExport=%q", fe.DefaultExport)
 	for _, re := range fe.Reexports {
 		t.Logf("reexport export=%q source=%q path=%q star=%v", re.ExportName, re.SourceName, re.SourcePath, re.Star)
@@ -57,11 +54,10 @@ export function real() {}
 			defAs = true
 		}
 	}
-	if !star || !named || !defAs {
-		t.Fatalf("star=%v named=%v defAs=%v DefaultExport=%q", star, named, defAs, fe.DefaultExport)
-	}
+	require.True(t, star, "DefaultExport=%q", fe.DefaultExport)
+	require.True(t, named, "DefaultExport=%q", fe.DefaultExport)
+	require.True(t, defAs, "DefaultExport=%q", fe.DefaultExport)
 	// as-default: createIntegration as default should win if first; Thing is also default
-	if fe.DefaultExport == "" {
-		t.Fatal("expected DefaultExport set")
-	}
+	require.NotEmpty(t, fe.DefaultExport)
+
 }

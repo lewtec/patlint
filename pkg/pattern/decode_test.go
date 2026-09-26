@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecodePatRoundTripCLI(t *testing.T) {
@@ -18,21 +20,19 @@ func TestDecodePatRoundTripCLI(t *testing.T) {
 	for _, pat := range cases {
 		t.Run(pat, func(t *testing.T) {
 			p, err := ParseToPat(pat)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			raw, err := json.Marshal(patToJSON(p))
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			p2, err := DecodePatJSON(raw)
-			if err != nil {
-				t.Fatalf("decode %s: %v", raw, err)
-			}
+			require.NoError(t, err,
+				"decode %s: %v", raw, err)
+
 			s1, s2 := FormatSexp(p), FormatSexp(p2)
-			if s1 != s2 {
-				t.Fatalf("round-trip\n  got  %s\n  want %s\n  json %s", s2, s1, raw)
-			}
+			require.Equal(t, s2, s1,
+				"round-trip\n  got  %s\n  want %s\n  json %s", s2, s1, raw)
+
 		})
 	}
 }
@@ -40,31 +40,29 @@ func TestDecodePatRoundTripCLI(t *testing.T) {
 func TestDecodePatSexpFixtureShape(t *testing.T) {
 	raw := []byte(`["token","interface{}"]`)
 	p, err := DecodePatJSON(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	tok, ok := p.(Token)
-	if !ok || tok.Text != "interface{}" {
-		t.Fatalf("got %#v", p)
-	}
+	require.False(t, !ok || tok.Text != "interface{}",
+		"got %#v", p)
+
 	n, err := PatToNode(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n.Kind != "token" || n.Text != "interface{}" {
-		t.Fatalf("node %+v", n)
-	}
+	require.NoError(t, err)
+	require.False(t, n.Kind != "token" || n.Text != "interface{}",
+		"node %+v", n)
+
 }
 
 func TestDecodePatRejectsCaptureAroundRep(t *testing.T) {
 	// ["capture","c",["*",["any"]]] is rejected by CheckPat
 	_, err := DecodePatJSON([]byte(`["capture","c",["*",["any"]]]`))
-	if err == nil {
-		t.Fatal("want capture-around-rep error")
-	}
-	if msg := err.Error(); !strings.Contains(msg, "rep") {
-		t.Fatalf("want capture-around-rep error, got %v", err)
-	}
+	require.Error(t, err,
+		"want capture-around-rep error")
+
+	msg := err.Error()
+	require.True(t, strings.Contains(msg, "rep"),
+		"want capture-around-rep error, got %v", err)
+
 }
 
 func TestResolvePatternIRFromSexp(t *testing.T) {
@@ -72,12 +70,11 @@ func TestResolvePatternIRFromSexp(t *testing.T) {
 		Mode:        "grep",
 		PatternSexp: json.RawMessage(`["token","interface{}"]`),
 	}
-	if err := op.ResolvePatternIR(); err != nil {
-		t.Fatal(err)
-	}
-	if op.PatternIR.Kind != "token" || op.PatternIR.Text != "interface{}" {
-		t.Fatalf("%+v", op.PatternIR)
-	}
+	err := op.ResolvePatternIR()
+	require.NoError(t, err)
+	require.False(t, op.PatternIR.Kind != "token" || op.PatternIR.Text != "interface{}",
+		"%+v", op.PatternIR)
+
 }
 
 func TestResolvePatternIRPrefersSexp(t *testing.T) {
@@ -86,17 +83,17 @@ func TestResolvePatternIRPrefersSexp(t *testing.T) {
 		PatternIR:   Node{Kind: "lit", Text: "old"},
 		PatternSexp: json.RawMessage(`["token","interface{}"]`),
 	}
-	if err := op.ResolvePatternIR(); err != nil {
-		t.Fatal(err)
-	}
-	if op.PatternIR.Text != "interface{}" {
-		t.Fatalf("sexpr should win: %+v", op.PatternIR)
-	}
+	err := op.ResolvePatternIR()
+	require.NoError(t, err)
+	require.Equal(t, "interface{}", op.PatternIR.Text,
+		"sexpr should win: %+v", op.PatternIR)
+
 }
 
 func TestCorePat_RejectsPatternIROnly(t *testing.T) {
 	op := Op{Mode: "grep", PatternIR: Node{Kind: "token", Text: "x"}}
-	if _, err := op.CorePat(); err == nil {
-		t.Fatal("want error for pattern_ir-only op")
-	}
+	_, err := op.CorePat()
+	require.Error(t, err,
+		"want error for pattern_ir-only op")
+
 }

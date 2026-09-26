@@ -5,27 +5,26 @@ import (
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 )
 
 func TestParseOptionalQuant(t *testing.T) {
 	core, err := ParseToPat(`(? (capture c (ref "go:context::Background")))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	// Expand turns (?) into (alt (seq) body).
 	alt, ok := core.(Alt)
-	if !ok || len(alt.Items) != 2 {
-		t.Fatalf("want expanded optional Alt, got %#v", core)
-	}
+	require.False(t, !ok || len(alt.Items) != 2,
+		"want expanded optional Alt, got %#v", core)
+
 }
 
 func TestParseTernaryQuestionStillLit(t *testing.T) {
 	n, err := ParsePattern(`(seq (unify a any) ">" (unify b any) ":" (unify a any) "?" (unify b any))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var sawOpt bool
 	var walk func(Node)
 	walk = func(n Node) {
@@ -40,30 +39,30 @@ func TestParseTernaryQuestionStillLit(t *testing.T) {
 		}
 	}
 	walk(n)
-	if sawOpt {
-		t.Fatal("ternary ? must not become MultiOptional")
-	}
+	require.False(t, sawOpt,
+		"ternary ? must not become MultiOptional")
+
 }
 
 func TestParseUnifyMultiAllowed(t *testing.T) {
 	n, err := ParsePattern(`(* (unify c (ref "go:errors::New")))`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !n.Multi || !n.Unify || n.As != "c" || n.RepMax != -1 {
-		t.Fatalf("got %+v", n)
-	}
+	require.NoError(t, err)
+	require.False(t, !n.Multi || !n.Unify || n.As != "c" || n.RepMax != -1,
+		"got %+v", n)
+
 	core, err := NodeToPat(n)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	rep, ok := core.(Rep)
-	if !ok || rep.Min != 0 || rep.Max >= 0 {
-		t.Fatalf("want unbounded star, got %#v", core)
+	require.False(t, !ok || rep.Min != 0 || rep.Max >= 0,
+		"want unbounded star, got %#v", core)
+	{
+
+		_, ok := rep.Body.(Unify)
+		require.True(t, ok,
+			"want Unify body, got %#v", rep.Body)
 	}
-	if _, ok := rep.Body.(Unify); !ok {
-		t.Fatalf("want Unify body, got %#v", rep.Body)
-	}
+
 }
 
 func TestOptionalSkipAndBind(t *testing.T) {
@@ -71,38 +70,42 @@ func TestOptionalSkipAndBind(t *testing.T) {
 
 	srcSkip := []byte("package p\nvar _ = x.z\n")
 	path := lewpath.New(dir, "skip.go").String()
-	if err := os.WriteFile(path, srcSkip, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, srcSkip, 0o644)
+		require.NoError(t, err)
 	}
+
 	pat, err := ParsePattern(`(seq (token "x") (? (capture m (regex "^y$"))) "." (token "z"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "skip.go", srcSkip, pat)
-	if len(ms) < 1 {
-		t.Fatalf("want match skipping optional y, got %d", len(ms))
-	}
-	if _, ok := ms[0].CaptureFirst("m"); ok {
-		t.Fatalf("m should be unbound when optional skipped, caps=%v", ms[0].Captures)
+	require.GreaterOrEqual(t, len(ms), 1,
+		"want match skipping optional y, got %d", len(ms))
+	{
+
+		_, ok := ms[0].CaptureFirst("m")
+		require.False(t, ok,
+			"m should be unbound when optional skipped, caps=%v", ms[0].Captures)
 	}
 
 	srcBind := []byte("package p\nvar _ = x.y.z\n")
 	path2 := lewpath.New(dir, "bind.go").String()
-	if err := os.WriteFile(path2, srcBind, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path2, srcBind, 0o644)
+		require.NoError(t, err)
 	}
+
 	pat2, err := ParsePattern(`(seq (token "x") "." (? (capture m (regex "^y$"))) "." (token "z"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms2 := mustMatchFile(t, dir, path2, "bind.go", srcBind, pat2)
-	if len(ms2) < 1 {
-		t.Fatalf("want match with y, got 0")
-	}
+	require.GreaterOrEqual(t, len(ms2), 1,
+		"want match with y, got 0")
+
 	sp, ok := ms2[0].CaptureFirst("m")
-	if !ok || string(sp.Bytes(srcBind)) != "y" {
-		t.Fatalf("want m=y, caps=%v", ms2[0].Captures)
-	}
+	require.False(t, !ok || string(sp.Bytes(srcBind)) != "y",
+		"want m=y, caps=%v", ms2[0].Captures)
+
 }
 
 func TestUnifyMultiEqualAndReject(t *testing.T) {
@@ -117,9 +120,8 @@ func TestUnifyMultiEqualAndReject(t *testing.T) {
 			Lit{Text: `,`},
 			Regex{Equals: "end"},
 		}})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		return n
 	}
 	pat := mk()
@@ -128,26 +130,27 @@ func TestUnifyMultiEqualAndReject(t *testing.T) {
 	srcDiff := []byte("package p\nvar _ = []string{\"start\", \"foo\", \"bar\", \"end\"}\n")
 
 	path := lewpath.New(dir, "same.go").String()
-	if err := os.WriteFile(path, srcSame, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	ms := mustMatchFile(t, dir, path, "same.go", srcSame, pat)
-	if len(ms) < 1 {
-		t.Fatalf("same strings: want match, got %d", len(ms))
-	}
-	sp, ok := ms[0].CaptureFirst("a")
-	if !ok || string(sp.Bytes(srcSame)) != `"foo"` {
-		t.Fatalf("want a=\"foo\", got caps=%v", ms[0].Captures)
+	{
+		err := os.WriteFile(path, srcSame, 0o644)
+		require.NoError(t, err)
 	}
 
+	ms := mustMatchFile(t, dir, path, "same.go", srcSame, pat)
+	require.GreaterOrEqual(t, len(ms), 1,
+		"same strings: want match, got %d", len(ms))
+
+	sp, ok := ms[0].CaptureFirst("a")
+	require.False(t, !ok || string(sp.Bytes(srcSame)) != `"foo"`,
+		"want a=\"foo\", got caps=%v", ms[0].Captures)
+
 	path2 := lewpath.New(dir, "diff.go").String()
-	if err := os.WriteFile(path2, srcDiff, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(path2, srcDiff, 0o644)
+	require.NoError(t, err)
+
 	ms2 := mustMatchFile(t, dir, path2, "diff.go", srcDiff, pat)
-	if len(ms2) != 0 {
-		t.Fatalf("diff strings: want 0 (unify fail), got %d", len(ms2))
-	}
+	require.Empty(t, ms2,
+		"diff strings: want 0 (unify fail), got %d", len(ms2))
+
 }
 
 func TestNumericRepMinMax(t *testing.T) {
@@ -162,17 +165,16 @@ func TestNumericRepMinMax(t *testing.T) {
 			Lit{Text: `,`},
 			Regex{Equals: "end"},
 		}})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		return n
 	}
 
 	run := func(src []byte, name string, min, max int) int {
 		path := lewpath.New(dir, name+".go").String()
-		if err := os.WriteFile(path, src, 0o644); err != nil {
-			t.Fatal(err)
-		}
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
+
 		return len(mustMatchFile(t, dir, path, name+".go", src, mk(min, max)))
 	}
 
@@ -182,29 +184,48 @@ func TestNumericRepMinMax(t *testing.T) {
 	src1 := []byte("package p\nvar _ = []string{\"start\", \"a\", \"end\"}\n")
 	// three letter sites
 	src3 := []byte("package p\nvar _ = []string{\"start\", \"a\", \"b\", \"c\", \"end\"}\n")
+	{
 
-	if c := run(src2, "min2ok", 2, 2); c < 1 {
-		t.Fatalf("exact 2 available: want match, got %d", c)
+		c := run(src2, "min2ok", 2, 2)
+		require.GreaterOrEqual(t, c, 1,
+			"exact 2 available: want match, got %d", c)
 	}
-	if c := run(src1, "min2fail", 2, 2); c != 0 {
-		t.Fatalf("only 1 site for min=2: want 0, got %d", c)
+	{
+
+		c := run(src1, "min2fail", 2, 2)
+		require.Equal(t, 0, c,
+			"only 1 site for min=2: want 0, got %d", c)
 	}
-	// Gap multi may pick any 2 of 3 — max=2 still matches (document product semantics).
-	if c := run(src3, "max2pick", 2, 2); c < 1 {
-		t.Fatalf("3 sites max=2: gap multi still matches by picking 2, got %d", c)
+	{
+
+		// Gap multi may pick any 2 of 3 — max=2 still matches (document product semantics).
+		c := run(src3, "max2pick", 2, 2)
+		require.GreaterOrEqual(t, c, 1,
+			"3 sites max=2: gap multi still matches by picking 2, got %d", c)
 	}
-	if c := run(src3, "min3", 3, 3); c < 1 {
-		t.Fatalf("exact 3: want match, got %d", c)
+	{
+
+		c := run(src3, "min3", 3, 3)
+		require.GreaterOrEqual(t, c, 1,
+			"exact 3: want match, got %d", c)
 	}
-	if c := run(src2, "min3fail", 3, 3); c != 0 {
-		t.Fatalf("only 2 sites for min=3: want 0, got %d", c)
+	{
+
+		c := run(src2, "min3fail", 3, 3)
+		require.Equal(t, 0, c,
+			"only 2 sites for min=3: want 0, got %d", c)
 	}
-	if c := run(src1, "range23", 2, 3); c != 0 {
-		t.Fatalf("1 site for 2..3: want 0, got %d", c)
+	{
+
+		c := run(src1, "range23", 2, 3)
+		require.Equal(t, 0, c,
+			"1 site for 2..3: want 0, got %d", c)
 	}
-	if c := run(src2, "range23ok", 2, 3); c < 1 {
-		t.Fatalf("2 sites for 2..3: want match, got %d", c)
-	}
+
+	c := run(src2, "range23ok", 2, 3)
+	require.GreaterOrEqual(t, c, 1,
+		"2 sites for 2..3: want match, got %d", c)
+
 }
 
 func TestCompileRoundTripPhase2(t *testing.T) {
@@ -218,50 +239,52 @@ func TestCompileRoundTripPhase2(t *testing.T) {
 	} {
 		t.Run(pat, func(t *testing.T) {
 			n, err := ParsePattern(pat)
-			if err != nil {
-				t.Fatal(err)
+			require.NoError(t, err)
+			{
+
+				_, err := compilePattern(n)
+				require.NoError(t, err)
 			}
-			if _, err := compilePattern(n); err != nil {
-				t.Fatal(err)
-			}
+
 		})
 	}
 }
 
 func TestCheckPatAllowsUnifyMulti(t *testing.T) {
 	p := Rep{Min: 0, Max: -1, Body: Unify{Name: "a", Body: Any{}}}
-	if err := CheckPat(p); err != nil {
-		t.Fatal(err)
-	}
+	err := CheckPat(p)
+	require.NoError(t, err)
+
 }
 
 func TestBareOptionalTight(t *testing.T) {
 	core, err := ParseToPat(`(? (unify a any))`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := core.(Alt); !ok {
-		t.Fatalf("want expanded optional Alt, got %#v", core)
-	}
+	require.NoError(t, err)
+
+	_, ok := core.(Alt)
+	require.True(t, ok,
+		"want expanded optional Alt, got %#v", core)
+
 }
 
 func TestInvertGroupRejectsOptional(t *testing.T) {
 	// Lookbehind + local optional is a CLI-only parse reject. Sexp allows composing
 	// (? (assert_not_behind …)); CheckPat does not ban it.
 	_, err := ParsePattern(`(? (assert_not_behind (token "a")))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 }
 
 func TestParseRefQuantNotInRef(t *testing.T) {
 	core, err := ParseToPat(`(+ (capture c (ref "go:fmt::Errorf")))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	if _, ok := core.(Seq); !ok {
-		if _, ok := core.(Rep); !ok {
-			t.Fatalf("want + expand to Seq or Rep, got %#v", core)
+		{
+			_, ok := core.(Rep)
+			require.True(t, ok,
+				"want + expand to Seq or Rep, got %#v", core)
 		}
+
 	}
 }

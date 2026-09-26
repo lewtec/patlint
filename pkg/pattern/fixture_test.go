@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/lewtec/patlint/pkg/script"
@@ -14,18 +15,15 @@ import (
 
 func TestPatternFixtures(t *testing.T) {
 	cases, err := script.LoadCases(t.Context(), lewpath.New("..", "..", "testdata", "pattern").String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(cases) == 0 {
-		t.Fatal("no testdata/pattern cases")
-	}
+	require.NoError(t, err)
+	require.NotEmpty(t, cases,
+		"no testdata/pattern cases")
+
 	for _, c := range cases {
 		t.Run(c.Rel(lewpath.New("..", "..").String()), func(t *testing.T) {
 			res, err := script.RunCase(t.Context(), c, script.RunCaseOptions{})
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			for _, f := range res.Failures {
 				t.Error(f)
 			}
@@ -36,34 +34,33 @@ func TestPatternFixtures(t *testing.T) {
 func copyDir(t *testing.T, src, dst string) {
 	t.Helper()
 	entries, err := os.ReadDir(src)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	for _, e := range entries {
 		sp := lewpath.New(src, e.Name()).String()
 		dp := lewpath.New(dst, e.Name()).String()
 		if e.IsDir() {
-			if err := os.MkdirAll(dp, 0o755); err != nil {
-				t.Fatal(err)
+			{
+				err := os.MkdirAll(dp, 0o755)
+				require.NoError(t, err)
 			}
+
 			copyDir(t, sp, dp)
 			continue
 		}
 		in, err := os.Open(sp)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		out, err := os.Create(dp)
 		if err != nil {
 			in.Close()
-			t.Fatal(err)
+			require.NoError(t, err)
 		}
 		_, err = io.Copy(out, in)
 		in.Close()
 		out.Close()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 	}
 }
 
@@ -96,7 +93,6 @@ func compareDir(t *testing.T, expectedDir, gotDir string) {
 		}
 		return nil
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 }

@@ -7,58 +7,45 @@ import (
 	lewpath "github.com/lewtec/lewkit/x/path"
 
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseSourceFile(t *testing.T) {
 	dir := t.TempDir()
 	path := lewpath.New(dir, "x.go").String()
-	if err := os.WriteFile(path, []byte("package p\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	err := os.WriteFile(path, []byte("package p\n"), 0o644)
+	require.NoError(t, err)
 	pf, err := ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	defer pf.Close()
-	if string(pf.Source) != "package p\n" {
-		t.Fatalf("source: %q", pf.Source)
-	}
-	if pf.Root == nil {
-		t.Fatal("nil root")
-	}
+	require.Equal(t, "package p\n", string(pf.Source))
+	require.NotNil(t, pf.Root)
 	pf.Close() // double-close must be safe
 }
 
 func TestParseSourceFileEmptyLanguage(t *testing.T) {
 	dir := t.TempDir()
 	path := lewpath.New(dir, "x.go").String()
-	if err := os.WriteFile(path, []byte("package p\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := ParseSourceFile(t.Context(), ccgo.Engine{}, path, ""); err == nil {
-		t.Fatal("expected empty language error")
-	}
+	err := os.WriteFile(path, []byte("package p\n"), 0o644)
+	require.NoError(t, err)
+	_, err = ParseSourceFile(t.Context(), ccgo.Engine{}, path, "")
+	require.Error(t, err)
 }
 
 func TestParseSourceFileUnknownLanguage(t *testing.T) {
 	dir := t.TempDir()
 	path := lewpath.New(dir, "x.unknownlang").String()
-	if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := ParseSourceFile(t.Context(), ccgo.Engine{}, path, "not-a-grammar"); err == nil {
-		t.Fatal("expected error")
-	}
+	err := os.WriteFile(path, []byte("x"), 0o644)
+	require.NoError(t, err)
+	_, err = ParseSourceFile(t.Context(), ccgo.Engine{}, path, "not-a-grammar")
+	require.Error(t, err)
 }
 
 func TestParseSource(t *testing.T) {
 	content := []byte("package p\n")
-	pf, err := ParseSource(ccgot.Context(), .Engine{}, content, "x.go", "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	pf, err := ParseSource(t.Context(), ccgo.Engine{}, content, "x.go", "go")
+	require.NoError(t, err)
 	defer pf.Close()
-	if pf.Root == nil || string(pf.Source) != string(content) {
-		t.Fatal("bad parse")
-	}
+	require.NotNil(t, pf.Root)
+	require.Equal(t, string(content), string(pf.Source))
 }

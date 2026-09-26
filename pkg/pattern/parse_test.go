@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParsePattern_Fixtures(t *testing.T) {
@@ -23,12 +24,10 @@ func TestParsePattern_Fixtures(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			n, err := ParsePattern(tc.pattern)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if n.Kind != tc.wantKind {
-				t.Fatalf("kind=%s want %s\n%s", n.Kind, tc.wantKind, mustJSON(n))
-			}
+			require.NoError(t, err)
+			require.Equal(t, tc.wantKind, n.Kind,
+				"kind=%s want %s\n%s", n.Kind, tc.wantKind, mustJSON(n))
+
 		})
 	}
 }
@@ -36,37 +35,36 @@ func TestParsePattern_Fixtures(t *testing.T) {
 func TestParsePattern_MatchesFixtureIR(t *testing.T) {
 	root := lewpath.New("..", "..", "testdata", "pattern").String()
 	entries, err := os.ReadDir(root)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	for _, e := range entries {
 		if !e.IsDir() {
 			continue
 		}
 		t.Run(e.Name(), func(t *testing.T) {
 			op, err := LoadOp(lewpath.New(root, e.Name()).String())
-			if err != nil {
-				t.Fatal(err)
-			}
-			if op.Pattern == "" {
-				t.Fatal("empty pattern")
-			}
+			require.NoError(t, err)
+			require.NotEmpty(t, op.Pattern,
+				"empty pattern")
+
 			got, err := ParsePattern(op.Pattern)
-			if err != nil {
-				t.Fatalf("parse: %v", err)
-			}
+			require.NoError(t, err,
+				"parse: %v", err)
+
 			// When pattern_sexp is set, PatternIR is filled from sexpr (often seq, not call sugar).
 			if len(op.PatternSexp) > 0 {
 				return
 			}
 			// Structural checks rather than deep equal (IR may use As:ROOT etc.)
-			if got.Kind != op.PatternIR.Kind {
-				t.Fatalf("kind got %s want %s\ngot=%s\nwant=%s", got.Kind, op.PatternIR.Kind, mustJSON(got), mustJSON(op.PatternIR))
-			}
+			require.Equal(t, op.PatternIR.Kind, got.Kind, "got=%s\nwant=%s", mustJSON(got), mustJSON(op.PatternIR))
+
 			if op.Mode == "rewrite" && op.Replacement != nil && *op.Replacement != "" {
-				if _, err := ParseEmit(*op.Replacement); err != nil {
-					t.Fatalf("parse emit: %v", err)
+				{
+					_, err := ParseEmit(*op.Replacement)
+					require.NoError(t, err,
+						"parse emit: %v", err)
 				}
+
 			}
 		})
 	}

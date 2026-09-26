@@ -1,6 +1,10 @@
 package reference
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestSortScopeChildrenByPath(t *testing.T) {
 	in := []ScopeChild{
@@ -8,9 +12,9 @@ func TestSortScopeChildrenByPath(t *testing.T) {
 		{Ref: Reference{Path: "a"}},
 	}
 	SortScopeChildrenByPath(in)
-	if in[0].Ref.Path != "a" || in[1].Ref.Path != "b" {
-		t.Fatalf("%v", in)
-	}
+	require.Equal(t, "a", in[0].Ref.Path)
+	require.Equal(t, "b", in[1].Ref.Path)
+
 }
 
 func TestSortScopeChildrenByKindThenPath(t *testing.T) {
@@ -20,7 +24,8 @@ func TestSortScopeChildrenByKindThenPath(t *testing.T) {
 		{Kind: ScopeChildFile, Ref: Reference{Path: "a"}},
 	}
 	SortScopeChildrenByKindThenPath(in)
-	if in[0].Kind != ScopeChildDir || in[1].Ref.Path != "a" || in[2].Ref.Path != "b" {
-		t.Fatalf("%+v", in)
-	}
+	require.Equal(t, ScopeChildDir, in[0].Kind)
+	require.Equal(t, "a", in[1].Ref.Path)
+	require.Equal(t, "b", in[2].Ref.Path)
+
 }

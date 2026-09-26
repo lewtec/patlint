@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/project"
@@ -15,9 +16,11 @@ import (
 func TestLoadAndRunPreferAny(t *testing.T) {
 	dir := t.TempDir()
 	src := []byte("package p\n\nfunc f(x interface{}) {}\n")
-	if err := os.WriteFile(lewpath.New(dir, "x.go").String(), src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(lewpath.New(dir, "x.go").String(), src, 0o644)
+		require.NoError(t, err)
 	}
+
 	script := `
 (rule go/prefer-any
   warning
@@ -28,32 +31,23 @@ func TestLoadAndRunPreferAny(t *testing.T) {
       "any")))
 `
 	prog, err := Load("test.rft", script)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.Actions) != 1 {
-		t.Fatalf("actions %d", len(prog.Actions))
-	}
-	if prog.Actions[0].Report == nil || prog.Actions[0].Report.ID != "go/prefer-any" {
-		t.Fatalf("%+v", prog.Actions[0].Report)
-	}
-	if prog.Actions[0].Emit == nil {
-		t.Fatal("want emit")
-	}
+	require.NoError(t, err)
+	require.Len(t, prog.Actions, 1,
+		"actions %d", len(prog.Actions))
+	require.False(t, prog.Actions[0].Report == nil || prog.Actions[0].Report.ID != "go/prefer-any",
+		"%+v", prog.Actions[0].Report)
+	require.NotNil(t, prog.Actions[0].Emit,
+		"want emit")
 
 	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Findings) < 1 {
-		t.Fatalf("want findings, got %d", len(res.Findings))
-	}
-	if !res.Findings[0].Fixable {
-		t.Fatal("want fixable")
-	}
-	if len(res.ApplyEdits) < 1 {
-		t.Fatal("want apply edits")
-	}
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(res.Findings), 1,
+		"want findings, got %d", len(res.Findings))
+	require.True(t, res.Findings[0].Fixable,
+		"want fixable")
+	require.GreaterOrEqual(t, len(res.ApplyEdits), 1,
+		"want apply edits")
+
 }
 
 func TestLoadDefAndCall(t *testing.T) {
@@ -70,18 +64,14 @@ func TestLoadDefAndCall(t *testing.T) {
   (os-err-to-errors-is "go:os::IsExist" "go:io/fs::ErrExist"))
 `
 	prog, err := Load("t.rft", script)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.Actions) != 1 {
-		t.Fatalf("actions %#v", prog.Actions)
-	}
-	if prog.Actions[0].Lang != "go" {
-		t.Fatalf("lang %q", prog.Actions[0].Lang)
-	}
-	if prog.Actions[0].Emit == nil {
-		t.Fatal("emit")
-	}
+	require.NoError(t, err)
+	require.Len(t, prog.Actions, 1,
+		"actions %#v", prog.Actions)
+	require.Equal(t, "go", prog.Actions[0].Lang,
+		"lang %q", prog.Actions[0].Lang)
+	require.NotNil(t, prog.Actions[0].Emit,
+		"emit")
+
 }
 
 func TestNestedRuleRejectedClearly(t *testing.T) {
@@ -93,15 +83,13 @@ func TestNestedRuleRejectedClearly(t *testing.T) {
 	}
 	for _, src := range cases {
 		_, err := Load("bad.rft", src)
-		if err == nil {
-			t.Fatalf("want error for nested rule, src=%q", src)
-		}
-		if !strings.Contains(err.Error(), "top level") {
-			t.Fatalf("want clear top-level message, got %v", err)
-		}
-		if strings.Contains(err.Error(), `unknown head "rule"`) {
-			t.Fatalf("still opaque unknown head: %v", err)
-		}
+		require.Error(t, err,
+			"want error for nested rule, src=%q", src)
+		require.True(t, strings.Contains(err.Error(), "top level"),
+			"want clear top-level message, got %v", err)
+		require.False(t, strings.Contains(err.Error(), `unknown head "rule"`),
+			"still opaque unknown head: %v", err)
+
 	}
 }
 
@@ -109,27 +97,25 @@ func TestTopLevelRewriteNoReport(t *testing.T) {
 	// rewrite without rule: edits only, no findings
 	dir := t.TempDir()
 	src := []byte("package p\nfunc f(x interface{}) {}\n")
-	if err := os.WriteFile(lewpath.New(dir, "x.go").String(), src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(lewpath.New(dir, "x.go").String(), src, 0o644)
+		require.NoError(t, err)
 	}
+
 	script := `
 (rewrite
   (under (lang go) (token "interface{}"))
   "any")
 `
 	prog, err := Load("t.rft", script)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Findings) != 0 {
-		t.Fatalf("want no lint findings, got %d", len(res.Findings))
-	}
-	if len(res.ApplyEdits) < 1 {
-		t.Fatal("want edits from bare rewrite")
-	}
+	require.NoError(t, err)
+	require.Empty(t, res.Findings,
+		"want no lint findings, got %d", len(res.Findings))
+	require.GreaterOrEqual(t, len(res.ApplyEdits), 1,
+		"want edits from bare rewrite")
+
 	_ = strings.Contains
 }

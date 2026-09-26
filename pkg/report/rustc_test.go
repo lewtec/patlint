@@ -2,9 +2,11 @@ package report
 
 import (
 	"bytes"
-	"github.com/lewtec/patlint/pkg/project"
 	"strings"
 	"testing"
+
+	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 
 	"github.com/google/go-cmp/cmp"
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
@@ -14,15 +16,11 @@ import (
 func TestNormalizeFormatRustc(t *testing.T) {
 	t.Parallel()
 	got, err := NormalizeFormat("RUSTc")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != "rustc" {
-		t.Fatalf("got %q", got)
-	}
-	if _, err := NormalizeFormat("html"); err == nil {
-		t.Fatal("want error for unknown format")
-	}
+	require.NoError(t, err)
+	require.Equal(t, "rustc", got)
+	_, err = NormalizeFormat("html")
+	require.Error(t, err, "want error for unknown format")
+
 }
 
 func TestWriteRustcSnippetUnderline(t *testing.T) {
@@ -42,18 +40,18 @@ func TestWriteRustcSnippetUnderline(t *testing.T) {
 		Source:  src,
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f}); err != nil {
-		t.Fatal(err)
-	}
+	err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f})
+	require.NoError(t, err)
+
 	got := buf.String()
 	want := "" +
 		"error[demo/hello]: don't greet\n" +
 		" --> main.go:3:6\n" +
 		"2 | \n" +
 		"3 | func \x1b[4mHello\x1b[24m() {}\n"
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Fatalf("mismatch (-want +got):\n%s", diff)
-	}
+	diff := cmp.Diff(want, got)
+	require.Empty(t, diff, "mismatch (-want +got):\n%s", diff)
+
 }
 
 func TestWriteRustcExclusiveNewlineEnd(t *testing.T) {
@@ -71,22 +69,15 @@ func TestWriteRustcExclusiveNewlineEnd(t *testing.T) {
 		Source:  src,
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f}); err != nil {
-		t.Fatal(err)
-	}
+	err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f})
+	require.NoError(t, err)
+
 	got := buf.String()
-	if !strings.Contains(got, "1 | \x1b[4mimport unused \"fmt\"\x1b[24m") {
-		t.Fatalf("missing underlined import line: %q", got)
-	}
-	if !strings.Contains(got, "2 |") {
-		t.Fatalf("missing neighbor line: %q", got)
-	}
-	if strings.Contains(got, "2 | \x1b[4m") {
-		t.Fatalf("neighbor must not be underlined: %q", got)
-	}
-	if strings.Contains(got, "3 |") {
-		t.Fatalf("only one neighbor: %q", got)
-	}
+	require.Contains(t, got, "1 | \x1b[4mimport unused \"fmt\"\x1b[24m")
+	require.Contains(t, got, "2 |")
+	require.NotContains(t, got, "2 | \x1b[4m")
+	require.NotContains(t, got, "3 |")
+
 }
 
 func TestWriteRustcSnippetFallback(t *testing.T) {
@@ -103,19 +94,14 @@ func TestWriteRustcSnippetFallback(t *testing.T) {
 		Snippet: "foo",
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f}); err != nil {
-		t.Fatal(err)
-	}
+	err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f})
+	require.NoError(t, err)
+
 	got := buf.String()
-	if !strings.Contains(got, "warning[x]: here") {
-		t.Fatalf("header: %q", got)
-	}
-	if !strings.Contains(got, "12 | \x1b[4mfoo\x1b[24m") {
-		t.Fatalf("missing underlined snippet: %q", got)
-	}
-	if strings.Contains(got, "^") {
-		t.Fatalf("carets should be gone: %q", got)
-	}
+	require.Contains(t, got, "warning[x]: here")
+	require.Contains(t, got, "12 | \x1b[4mfoo\x1b[24m")
+	require.NotContains(t, got, "^")
+
 }
 
 func TestWriteRustcFixDiff(t *testing.T) {
@@ -140,19 +126,14 @@ func TestWriteRustcFixDiff(t *testing.T) {
 		}},
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f}); err != nil {
-		t.Fatal(err)
-	}
+	err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f})
+	require.NoError(t, err)
+
 	got := buf.String()
-	if !strings.Contains(got, "help: apply with --fix") {
-		t.Fatalf("missing help: %q", got)
-	}
-	if !strings.Contains(got, "3 - func Hello() {}") {
-		t.Fatalf("missing old line: %q", got)
-	}
-	if !strings.Contains(got, "3 + func Hi() {}") {
-		t.Fatalf("missing new line: %q", got)
-	}
+	require.Contains(t, got, "help: apply with --fix")
+	require.Contains(t, got, "3 - func Hello() {}")
+	require.Contains(t, got, "3 + func Hi() {}")
+
 }
 
 func TestWriteRustcFixSkipped(t *testing.T) {
@@ -171,16 +152,13 @@ func TestWriteRustcFixSkipped(t *testing.T) {
 		FixSkipped: true,
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f}); err != nil {
-		t.Fatal(err)
-	}
+	err := newRustcWriter(t.Context(), &buf, "", false).write([]Finding{f})
+	require.NoError(t, err)
+
 	got := buf.String()
-	if !strings.Contains(got, "note: fix skipped: overlap") {
-		t.Fatalf("missing skip note: %q", got)
-	}
-	if strings.Contains(got, "apply with --fix") {
-		t.Fatalf("skipped should not suggest --fix: %q", got)
-	}
+	require.Contains(t, got, "note: fix skipped: overlap")
+	require.NotContains(t, got, "apply with --fix")
+
 }
 
 func TestWriteRustcColorAndLink(t *testing.T) {
@@ -197,25 +175,17 @@ func TestWriteRustcColorAndLink(t *testing.T) {
 		Source:  src,
 	}
 	var buf bytes.Buffer
-	if err := newRustcWriter(t.Context(), &buf, "/tmp", true).write([]Finding{f}); err != nil {
-		t.Fatal(err)
-	}
+	err := newRustcWriter(t.Context(), &buf, "/tmp", true).write([]Finding{f})
+	require.NoError(t, err)
+
 	got := buf.String()
-	if !strings.Contains(got, "\x1b[") {
-		t.Fatalf("expected ANSI, got %q", got)
-	}
-	if !strings.Contains(got, "\x1b]8;;file://") {
-		t.Fatalf("expected OSC 8 file link, got %q", got)
-	}
-	if !strings.Contains(got, "package") || !strings.Contains(got, "main") {
-		t.Fatalf("missing source text: %q", got)
-	}
-	if !strings.Contains(got, "\x1b[4m") {
-		t.Fatalf("expected underline SGR, got %q", got)
-	}
-	if strings.Contains(got, "^^^^^") {
-		t.Fatalf("carets should be gone: %q", got)
-	}
+	require.Contains(t, got, "\x1b[")
+	require.Contains(t, got, "\x1b]8;;file://")
+	require.Contains(t, got, "package")
+	require.Contains(t, got, "main")
+	require.Contains(t, got, "\x1b[4m")
+	require.NotContains(t, got, "^^^^^")
+
 }
 
 func TestUnderlineSpanSkipsANSI(t *testing.T) {
@@ -223,12 +193,10 @@ func TestUnderlineSpanSkipsANSI(t *testing.T) {
 	// Reset after the first styled rune used to kill underline.
 	styled := "(\x1b[35mlanguageName\x1b[0m, filename"
 	got := underlineSpan(styled, 1, 26)
-	if strings.Count(got, "\x1b[4m") < 2 {
-		t.Fatalf("underline not reasserted after reset: %q", got)
-	}
-	if !strings.Contains(got, "languageName") || !strings.Contains(got, "filename") {
-		t.Fatalf("missing span text: %q", got)
-	}
+	require.GreaterOrEqual(t, strings.Count(got, "\x1b[4m"), 2, "underline not reasserted after reset: %q", got)
+	require.Contains(t, got, "languageName")
+	require.Contains(t, got, "filename")
+
 }
 
 func TestWriteFormatRustc(t *testing.T) {
@@ -245,10 +213,8 @@ func TestWriteFormatRustc(t *testing.T) {
 		EndLine: 1,
 	}
 	var buf bytes.Buffer
-	if err := WriteFormat(t.Context(), &buf, "rustc", "", []Finding{f}, nil); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(buf.String(), "error[x]: m") {
-		t.Fatalf("got %q", buf.String())
-	}
+	err := WriteFormat(t.Context(), &buf, "rustc", "", []Finding{f}, nil)
+	require.NoError(t, err)
+	require.Contains(t, buf.String(), "error[x]: m")
+
 }

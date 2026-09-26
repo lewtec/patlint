@@ -1,52 +1,43 @@
 package pattern
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestFormatNFAFromPat_Lit(t *testing.T) {
 	p, err := ParseToPat(`(token "interface{}")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	s, err := FormatNFAFromPat(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(s, "START") || !strings.Contains(s, "ACCEPT") {
-		t.Fatalf("missing start/accept: %s", s)
-	}
-	if !strings.Contains(s, `token "interface{}"`) {
-		t.Fatalf("missing consume: %s", s)
-	}
+	require.NoError(t, err)
+	require.Contains(t, s, "START")
+	require.Contains(t, s, "ACCEPT")
+	require.Contains(t, s, `token "interface{}"`)
+
 }
 
 func TestFormatCompiledPlan_Under(t *testing.T) {
 	m, err := ParseMatcher(`(under (token "func") (token "x"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	s := FormatCompiledPlan(cm)
-	if !strings.Contains(s, "under") || !strings.Contains(s, "region:") || !strings.Contains(s, "body:") {
-		t.Fatalf("plan dump: %s", s)
-	}
-	if !strings.Contains(s, "ε-NFA") {
-		t.Fatalf("want leaf NFAs: %s", s)
-	}
+	require.Contains(t, s, "under")
+	require.Contains(t, s, "region:")
+	require.Contains(t, s, "body:")
+	require.Contains(t, s, "ε-NFA")
+
 }
 
 func TestFormatNFADot(t *testing.T) {
 	p := Lit{Text: "if"}
 	dot, err := FormatNFADot(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(dot, "digraph") || !strings.Contains(dot, "lit") {
-		t.Fatalf("%s", dot)
-	}
+	require.NoError(t, err)
+	require.Contains(t, dot, "digraph")
+	require.Contains(t, dot, "lit")
+
 }

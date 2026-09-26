@@ -2,6 +2,7 @@ package pattern_test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/walker"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
@@ -19,63 +21,55 @@ import (
 func TestCFunctionAtomIsDeclaratorNotSoup(t *testing.T) {
 	src := []byte("#include \"h.h\"\n\nint helper(int a) {\n  return a + 1;\n}\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "helper.c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "helper.c")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var names []string
 	for _, a := range fe.Atoms {
 		names = append(names, a.Name)
 		switch a.Name {
 		case "(", ")", "+", "1", ";", "int", "return", "{", "}":
-			t.Fatalf("token-soup atom %q; atoms=%v", a.Name, names)
+			require.FailNow(t, fmt.Sprintf("token-soup atom %q; atoms=%v", a.Name, names))
 		}
 	}
 	found := false
 	for _, a := range fe.Atoms {
 		if a.Name == "helper" {
 			found = true
-			if string(src[a.StartByte:a.EndByte]) != "helper" {
-				t.Fatalf("helper locus %q", src[a.StartByte:a.EndByte])
-			}
+			require.Equal(t, "helper", string(src[a.StartByte:a.EndByte]),
+				"helper locus %q", src[a.StartByte:a.EndByte])
+
 		}
 	}
-	if !found {
-		t.Fatalf("want helper atom, have %v", names)
-	}
+	require.True(t, found,
+		"want helper atom, have %v", names)
+
 }
 
 func TestGoConstVarAndFieldAtoms(t *testing.T) {
 	src := []byte("package p\n\nconst A = 1\nconst (\n\tB, C = 2, 3\n)\n\nvar X int\n\ntype T struct {\n\tF int\n}\n\ntype I interface {\n\tM()\n}\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "t.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "t.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	got := map[string]bool{}
 	for _, a := range fe.Atoms {
 		got[a.Name] = true
@@ -93,28 +87,24 @@ func TestGoConstVarAndFieldAtoms(t *testing.T) {
 func TestJSDestructureAtomsAreBindings(t *testing.T) {
 	src := []byte("const [thing, setThing] = useState();\nconst { a, b: c } = obj;\nconst x = 1;\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "a.js")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "a.js")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	got := map[string]bool{}
 	for _, a := range fe.Atoms {
 		got[a.Name] = true
-		if strings.ContainsAny(a.Name, "[]{}") {
-			t.Fatalf("pattern soup atom %q; atoms=%v", a.Name, got)
-		}
+		require.False(t, strings.ContainsAny(a.Name, "[]{}"),
+			"pattern soup atom %q; atoms=%v", a.Name, got)
+
 	}
 	for _, w := range []string{"thing", "setThing", "a", "c", "x"} {
 		if !got[w] {
@@ -132,53 +122,45 @@ func TestJSDestructureAtomsAreBindings(t *testing.T) {
 func TestTSDestructureAtomsAreBindings(t *testing.T) {
 	src := []byte("const [thing, setThing] = useState<string>();\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "a.ts")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "a.ts")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	got := map[string]bool{}
 	for _, a := range fe.Atoms {
 		got[a.Name] = true
-		if strings.ContainsAny(a.Name, "[]{}") {
-			t.Fatalf("pattern soup atom %q", a.Name)
-		}
+		require.False(t, strings.ContainsAny(a.Name, "[]{}"),
+			"pattern soup atom %q", a.Name)
+
 	}
-	if !got["thing"] || !got["setThing"] {
-		t.Fatalf("have %v", got)
-	}
+	require.False(t, !got["thing"] || !got["setThing"],
+		"have %v", got)
+
 }
 
 func TestPythonAssignmentAtoms(t *testing.T) {
 	src := []byte("_TEXT_OPENFLAGS = 1\nX = 2\n\nclass C:\n    Y = 3\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "a.py")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "a.py")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	got := map[string]bool{}
 	for _, a := range fe.Atoms {
 		got[a.Name] = true
@@ -193,52 +175,44 @@ func TestPythonAssignmentAtoms(t *testing.T) {
 func TestJSDefaultImportLocalName(t *testing.T) {
 	src := []byte("import SearchBar from './SearchBar.js';\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "main.js")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "main.js")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var found bool
 	for _, im := range fe.Imports {
 		if im.LocalName == "SearchBar" && im.SourcePath == "./SearchBar.js" {
 			found = true
 		}
 	}
-	if !found {
-		t.Fatalf("imports=%#v", fe.Imports)
-	}
+	require.True(t, found,
+		"imports=%#v", fe.Imports)
+
 }
 
 func TestJSConstLetAtoms(t *testing.T) {
 	src := []byte("export const variant = \"primary\"\nlet query = 1\nfunction greet() {}\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "a.js")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "a.js")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	got := map[string]bool{}
 	for _, a := range fe.Atoms {
 		got[a.Name] = true
@@ -253,25 +227,20 @@ func TestJSConstLetAtoms(t *testing.T) {
 func TestProductExtractRunsJSPackOnVueScript(t *testing.T) {
 	src := []byte("<script>\nexport let initialQuery = ''\nfunction handleSearch() {}\n</script>\n<template><div/></template>\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "App.vue")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "App.vue")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if fe.Language != "vue" {
-		t.Fatalf("host language=%q", fe.Language)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "vue", fe.Language,
+		"host language=%q", fe.Language)
+
 	got := map[string]bool{}
 	for _, a := range fe.Atoms {
 		got[a.Name] = true
@@ -282,31 +251,27 @@ func TestProductExtractRunsJSPackOnVueScript(t *testing.T) {
 		}
 	}
 	for _, w := range []string{"initialQuery", "handleSearch"} {
-		if !got[w] {
-			t.Fatalf("missing guest atom %q; have %v", w, got)
-		}
+		require.True(t, got[w],
+			"missing guest atom %q; have %v", w, got)
+
 	}
 }
 
 func TestAtomJoinNames_GoMethod(t *testing.T) {
 	src := []byte("package p\n\ntype T struct{}\n\nfunc (t *T) Method() {}\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "t.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "t.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var names []string
 	for _, a := range fe.Atoms {
 		names = append(names, a.Name)
@@ -317,30 +282,26 @@ func TestAtomJoinNames_GoMethod(t *testing.T) {
 			found = true
 		}
 	}
-	if !found {
-		t.Fatalf("want T.Method in atoms %v", names)
-	}
+	require.True(t, found,
+		"want T.Method in atoms %v", names)
+
 }
 
 func TestAtomJoinNames_JavaMethod(t *testing.T) {
 	src := []byte("class A {\n  void run() {}\n}\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "A.java")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "A.java")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var names []string
 	for _, a := range fe.Atoms {
 		names = append(names, a.Name)
@@ -351,16 +312,16 @@ func TestAtomJoinNames_JavaMethod(t *testing.T) {
 			found = true
 		}
 	}
-	if !found {
-		t.Fatalf("want A.run in atoms %v", names)
-	}
+	require.True(t, found,
+		"want A.run in atoms %v", names)
+
 	// leaf span is "run", not "A"
 	for _, a := range fe.Atoms {
 		if a.Name == "A.run" {
 			text := string(src[a.StartByte:a.EndByte])
-			if text != "run" {
-				t.Fatalf("locus text=%q want run", text)
-			}
+			require.Equal(t, "run", text,
+				"locus text=%q want run", text)
+
 		}
 	}
 }
@@ -375,22 +336,18 @@ func TestUseNameCaptures_JavaObjectName(t *testing.T) {
 }
 `)
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "A.java")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "A.java")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	want := map[string]bool{"as.run": false, "as.x": false}
 	for _, u := range fe.Usages {
 		if len(u.Prefix) == 0 {
@@ -408,9 +365,9 @@ func TestUseNameCaptures_JavaObjectName(t *testing.T) {
 		}
 	}
 	for k, ok := range want {
-		if !ok {
-			t.Fatalf("missing use path %s", k)
-		}
+		require.True(t, ok,
+			"missing use path %s", k)
+
 	}
 }
 
@@ -423,12 +380,10 @@ func TestAsFamilyClaim(t *testing.T) {
     (as-use)))
 `
 	prog, err := pattern.LoadExtractPack("fam.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.Families) != 1 || prog.Families[0].Lang != "javascript" || prog.Families[0].Family != "ecma" {
-		t.Fatalf("families=%#v", prog.Families)
-	}
+	require.NoError(t, err)
+	require.False(t, len(prog.Families) != 1 || prog.Families[0].Lang != "javascript" || prog.Families[0].Family != "ecma",
+		"families=%#v", prog.Families)
+
 }
 
 func TestAsFamilyKnobs(t *testing.T) {
@@ -437,19 +392,16 @@ func TestAsFamilyKnobs(t *testing.T) {
   (as-language "go")
   (as-family "go" directory-module package-scoped-bare-names nested-type-members))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.Families) != 1 {
-		t.Fatalf("families=%#v", prog.Families)
-	}
+	require.NoError(t, err)
+	require.Len(t, prog.Families, 1,
+		"families=%#v", prog.Families)
+
 	r := prog.Families[0].Rules
-	if !r.DirectoryModule || !r.PackageScopedBareNames || !r.NestedTypeMembers {
-		t.Fatalf("rules=%#v", r)
-	}
-	if r.EmptyPackageDirScoped || r.IncludeFileExportsBare || r.DirectoryManifest {
-		t.Fatalf("extra knobs=%#v", r)
-	}
+	require.False(t, !r.DirectoryModule || !r.PackageScopedBareNames || !r.NestedTypeMembers,
+		"rules=%#v", r)
+	require.False(t, r.EmptyPackageDirScoped || r.IncludeFileExportsBare || r.DirectoryManifest,
+		"extra knobs=%#v", r)
+
 }
 
 func TestAsFamilyDirectoryManifest(t *testing.T) {
@@ -458,12 +410,10 @@ func TestAsFamilyDirectoryManifest(t *testing.T) {
   (as-language "javascript")
   (as-family "ecma" directory-manifest))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !prog.Families[0].Rules.DirectoryManifest {
-		t.Fatalf("rules=%#v", prog.Families[0].Rules)
-	}
+	require.NoError(t, err)
+	require.True(t, prog.Families[0].Rules.DirectoryManifest,
+		"rules=%#v", prog.Families[0].Rules)
+
 }
 
 func TestAsLayoutClaim(t *testing.T) {
@@ -472,16 +422,14 @@ func TestAsLayoutClaim(t *testing.T) {
   (as-language "go")
   (as-layout package import body))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.Layouts) != 1 || prog.Layouts[0].Lang != "go" {
-		t.Fatalf("layouts=%#v", prog.Layouts)
-	}
+	require.NoError(t, err)
+	require.False(t, len(prog.Layouts) != 1 || prog.Layouts[0].Lang != "go",
+		"layouts=%#v", prog.Layouts)
+
 	got := strings.Join(prog.Layouts[0].Names, " ")
-	if got != "package import body" {
-		t.Fatalf("names=%q", got)
-	}
+	require.Equal(t, "package import body", got,
+		"names=%q", got)
+
 }
 
 func TestAsLayoutKeepsPackNames(t *testing.T) {
@@ -490,13 +438,12 @@ func TestAsLayoutKeepsPackNames(t *testing.T) {
   (as-language "go")
   (as-layout package import))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	got := strings.Join(prog.Layouts[0].Names, " ")
-	if got != "package import" {
-		t.Fatalf("names=%q", got)
-	}
+	require.Equal(t, "package import", got,
+		"names=%q", got)
+
 }
 
 func TestAsLayoutDuplicateName(t *testing.T) {
@@ -505,9 +452,9 @@ func TestAsLayoutDuplicateName(t *testing.T) {
   (as-language "go")
   (as-layout package package body))
 `)
-	if err == nil || !strings.Contains(err.Error(), "duplicate") {
-		t.Fatalf("want duplicate, got %v", err)
-	}
+	require.False(t, err == nil || !strings.Contains(err.Error(), "duplicate"),
+		"want duplicate, got %v", err)
+
 }
 
 func TestAsFamilyUnknownKnob(t *testing.T) {
@@ -516,9 +463,9 @@ func TestAsFamilyUnknownKnob(t *testing.T) {
   (as-language "javascript")
   (as-family "ecma" no-such-knob))
 `)
-	if err == nil || !strings.Contains(err.Error(), "no-such-knob") {
-		t.Fatalf("want unknown knob, got %v", err)
-	}
+	require.False(t, err == nil || !strings.Contains(err.Error(), "no-such-knob"),
+		"want unknown knob, got %v", err)
+
 }
 
 func TestAsFamilyRejectsNameVisibilityKnobs(t *testing.T) {
@@ -528,9 +475,9 @@ func TestAsFamilyRejectsNameVisibilityKnobs(t *testing.T) {
   (as-language "go")
   (as-family "go" `+knob+`))
 `)
-		if err == nil || !strings.Contains(err.Error(), knob) {
-			t.Fatalf("knob %s: want unknown, got %v", knob, err)
-		}
+		require.False(t, err == nil || !strings.Contains(err.Error(), knob),
+			"knob %s: want unknown, got %v", knob, err)
+
 	}
 }
 
@@ -539,19 +486,17 @@ func TestAsDirectoryRepresentant(t *testing.T) {
 (under (path "**/__init__.py")
   (as-directory-representant))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.DirectoryRepresentants) != 1 || prog.DirectoryRepresentants[0] != "**/__init__.py" {
-		t.Fatalf("representants=%#v", prog.DirectoryRepresentants)
-	}
+	require.NoError(t, err)
+	require.False(t, len(prog.DirectoryRepresentants) != 1 || prog.DirectoryRepresentants[0] != "**/__init__.py",
+		"representants=%#v", prog.DirectoryRepresentants)
+
 }
 
 func TestAsDirectoryRepresentantWantsPath(t *testing.T) {
 	_, err := pattern.LoadExtractPack("bad.rft", `(as-directory-representant)`)
-	if err == nil || !strings.Contains(err.Error(), "under (path") {
-		t.Fatalf("want path place, got %v", err)
-	}
+	require.False(t, err == nil || !strings.Contains(err.Error(), "under (path"),
+		"want path place, got %v", err)
+
 }
 
 func TestAsFamilyUnknownIsClaim(t *testing.T) {
@@ -560,12 +505,10 @@ func TestAsFamilyUnknownIsClaim(t *testing.T) {
   (as-language "javascript")
   (as-family "no_such_family"))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.Families) != 1 || prog.Families[0].Family != "no_such_family" {
-		t.Fatalf("families=%#v", prog.Families)
-	}
+	require.NoError(t, err)
+	require.False(t, len(prog.Families) != 1 || prog.Families[0].Family != "no_such_family",
+		"families=%#v", prog.Families)
+
 }
 
 func TestAsPaintClassifyLeaf(t *testing.T) {
@@ -576,18 +519,24 @@ func TestAsPaintClassifyLeaf(t *testing.T) {
   (as-keyword (alt (token "func") (token "var")))
   (as-ident (node "identifier")))
 `)
-	if err != nil {
-		t.Fatal(err)
+	require.NoError(t, err)
+	{
+
+		got := prog.ClassifyLeaf("dsl", "func")
+		require.Equal(t, ingest.HLKeyword, got,
+			"func=%q", got)
 	}
-	if got := prog.ClassifyLeaf("dsl", "func"); got != ingest.HLKeyword {
-		t.Fatalf("func=%q", got)
+	{
+
+		got := prog.ClassifyLeaf("dsl", "identifier")
+		require.Equal(t, ingest.HLIdent, got,
+			"identifier=%q", got)
 	}
-	if got := prog.ClassifyLeaf("dsl", "identifier"); got != ingest.HLIdent {
-		t.Fatalf("identifier=%q", got)
-	}
-	if got := prog.ClassifyLeaf("dsl", "("); got != "" {
-		t.Fatalf("punct harvest=%q", got)
-	}
+
+	got := prog.ClassifyLeaf("dsl", "(")
+	require.Empty(t, got,
+		"punct harvest=%q", got)
+
 }
 
 func TestAsDocstringClaim(t *testing.T) {
@@ -597,12 +546,10 @@ func TestAsDocstringClaim(t *testing.T) {
   (as-grammar "commonlisp")
   (as-docstring comment-before))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.Docstrings) != 1 || prog.Docstrings[0].Lang != "dsl" || prog.Docstrings[0].Kind != "comment-before" {
-		t.Fatalf("docstrings=%#v", prog.Docstrings)
-	}
+	require.NoError(t, err)
+	require.False(t, len(prog.Docstrings) != 1 || prog.Docstrings[0].Lang != "dsl" || prog.Docstrings[0].Kind != "comment-before",
+		"docstrings=%#v", prog.Docstrings)
+
 }
 
 func TestAsImportSeqClaim(t *testing.T) {
@@ -612,16 +559,14 @@ func TestAsImportSeqClaim(t *testing.T) {
   (as-grammar "commonlisp")
   (as-import (seq "import" "\"" path "\"")))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.ImportLines) != 1 {
-		t.Fatalf("import-lines=%#v", prog.ImportLines)
-	}
+	require.NoError(t, err)
+	require.Len(t, prog.ImportLines, 1,
+		"import-lines=%#v", prog.ImportLines)
+
 	c := prog.ImportLines[0]
-	if c.Lang != "dsl" || c.HasLeaf || c.HasQual || !c.QuotedPath || !seqHasPath(c.Tokens) {
-		t.Fatalf("import-lines=%#v", prog.ImportLines)
-	}
+	require.False(t, c.Lang != "dsl" || c.HasLeaf || c.HasQual || !c.QuotedPath || !seqHasPath(c.Tokens),
+		"import-lines=%#v", prog.ImportLines)
+
 }
 
 func seqHasPath(toks []string) bool {
@@ -640,16 +585,14 @@ func TestAsPackageSeqClaim(t *testing.T) {
   (as-grammar "commonlisp")
   (as-package (seq "package" pkg)))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.PackageLines) != 1 {
-		t.Fatalf("package-lines=%#v", prog.PackageLines)
-	}
+	require.NoError(t, err)
+	require.Len(t, prog.PackageLines, 1,
+		"package-lines=%#v", prog.PackageLines)
+
 	c := prog.PackageLines[0]
-	if c.Lang != "dsl" || len(c.Tokens) != 2 || c.Tokens[0] != "package" || c.Tokens[1] != "pkg" {
-		t.Fatalf("package-lines=%#v", prog.PackageLines)
-	}
+	require.False(t, c.Lang != "dsl" || len(c.Tokens) != 2 || c.Tokens[0] != "package" || c.Tokens[1] != "pkg",
+		"package-lines=%#v", prog.PackageLines)
+
 }
 
 func TestAsAtomicClaim(t *testing.T) {
@@ -659,12 +602,10 @@ func TestAsAtomicClaim(t *testing.T) {
   (as-grammar "commonlisp")
   (as-atomic "interface{}"))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.AtomicSpans) != 1 || prog.AtomicSpans[0].Lang != "dsl" || prog.AtomicSpans[0].Text != "interface{}" {
-		t.Fatalf("atomic=%#v", prog.AtomicSpans)
-	}
+	require.NoError(t, err)
+	require.False(t, len(prog.AtomicSpans) != 1 || prog.AtomicSpans[0].Lang != "dsl" || prog.AtomicSpans[0].Text != "interface{}",
+		"atomic=%#v", prog.AtomicSpans)
+
 }
 
 func TestAsGrammarClaim(t *testing.T) {
@@ -675,12 +616,10 @@ func TestAsGrammarClaim(t *testing.T) {
   (under (node "sym_lit")
     (as-ident)))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.Grammars) != 1 || prog.Grammars[0].Lang != "dsl" || prog.Grammars[0].Grammar != "commonlisp" {
-		t.Fatalf("grammars=%#v", prog.Grammars)
-	}
+	require.NoError(t, err)
+	require.False(t, len(prog.Grammars) != 1 || prog.Grammars[0].Lang != "dsl" || prog.Grammars[0].Grammar != "commonlisp",
+		"grammars=%#v", prog.Grammars)
+
 }
 
 func TestAsGrammarUnknownFails(t *testing.T) {
@@ -689,13 +628,12 @@ func TestAsGrammarUnknownFails(t *testing.T) {
   (as-language "dsl")
   (as-grammar "no_such_grammar"))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = prog.ValidateGrammars(t.Context(), ccgo.Engine{})
-	if !errors.Is(err, pattern.ErrExtract) {
-		t.Fatalf("err=%v", err)
-	}
+	require.ErrorIs(t, err, pattern.ErrExtract,
+		"err=%v", err)
+
 }
 
 func TestAsGrammarNeedsLanguageFirst(t *testing.T) {
@@ -704,9 +642,9 @@ func TestAsGrammarNeedsLanguageFirst(t *testing.T) {
   (as-grammar "commonlisp")
   (as-language "dsl"))
 `)
-	if !errors.Is(err, pattern.ErrExtract) {
-		t.Fatalf("err=%v", err)
-	}
+	require.ErrorIs(t, err, pattern.ErrExtract,
+		"err=%v", err)
+
 }
 
 func TestAsLanguageWithoutGrammarFails(t *testing.T) {
@@ -714,13 +652,12 @@ func TestAsLanguageWithoutGrammarFails(t *testing.T) {
 (under (path "**/*.dsl")
   (as-language "dsl"))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = prog.ValidateGrammars(t.Context(), ccgo.Engine{})
-	if !errors.Is(err, pattern.ErrExtract) {
-		t.Fatalf("err=%v", err)
-	}
+	require.ErrorIs(t, err, pattern.ErrExtract,
+		"err=%v", err)
+
 }
 
 func TestPurposeLispUsesCommonlispGrammar(t *testing.T) {
@@ -731,36 +668,37 @@ func TestPurposeLispUsesCommonlispGrammar(t *testing.T) {
   (under (node "sym_lit")
     (as-ident)))
 `))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	lang, ok := vm.HostLanguage("app.dsl")
-	if !ok || lang != "dsl" {
-		t.Fatalf("host=%q ok=%v", lang, ok)
+	require.False(t, !ok || lang != "dsl",
+		"host=%q ok=%v", lang, ok)
+	{
+
+		got := vm.GrammarForLanguage("dsl")
+		require.Equal(t, "commonlisp", got,
+			"grammar=%q", got)
 	}
-	if got := vm.GrammarForLanguage("dsl"); got != "commonlisp" {
-		t.Fatalf("grammar=%q", got)
-	}
+
 	dir := t.TempDir()
 	path := lewpath.New(dir, "app.dsl").String()
-	if err := os.WriteFile(path, []byte("(hello world)\n"), 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, []byte("(hello world)\n"), 0o644)
+		require.NoError(t, err)
 	}
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var got *project.FileExtract
 	err = w.WalkExtracts(t.Context(), ingest.SourceProject(dir), func(fe *project.FileExtract) bool {
 		got = fe
 		return true
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got == nil || got.Language != "dsl" {
-		t.Fatalf("extract=%#v", got)
-	}
+	require.NoError(t, err)
+	require.False(t, got == nil || got.Language != "dsl",
+		"extract=%#v", got)
+
 }
 
 func TestAsFamilyNeedsLanguageFirst(t *testing.T) {
@@ -769,9 +707,9 @@ func TestAsFamilyNeedsLanguageFirst(t *testing.T) {
   (as-family "ecma")
   (as-language "javascript"))
 `)
-	if !errors.Is(err, pattern.ErrExtract) {
-		t.Fatalf("err=%v", err)
-	}
+	require.ErrorIs(t, err, pattern.ErrExtract,
+		"err=%v", err)
+
 }
 
 func TestLoadExtractPack_GoFragment(t *testing.T) {
@@ -785,52 +723,42 @@ func TestLoadExtractPack_GoFragment(t *testing.T) {
     (as-atom public (take "name" (seq "func" (capture name any) "(")))))
 `
 	prog, err := pattern.LoadExtractPack("test.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if prog.Language != "go" {
-		t.Fatalf("lang=%q", prog.Language)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "go", prog.Language,
+		"lang=%q", prog.Language)
 	// host claim + package + atom
-	if len(prog.Actions) != 3 {
-		t.Fatalf("actions=%d", len(prog.Actions))
-	}
+	require.Len(t, prog.Actions, 3)
+
 	claim := prog.Actions[0]
-	if claim.Matcher != nil || claim.HostLang != "go" {
-		t.Fatalf("action0 want host claim, got matcher=%v host=%q", claim.Matcher != nil, claim.HostLang)
-	}
-	if len(claim.Paths) != 1 || claim.Paths[0] != "**/*.go" {
-		t.Fatalf("claim paths=%v", claim.Paths)
-	}
-	if prog.Actions[1].HostLang != "go" || prog.Actions[1].Lang != "go" {
-		t.Fatalf("action1 host/lang=%q/%q", prog.Actions[1].HostLang, prog.Actions[1].Lang)
-	}
-	if prog.Actions[1].Embed {
-		t.Fatal("host action should not be embed")
-	}
+	require.False(t, claim.Matcher != nil || claim.HostLang != "go",
+		"action0 want host claim, got matcher=%v host=%q", claim.Matcher != nil, claim.HostLang)
+	require.False(t, len(claim.Paths) != 1 || claim.Paths[0] != "**/*.go",
+		"claim paths=%v", claim.Paths)
+	require.False(t, prog.Actions[1].HostLang != "go" || prog.Actions[1].Lang != "go",
+		"action1 host/lang=%q/%q", prog.Actions[1].HostLang, prog.Actions[1].Lang)
+	require.False(t, prog.Actions[1].Embed,
+		"host action should not be embed")
 
 	dir := t.TempDir()
 	path := lewpath.New(dir, "x.go").String()
 	code := []byte("package demo\nfunc Hello() {}\n")
-	if err := os.WriteFile(path, code, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, code, 0o644)
+		require.NoError(t, err)
 	}
+
 	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 
 	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, code, "x.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if fe.Package != "demo" {
-		t.Fatalf("package=%q", fe.Package)
-	}
-	if len(fe.Atoms) != 1 || fe.Atoms[0].Name != "Hello" {
-		t.Fatalf("atoms=%+v", fe.Atoms)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "demo", fe.Package,
+		"package=%q", fe.Package)
+	require.False(t, len(fe.Atoms) != 1 || fe.Atoms[0].Name != "Hello",
+		"atoms=%+v", fe.Atoms)
+
 }
 
 func TestLoadExtractPack_UnknownLanguage(t *testing.T) {
@@ -838,26 +766,23 @@ func TestLoadExtractPack_UnknownLanguage(t *testing.T) {
 (under (path "**/*.x")
   (as-language "no_such_grammar_xyz"))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = prog.ValidateGrammars(t.Context(), ccgo.Engine{})
-	if err == nil {
-		t.Fatal("want error for unregistered grammar id")
-	}
-	if !strings.Contains(err.Error(), "no_such_grammar_xyz") {
-		t.Fatalf("err=%v", err)
-	}
+	require.Error(t, err,
+		"want error for unregistered grammar id")
+	require.True(t, strings.Contains(err.Error(), "no_such_grammar_xyz"),
+		"err=%v", err)
+
 }
 
 func TestLoadExtractPack_RejectsRootAsLanguage(t *testing.T) {
 	_, err := pattern.LoadExtractPack("bad.rft", `(as-language "go")`)
-	if err == nil {
-		t.Fatal("want error for root as-language")
-	}
-	if !strings.Contains(err.Error(), "under (path") {
-		t.Fatalf("err=%v", err)
-	}
+	require.Error(t, err,
+		"want error for root as-language")
+	require.True(t, strings.Contains(err.Error(), "under (path"),
+		"err=%v", err)
+
 }
 
 func TestLoadExtractPack_AsLanguageBody(t *testing.T) {
@@ -868,23 +793,19 @@ func TestLoadExtractPack_AsLanguageBody(t *testing.T) {
       (as-package))))
 `
 	prog, err := pattern.LoadExtractPack("test.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// host claim + as-package
-	if prog.Language != "go" || len(prog.Actions) != 2 {
-		t.Fatalf("lang=%q actions=%d", prog.Language, len(prog.Actions))
-	}
+	require.NoError(t, err)
+	require.False(t, // host claim + as-package
+		prog.Language != "go" || len(prog.Actions) != 2,
+		"lang=%q actions=%d", prog.Language, len(prog.Actions))
+
 }
 
 func TestExtractPack_IgnoresUnknownHead(t *testing.T) {
 	prog, err := pattern.LoadExtractPack("ok.rft", `(top (on "x"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.Actions) != 0 {
-		t.Fatalf("unknown head must not become extract actions: %d", len(prog.Actions))
-	}
+	require.NoError(t, err)
+	require.Empty(t, prog.Actions,
+		"unknown head must not become extract actions: %d", len(prog.Actions))
+
 }
 
 func TestExtractPack_RejectsStringMatcher(t *testing.T) {
@@ -895,19 +816,17 @@ func TestExtractPack_RejectsStringMatcher(t *testing.T) {
     (as-atom public "Hello")))
 `
 	_, err := pattern.LoadExtractPack("bad.rft", src)
-	if err == nil {
-		t.Fatal("want error for string matcher")
-	}
-	if !strings.Contains(err.Error(), "MATCHER") {
-		t.Fatalf("err=%v", err)
-	}
+	require.Error(t, err,
+		"want error for string matcher")
+	require.True(t, strings.Contains(err.Error(), "MATCHER"),
+		"err=%v", err)
+
 }
 
 func TestLoadEmbeddedLanguagePacks(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	prog := vm.Packs().Program()
 	packs := map[string]*pattern.ExtractProgram{}
 	for _, act := range prog.Actions {
@@ -961,9 +880,9 @@ func TestLoadEmbeddedLanguagePacks(t *testing.T) {
 			t.Errorf("%s: no extract/paint matchers", lang)
 		}
 	}
-	if len(packs) < len(want) {
-		t.Fatalf("packs=%d want at least %d", len(packs), len(want))
-	}
+	require.GreaterOrEqual(t, len(packs), len(want),
+		"packs=%d want at least %d", len(packs), len(want))
+
 }
 
 func TestLoadExtractPack_MultiPathGlob(t *testing.T) {
@@ -974,15 +893,12 @@ func TestLoadExtractPack_MultiPathGlob(t *testing.T) {
     (as-use)))
 `
 	prog, err := pattern.LoadExtractPack("test.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(prog.Actions) != 2 {
-		t.Fatalf("actions=%d", len(prog.Actions))
-	}
-	if len(prog.Actions[0].Paths) != 2 {
-		t.Fatalf("paths=%v", prog.Actions[0].Paths)
-	}
+	require.NoError(t, err)
+	require.Len(t, prog.Actions, 2,
+		"actions=%d", len(prog.Actions))
+	require.Len(t, prog.Actions[0].Paths, 2,
+		"paths=%v", prog.Actions[0].Paths)
+
 }
 
 func TestLoadExtractPack_AsAtomRequiresMatcher(t *testing.T) {
@@ -991,12 +907,11 @@ func TestLoadExtractPack_AsAtomRequiresMatcher(t *testing.T) {
   (as-language "go")
   (as-atom))
 `)
-	if err == nil {
-		t.Fatal("want error for bare (as-atom)")
-	}
-	if !strings.Contains(err.Error(), "as-atom wants public|private and MATCHER") {
-		t.Fatalf("err=%v", err)
-	}
+	require.Error(t, err,
+		"want error for bare (as-atom)")
+	require.True(t, strings.Contains(err.Error(), "as-atom wants public|private and MATCHER"),
+		"err=%v", err)
+
 }
 
 func TestLoadExtractPack_AsAtomRequiresVisibility(t *testing.T) {
@@ -1006,12 +921,11 @@ func TestLoadExtractPack_AsAtomRequiresVisibility(t *testing.T) {
   (under (node "function_declaration")
     (as-atom (take "name" (node "function_declaration")))))
 `)
-	if err == nil {
-		t.Fatal("want error for as-atom without public|private")
-	}
-	if !strings.Contains(err.Error(), "as-atom wants public|private and MATCHER") {
-		t.Fatalf("err=%v", err)
-	}
+	require.Error(t, err,
+		"want error for as-atom without public|private")
+	require.True(t, strings.Contains(err.Error(), "as-atom wants public|private and MATCHER"),
+		"err=%v", err)
+
 }
 
 func TestLoadExtractPack_AsAtomRejectsUnknownVisibility(t *testing.T) {
@@ -1021,12 +935,11 @@ func TestLoadExtractPack_AsAtomRejectsUnknownVisibility(t *testing.T) {
   (under (node "function_declaration")
     (as-atom exported (take "name" (node "function_declaration")))))
 `)
-	if err == nil {
-		t.Fatal("want error for unknown visibility")
-	}
-	if !strings.Contains(err.Error(), `as-atom wants public or private, got "exported"`) {
-		t.Fatalf("err=%v", err)
-	}
+	require.Error(t, err,
+		"want error for unknown visibility")
+	require.True(t, strings.Contains(err.Error(), `as-atom wants public or private, got "exported"`),
+		"err=%v", err)
+
 }
 
 func TestLoadExtractPack_AsAtomThisPlace(t *testing.T) {
@@ -1039,30 +952,28 @@ func TestLoadExtractPack_AsAtomThisPlace(t *testing.T) {
       (as-use (scope name)))))
 `
 	prog, err := pattern.LoadExtractPack("ok.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var atoms, uses int
 	for _, a := range prog.Actions {
 		switch a.Kind {
 		case pattern.ExtractAtom:
 			atoms++
-			if a.Matcher == nil {
-				t.Fatal("as-atom (this) must compile a matcher")
-			}
-			if !a.Exported {
-				t.Fatal("as-atom public (this) must set Exported")
-			}
+			require.NotNil(t, a.Matcher,
+				"as-atom (this) must compile a matcher")
+			require.True(t, a.Exported,
+				"as-atom public (this) must set Exported")
+
 		case pattern.ExtractUse:
 			uses++
-			if a.ScopeField != "name" || a.ScopeNode != "function_declaration" {
-				t.Fatalf("use scope field=%q node=%q", a.ScopeField, a.ScopeNode)
-			}
+			require.False(t, a.ScopeField != "name" || a.ScopeNode != "function_declaration",
+				"use scope field=%q node=%q", a.ScopeField, a.ScopeNode)
+
 		}
 	}
-	if atoms != 1 || uses != 1 {
-		t.Fatalf("atoms=%d uses=%d", atoms, uses)
-	}
+	require.False(t, atoms != 1 || uses != 1,
+		"atoms=%d uses=%d", atoms, uses)
+
 }
 
 func TestLoadExtractPack_AsAtomPrivateExported(t *testing.T) {
@@ -1073,22 +984,21 @@ func TestLoadExtractPack_AsAtomPrivateExported(t *testing.T) {
     (as-atom private (take "name" (node "parameter_declaration")))))
 `
 	prog, err := pattern.LoadExtractPack("ok.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var saw bool
 	for _, a := range prog.Actions {
 		if a.Kind != pattern.ExtractAtom {
 			continue
 		}
 		saw = true
-		if a.Exported {
-			t.Fatal("as-atom private must clear Exported")
-		}
+		require.False(t, a.Exported,
+			"as-atom private must clear Exported")
+
 	}
-	if !saw {
-		t.Fatal("want as-atom action")
-	}
+	require.True(t, saw,
+		"want as-atom action")
+
 }
 
 func TestLoadExtractPack_AsScopeRequiresMatcher(t *testing.T) {
@@ -1097,12 +1007,11 @@ func TestLoadExtractPack_AsScopeRequiresMatcher(t *testing.T) {
   (as-language "go")
   (as-scope))
 `)
-	if err == nil {
-		t.Fatal("want error for bare (as-scope)")
-	}
-	if !strings.Contains(err.Error(), "as-scope wants exactly one MATCHER") {
-		t.Fatalf("err=%v", err)
-	}
+	require.Error(t, err,
+		"want error for bare (as-scope)")
+	require.True(t, strings.Contains(err.Error(), "as-scope wants exactly one MATCHER"),
+		"err=%v", err)
+
 }
 
 func TestLoadExtractPack_AsScopeThisPlace(t *testing.T) {
@@ -1113,28 +1022,26 @@ func TestLoadExtractPack_AsScopeThisPlace(t *testing.T) {
     (as-scope (this))))
 `
 	prog, err := pattern.LoadExtractPack("ok.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	n := 0
 	for _, a := range prog.Actions {
 		if a.Kind == pattern.ExtractScope {
 			n++
-			if a.Matcher == nil {
-				t.Fatal("as-scope (this) must compile a matcher")
-			}
-			if a.NodeType != "function_declaration" {
-				t.Fatalf("NodeType=%q", a.NodeType)
-			}
+			require.NotNil(t, a.Matcher,
+				"as-scope (this) must compile a matcher")
+			require.Equal(t, "function_declaration", a.NodeType,
+				"NodeType=%q", a.NodeType)
+
 		}
 	}
-	if n != 1 {
-		t.Fatalf("scopes=%d", n)
-	}
+	require.Equal(t, 1, n,
+		"scopes=%d", n)
+
 	got := prog.ScopeNodeTypes("go")
-	if len(got) != 1 || got[0] != "function_declaration" {
-		t.Fatalf("ScopeNodeTypes=%v", got)
-	}
+	require.False(t, len(got) != 1 || got[0] != "function_declaration",
+		"ScopeNodeTypes=%v", got)
+
 }
 
 func TestLoadExtractPack_AsFlow(t *testing.T) {
@@ -1148,29 +1055,31 @@ func TestLoadExtractPack_AsFlow(t *testing.T) {
   (under (node "for_statement")
     (as-flow structural (take "body" (node "for_statement")))))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	n := 0
 	for _, a := range prog.Actions {
 		if a.Kind == pattern.ExtractFlow {
 			n++
-			if a.Matcher == nil {
-				t.Fatal("as-flow must compile a matcher")
-			}
+			require.NotNil(t, a.Matcher,
+				"as-flow must compile a matcher")
+
 		}
 	}
-	if n != 3 {
-		t.Fatalf("flows=%d", n)
-	}
-	if _, err := pattern.LoadExtractPack("bad.rft", `
+	require.Equal(t, 3, n,
+		"flows=%d", n)
+	{
+
+		_, err := pattern.LoadExtractPack("bad.rft", `
 (under (path "**/*.go")
   (as-language "go")
   (under (node "if_statement")
     (as-flow nope (this))))
-`); err == nil {
-		t.Fatal("want error for bad as-flow class")
+`)
+		require.Error(t, err,
+			"want error for bad as-flow class")
 	}
+
 }
 
 func TestExtractErr_AsFlowElseIf(t *testing.T) {
@@ -1188,9 +1097,8 @@ func TestExtractErr_AsFlowElseIf(t *testing.T) {
     (as-flow structural (take "body" (node "for_statement")))))
 `
 	prog, err := pattern.LoadExtractPack("flow.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	dir := t.TempDir()
 	path := lewpath.New(dir, "x.go").String()
 	code := []byte(`package p
@@ -1213,21 +1121,20 @@ func Demo(n int) int {
 	return n
 }
 `)
-	if err := os.WriteFile(path, code, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, code, 0o644)
+		require.NoError(t, err)
 	}
+
 	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, code, "x.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(fe.Flows) == 0 {
-		t.Fatal("no flow rows")
-	}
+	require.NoError(t, err)
+	require.NotEmpty(t, fe.Flows,
+		"no flow rows")
+
 	var unit project.ScopeDef
 	for _, s := range fe.Scopes {
 		if s.StartByte < s.EndByte && strings.Contains(string(code[s.StartByte:s.EndByte]), "func Demo") {
@@ -1235,14 +1142,13 @@ func Demo(n int) int {
 			break
 		}
 	}
-	if unit.EndByte == 0 {
-		t.Fatalf("no Demo scope: %+v", fe.Scopes)
-	}
+	require.NotEqual(t, unit.EndByte, 0,
+		"no Demo scope: %+v", fe.Scopes)
+
 	rep := ingest.ScoreFlow(unit.StartByte, unit.EndByte, fe.Flows)
 	// if, nested if, else-if, else, for, if-in-for
-	if rep.Score < 6 {
-		t.Fatalf("score=%d incs=%+v flows=%+v", rep.Score, rep.Incs, fe.Flows)
-	}
+	require.GreaterOrEqual(t, rep.Score, 6, "incs=%+v flows=%+v", rep.Incs, fe.Flows)
+
 	var hybrids, structs int
 	for _, fl := range fe.Flows {
 		switch fl.Class {
@@ -1252,12 +1158,11 @@ func Demo(n int) int {
 			structs++
 		}
 	}
-	if hybrids < 2 {
-		t.Fatalf("hybrid=%d want >=2 (else-if + else); flows=%+v", hybrids, fe.Flows)
-	}
-	if structs < 4 {
-		t.Fatalf("structural=%d want >=4; flows=%+v", structs, fe.Flows)
-	}
+	require.GreaterOrEqual(t, hybrids, 2,
+		"hybrid=%d want >=2 (else-if + else); flows=%+v", hybrids, fe.Flows)
+	require.GreaterOrEqual(t, structs, 4,
+		"structural=%d want >=4; flows=%+v", structs, fe.Flows)
+
 }
 
 func TestLoadExtractPack_AsDecl(t *testing.T) {
@@ -1267,41 +1172,42 @@ func TestLoadExtractPack_AsDecl(t *testing.T) {
   (under (node "type_declaration")
     (as-decl (this))))
 `)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	n := 0
 	for _, a := range prog.Actions {
 		if a.Kind == pattern.ExtractScope && a.HoleOnly {
 			n++
 		}
 	}
-	if n != 1 {
-		t.Fatalf("decls=%d", n)
-	}
-	if _, err := pattern.LoadExtractPack("bad.rft", `
+	require.Equal(t, 1, n,
+		"decls=%d", n)
+	{
+
+		_, err := pattern.LoadExtractPack("bad.rft", `
 (under (path "**/*.go")
   (as-language "go")
   (under (node "type_declaration")
     (as-decl (this) "type $")))
-`); err == nil {
-		t.Fatal("as-decl template should fail")
+`)
+		require.Error(t, err,
+			"as-decl template should fail")
 	}
+
 }
 
 func TestAttributeHostLanguage(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	lang, ok := vm.HostLanguage("pkg/foo.go")
-	if !ok || lang != "go" {
-		t.Fatalf("got %q ok=%v", lang, ok)
-	}
+	require.False(t, !ok || lang != "go",
+		"got %q ok=%v", lang, ok)
+
 	_, ok = vm.HostLanguage("nope.xyz")
-	if ok {
-		t.Fatal("expected no claim for .xyz")
-	}
+	require.False(t, ok,
+		"expected no claim for .xyz")
+
 }
 
 func TestExtractEmbedAsLanguage(t *testing.T) {
@@ -1318,9 +1224,8 @@ func TestExtractEmbedAsLanguage(t *testing.T) {
       (as-use))))
 `
 	prog, err := pattern.LoadExtractPack("embed.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var embedAct *pattern.ExtractAction
 	for i := range prog.Actions {
 		if prog.Actions[i].Embed {
@@ -1328,20 +1233,20 @@ func TestExtractEmbedAsLanguage(t *testing.T) {
 			break
 		}
 	}
-	if embedAct == nil || embedAct.Lang != "javascript" || embedAct.Region == nil {
-		t.Fatalf("embed action missing: %+v", prog.Actions)
-	}
+	require.False(t, embedAct == nil || embedAct.Lang != "javascript" || embedAct.Region == nil,
+		"embed action missing: %+v", prog.Actions)
 
 	dir := t.TempDir()
 	path := lewpath.New(dir, "x.go").String()
 	code := []byte("package demo\nvar s = `function hello() { curl() }`\n")
-	if err := os.WriteFile(path, code, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, code, 0o644)
+		require.NoError(t, err)
 	}
+
 	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 
 	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, code, "x.go")
@@ -1350,11 +1255,11 @@ func TestExtractEmbedAsLanguage(t *testing.T) {
 		if strings.Contains(err.Error(), "unknown language") {
 			t.Skip(err.Error())
 		}
-		t.Fatal(err)
+		require.NoError(t, err)
 	}
-	if fe.Package != "demo" {
-		t.Fatalf("package=%q", fe.Package)
-	}
+	require.Equal(t, "demo", fe.Package,
+		"package=%q", fe.Package)
+
 	// When JS grammar is linked, expect identifier uses inside the raw string.
 	_ = fe.Usages
 }
@@ -1369,34 +1274,34 @@ func TestExtractErr_AsAtomVisibility(t *testing.T) {
     (as-atom private (take "name" (node "parameter_declaration")))))
 `
 	prog, err := pattern.LoadExtractPack("vis.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	dir := t.TempDir()
 	path := lewpath.New(dir, "x.go").String()
 	code := []byte("package p\n\nfunc Hello(x int) {}\n")
-	if err := os.WriteFile(path, code, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, code, 0o644)
+		require.NoError(t, err)
 	}
+
 	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, code, "x.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	got := map[string]bool{}
 	for _, a := range fe.Atoms {
 		got[a.Name] = a.Exported
 	}
-	if !got["Hello"] {
-		t.Fatalf("Hello exported=%v atoms=%v", got["Hello"], fe.Atoms)
-	}
-	if exp, ok := got["x"]; !ok || exp {
-		t.Fatalf("x private want Exported=false, got present=%v exported=%v atoms=%v", ok, exp, fe.Atoms)
-	}
+	require.True(t, got["Hello"],
+		"Hello exported=%v atoms=%v", got["Hello"], fe.Atoms)
+
+	exp, ok := got["x"]
+	require.False(t, !ok || exp,
+		"x private want Exported=false, got present=%v exported=%v atoms=%v", ok, exp, fe.Atoms)
+
 }
 
 func TestExtractErr_AsScopeNestByContainment(t *testing.T) {
@@ -1414,27 +1319,25 @@ func TestExtractErr_AsScopeNestByContainment(t *testing.T) {
       (as-use))))
 `
 	prog, err := pattern.LoadExtractPack("scope.rft", src)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	dir := t.TempDir()
 	path := lewpath.New(dir, "x.go").String()
 	code := []byte("package p\n\ntype T int\n\nfunc F() {\n\tif true {\n\t\tx := T\n\t}\n}\n")
-	if err := os.WriteFile(path, code, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, code, 0o644)
+		require.NoError(t, err)
 	}
+
 	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, code, "x.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(fe.Scopes) != 3 {
-		t.Fatalf("scopes=%d want 3: %+v", len(fe.Scopes), fe.Scopes)
-	}
+	require.NoError(t, err)
+	require.Len(t, fe.Scopes, 3,
+		"scopes=%d want 3: %+v", len(fe.Scopes), fe.Scopes)
+
 	funcIdx := -1
 	var blocks []int
 	for i, s := range fe.Scopes {
@@ -1445,22 +1348,20 @@ func TestExtractErr_AsScopeNestByContainment(t *testing.T) {
 		}
 		blocks = append(blocks, i)
 	}
-	if funcIdx < 0 || len(blocks) != 2 {
-		t.Fatalf("classify scopes func=%d blocks=%v %+v", funcIdx, blocks, fe.Scopes)
-	}
+	require.False(t, funcIdx < 0 || len(blocks) != 2,
+		"classify scopes func=%d blocks=%v %+v", funcIdx, blocks, fe.Scopes)
+
 	bodyIdx, innerIdx := blocks[0], blocks[1]
 	if fe.Scopes[bodyIdx].EndByte-fe.Scopes[bodyIdx].StartByte < fe.Scopes[innerIdx].EndByte-fe.Scopes[innerIdx].StartByte {
 		bodyIdx, innerIdx = innerIdx, bodyIdx
 	}
-	if fe.Scopes[funcIdx].Parent != -1 {
-		t.Fatalf("func parent=%d want -1", fe.Scopes[funcIdx].Parent)
-	}
-	if fe.Scopes[bodyIdx].Parent != funcIdx {
-		t.Fatalf("body parent=%d want func %d", fe.Scopes[bodyIdx].Parent, funcIdx)
-	}
-	if fe.Scopes[innerIdx].Parent != bodyIdx {
-		t.Fatalf("inner parent=%d want body %d", fe.Scopes[innerIdx].Parent, bodyIdx)
-	}
+	require.Equal(t, -1, fe.Scopes[funcIdx].Parent,
+		"func parent=%d want -1", fe.Scopes[funcIdx].Parent)
+	require.Equal(t, funcIdx, fe.Scopes[bodyIdx].Parent,
+		"body parent=%d want func %d", fe.Scopes[bodyIdx].Parent, funcIdx)
+	require.Equal(t, bodyIdx, fe.Scopes[innerIdx].Parent,
+		"inner parent=%d want body %d", fe.Scopes[innerIdx].Parent, bodyIdx)
+
 	var tAtom, fAtom *project.AtomDef
 	for i := range fe.Atoms {
 		switch fe.Atoms[i].Name {
@@ -1470,42 +1371,40 @@ func TestExtractErr_AsScopeNestByContainment(t *testing.T) {
 			fAtom = &fe.Atoms[i]
 		}
 	}
-	if tAtom == nil || fAtom == nil {
-		t.Fatalf("atoms=%+v", fe.Atoms)
-	}
-	if tAtom.ScopeIdx != -1 {
-		t.Fatalf("T ScopeIdx=%d want -1 (file)", tAtom.ScopeIdx)
-	}
-	if fAtom.ScopeIdx != funcIdx {
-		t.Fatalf("F ScopeIdx=%d want func %d", fAtom.ScopeIdx, funcIdx)
-	}
+	require.False(t, tAtom == nil || fAtom == nil,
+		"atoms=%+v", fe.Atoms)
+	require.Equal(t, -1, tAtom.ScopeIdx,
+		"T ScopeIdx=%d want -1 (file)", tAtom.ScopeIdx)
+	require.Equal(t, funcIdx, fAtom.ScopeIdx,
+		"F ScopeIdx=%d want func %d", fAtom.ScopeIdx, funcIdx)
+
 	var sawX, sawTUse bool
 	for _, u := range fe.Usages {
 		if u.Name == "x" {
 			sawX = true
-			if u.ScopeIdx != innerIdx {
-				t.Fatalf("use x ScopeIdx=%d want inner %d", u.ScopeIdx, innerIdx)
-			}
+			require.Equal(t, innerIdx, u.ScopeIdx,
+				"use x ScopeIdx=%d want inner %d", u.ScopeIdx, innerIdx)
+
 		}
 		if u.Name == "T" {
 			sawTUse = true
-			if u.ScopeIdx != innerIdx {
-				t.Fatalf("use T ScopeIdx=%d want inner %d", u.ScopeIdx, innerIdx)
-			}
+			require.Equal(t, innerIdx, u.ScopeIdx,
+				"use T ScopeIdx=%d want inner %d", u.ScopeIdx, innerIdx)
+
 		}
 	}
-	if !sawX || !sawTUse {
-		t.Fatalf("uses=%+v", fe.Usages)
-	}
+	require.False(t, !sawX || !sawTUse,
+		"uses=%+v", fe.Usages)
+
 }
 
 func TestExtractErr_NilProgramOrTree(t *testing.T) {
 	fe, err := (*pattern.ExtractProgram)(nil).ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), nil, nil, "x.go")
-	if !errors.Is(err, pattern.ErrExtract) || fe != nil {
-		t.Fatalf("nil program: fe=%v err=%v", fe, err)
-	}
+	require.False(t, !errors.Is(err, pattern.ErrExtract) || fe != nil,
+		"nil program: fe=%v err=%v", fe, err)
+
 	fe, err = (&pattern.ExtractProgram{}).ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), nil, nil, "x.go")
-	if !errors.Is(err, pattern.ErrExtract) || fe != nil {
-		t.Fatalf("nil tree: fe=%v err=%v", fe, err)
-	}
+	require.False(t, !errors.Is(err, pattern.ErrExtract) || fe != nil,
+		"nil tree: fe=%v err=%v", fe, err)
+
 }

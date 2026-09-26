@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 )
 
 func TestImportSiteDropAndRewrite(t *testing.T) {
@@ -16,24 +17,21 @@ func TestImportSiteDropAndRewrite(t *testing.T) {
 		},
 	}
 	file := loadImportFile(src, fe)
-	if len(file.sites) != 1 {
-		t.Fatalf("sites=%d", len(file.sites))
-	}
+	require.Len(t, file.sites, 1)
+
 	site := file.sites[0]
-	if site.specifier != "pkg" || !site.keepsOther("helper") || site.aliasOf("helper") != "h" {
-		t.Fatalf("site spec=%q members=%v", site.specifier, site.members)
-	}
+	require.Equal(t, "pkg", site.specifier)
+	require.True(t, site.keepsOther("helper"), "members=%v", site.members)
+	require.Equal(t, "h", site.aliasOf("helper"))
+
 	e, ok := site.dropMember(src, "helper", "from .b import helper as h\n")
-	if !ok {
-		t.Fatal("drop")
-	}
-	if e.NewText != "from pkg import stay\nfrom .b import helper as h\n" {
-		t.Fatalf("drop text %q", e.NewText)
-	}
+	require.True(t, ok, "drop")
+	require.Equal(t, "from pkg import stay\nfrom .b import helper as h\n", e.NewText)
+
 	e, ok = site.rewriteMember(src, "helper", "helper_fuzz")
-	if !ok || e.NewText != "helper_fuzz" {
-		t.Fatalf("rewrite ok=%v text %q", ok, e.NewText)
-	}
+	require.True(t, ok)
+	require.Equal(t, "helper_fuzz", e.NewText)
+
 }
 
 func TestImportSitePrefersExtractMembers(t *testing.T) {
@@ -46,12 +44,10 @@ func TestImportSitePrefersExtractMembers(t *testing.T) {
 		},
 	}
 	file := loadImportFile(src, fe)
-	if len(file.sites) != 1 || len(file.sites[0].members) != 2 {
-		t.Fatalf("sites=%d members=%v", len(file.sites), file.sites)
-	}
-	if !file.sites[0].keepsOther("helper") {
-		t.Fatalf("members=%v", file.sites[0].members)
-	}
+	require.Len(t, file.sites, 1)
+	require.Len(t, file.sites[0].members, 2)
+	require.True(t, file.sites[0].keepsOther("helper"))
+
 }
 
 func TestImportSiteBareImportIsNotFrom(t *testing.T) {
@@ -61,7 +57,8 @@ func TestImportSiteBareImportIsNotFrom(t *testing.T) {
 		Imports: []project.ImportDef{{SourcePath: "os", LocalName: "os", StartByte: 0, EndByte: 8}},
 	}
 	file := loadImportFile(src, fe)
-	if len(file.sites) != 1 || file.sites[0].from || len(file.bindings()) != 0 {
-		t.Fatalf("bare import treated as from: %+v bindings=%v", file.sites, file.bindings())
-	}
+	require.Len(t, file.sites, 1)
+	require.False(t, file.sites[0].from, "bare import treated as from: %+v", file.sites)
+	require.Empty(t, file.bindings())
+
 }

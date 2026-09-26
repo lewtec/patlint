@@ -8,6 +8,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/ingest"
@@ -18,32 +19,25 @@ import (
 
 func TestRuleFromStrings_Take(t *testing.T) {
 	rule, err := pattern.RuleFromStrings(`(take "c" (capture c (ref "go:context::Background")))`, `(ref "go:testing::T")`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rule.Take != "c" {
-		t.Fatalf("Take=%q", rule.Take)
-	}
-	if rule.Emit == nil {
-		t.Fatal("empty emit")
-	}
-	if rule.Matcher == nil {
-		t.Fatal("RuleFromStrings should keep compiled Matcher")
-	}
+	require.NoError(t, err)
+	require.Equal(t, "c", rule.Take,
+		"Take=%q", rule.Take)
+	require.NotNil(t, rule.Emit,
+		"empty emit")
+	require.NotNil(t, rule.Matcher,
+		"RuleFromStrings should keep compiled Matcher")
+
 }
 
 func TestRuleFromOp_KeepsMatcher(t *testing.T) {
 	op, err := pattern.OpFromCLI("rewrite", "go", `(token "interface{}")`, `any`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	rule, err := pattern.RuleFromOp(op)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rule.Matcher == nil {
-		t.Fatal("RuleFromOp should attach Matcher")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, rule.Matcher,
+		"RuleFromOp should attach Matcher")
+
 }
 
 func TestRefLeafRule_ExpandFile(t *testing.T) {
@@ -57,15 +51,15 @@ func f() {
 }
 `)
 	path := lewpath.New(dir, "p.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
 
 	sess := project.NewSession(".").WithEngine(ccgo.Engine{})
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	fe, err := ingest.CollectExtracts(t.Context(), ingest.ExtractSource{
 		Kind:    ingest.ExtractHop,
 		Root:    dir,
@@ -73,20 +67,16 @@ func f() {
 		Session: sess,
 		Policy:  vm,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	st := store.New()
 	ingest.Ingest(st, fe, vm)
 	result, err := ingest.EvalStore(t.Context(), dir, st, vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 
 	target := ""
@@ -96,51 +86,42 @@ func f() {
 			break
 		}
 	}
-	if target == "" {
-		t.Fatalf("no uses in result; atoms=%d uses=%d", len(result.Atoms), len(result.Uses))
-	}
+	require.NotEmpty(t, target,
+		"no uses in result; atoms=%d uses=%d", len(result.Atoms), len(result.Uses))
 
 	rule, err := pattern.RefLeafRule(target, "Renamed")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !rule.NeedsLinks() {
-		t.Fatal("RefLeafRule should need links")
-	}
+	require.NoError(t, err)
+	require.True(t, rule.NeedsLinks(),
+		"RefLeafRule should need links")
 
 	matches, edits, err := rule.ExpandFile(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), dir, "p.go", src, pf.Root, result)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(matches) == 0 {
-		t.Fatalf("expected matches for target %q", target)
-	}
-	if len(edits) == 0 {
-		t.Fatal("expected edits")
-	}
+	require.NoError(t, err)
+	require.NotEmpty(t, matches,
+		"expected matches for target %q", target)
+	require.NotEmpty(t, edits,
+		"expected edits")
+
 	for _, e := range edits {
-		if e.File != "p.go" {
-			t.Fatalf("edit file=%q", e.File)
-		}
-		if e.NewText != "Renamed" {
-			t.Fatalf("NewText=%q", e.NewText)
-		}
-		if e.StartByte >= e.EndByte {
-			t.Fatalf("empty span: %+v", e)
-		}
+		require.Equal(t, "p.go", e.File,
+			"edit file=%q", e.File)
+		require.Equal(t, "Renamed", e.NewText,
+			"NewText=%q", e.NewText)
+		require.Less(t, e.StartByte, e.EndByte,
+			"empty span: %+v", e)
+
 	}
 }
 
 func TestRuleFromOp_Rewrite(t *testing.T) {
 	op, err := pattern.OpFromCLI("rewrite", "go", `(token "interface{}")`, `any`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	rule, err := pattern.RuleFromOp(op)
-	if err != nil {
-		t.Fatal(err)
+	require.NoError(t, err)
+	{
+
+		err := rule.Valid()
+		require.NoError(t, err)
 	}
-	if err := rule.Valid(); err != nil {
-		t.Fatal(err)
-	}
+
 }

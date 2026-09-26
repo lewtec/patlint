@@ -2,7 +2,6 @@ package ingest_test
 
 import (
 	"context"
-	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -12,6 +11,7 @@ import (
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/walker"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/ingest"
 
@@ -25,13 +25,11 @@ func TestWalkExtracts_DirStreamsThenMaterialize(t *testing.T) {
 	mustWrite(t, lewpath.New(dir, "sub", "b.go").String(), "package p\n\nfunc B() {}\n")
 
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var n int
 	err = w.WalkExtracts(t.Context(), ingest.ExtractSource{
 		Kind:      ingest.ExtractDir,
@@ -39,29 +37,24 @@ func TestWalkExtracts_DirStreamsThenMaterialize(t *testing.T) {
 		Recursive: true,
 	}, func(fe *project.FileExtract) bool {
 		n++
-		if fe == nil || fe.Language != "go" {
-			t.Fatalf("bad extract: %+v", fe)
-		}
+		require.False(t, fe == nil || fe.Language != "go",
+			"bad extract: %+v", fe)
+
 		return true
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n < 2 {
-		t.Fatalf("expected >=2 extracts, got %d", n)
-	}
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, n, 2,
+		"expected >=2 extracts, got %d", n)
 
 	res, err := w.Load(t.Context(), ingest.ExtractSource{
 		Kind:      ingest.ExtractDir,
 		Root:      dir,
 		Recursive: true,
 	}, ingest.MaterializeOptions{ExpandImports: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Atoms) < 2 {
-		t.Fatalf("expected entities, got %+v", res.Atoms)
-	}
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(res.Atoms), 2,
+		"expected entities, got %+v", res.Atoms)
+
 }
 
 func TestWalkExtracts_HopSingleFile(t *testing.T) {
@@ -72,13 +65,11 @@ func TestWalkExtracts_HopSingleFile(t *testing.T) {
 
 	var paths []string
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = w.WalkExtracts(t.Context(), ingest.ExtractSource{
 		Kind:  ingest.ExtractHop,
 		Root:  dir,
@@ -87,12 +78,10 @@ func TestWalkExtracts_HopSingleFile(t *testing.T) {
 		paths = append(paths, fe.Path)
 		return true
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(paths) != 1 || paths[0] != "only.go" {
-		t.Fatalf("hop should parse one file, got %v", paths)
-	}
+	require.NoError(t, err)
+	require.False(t, len(paths) != 1 || paths[0] != "only.go",
+		"hop should parse one file, got %v", paths)
+
 }
 
 func TestWalkExtracts_StopEarly(t *testing.T) {
@@ -102,13 +91,11 @@ func TestWalkExtracts_StopEarly(t *testing.T) {
 
 	var n int
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = w.WalkExtracts(t.Context(), ingest.ExtractSource{
 		Kind:      ingest.ExtractDir,
 		Root:      dir,
@@ -117,12 +104,10 @@ func TestWalkExtracts_StopEarly(t *testing.T) {
 		n++
 		return false
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n != 1 {
-		t.Fatalf("stop early: got %d yields", n)
-	}
+	require.NoError(t, err)
+	require.Equal(t, 1, n,
+		"stop early: got %d yields", n)
+
 }
 
 func TestWalkExtracts_ContextCancelBetweenFiles(t *testing.T) {
@@ -133,13 +118,11 @@ func TestWalkExtracts_ContextCancelBetweenFiles(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	var n int
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = w.WalkExtracts(ctx, ingest.ExtractSource{
 		Kind:      ingest.ExtractDir,
 		Root:      dir,
@@ -149,32 +132,27 @@ func TestWalkExtracts_ContextCancelBetweenFiles(t *testing.T) {
 		cancel() // next file must not start
 		return true
 	})
-	if !errors.Is(err, context.Canceled) {
-		t.Fatalf("want context.Canceled, got %v (n=%d)", err, n)
-	}
-	if n != 1 {
-		t.Fatalf("cancel between files: got %d yields, want 1", n)
-	}
+	require.ErrorIs(t, err, context.Canceled,
+		"want context.Canceled, got %v (n=%d)", err, n)
+	require.Equal(t, 1, n,
+		"cancel between files: got %d yields, want 1", n)
+
 }
 
 func TestProjectResult_UsesSpine(t *testing.T) {
 	dir := t.TempDir()
 	mustWrite(t, lewpath.New(dir, "main.go").String(), "package main\n\nfunc main() {}\n")
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	got, err := w.Load(t.Context(), ingest.SourceProject(dir), ingest.MaterializeOptions{ExpandImports: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got.Atoms) == 0 {
-		t.Fatal("expected entities from ProjectResult")
-	}
+	require.NoError(t, err)
+	require.NotEmpty(t, got.Atoms,
+		"expected entities from ProjectResult")
+
 	_ = os.ErrNotExist
 }
 
@@ -184,27 +162,23 @@ func TestSeedResult_BFSNeighbors(t *testing.T) {
 	mustWrite(t, lewpath.New(dir, "a.go").String(), "package p\n\nfunc A() {}\n")
 	mustWrite(t, lewpath.New(dir, "b.go").String(), "package p\n\nfunc B() {}\n")
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	res, err := w.Load(t.Context(), ingest.SourceSeed(dir, lewpath.New(dir, "a.go").String()), ingest.MaterializeOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	refs := map[string]bool{}
 	for _, e := range res.Atoms {
 		refs[e.Reference] = true
 	}
-	if !refs["path:./a.go::A"] {
-		t.Fatalf("missing A: %+v", res.Atoms)
-	}
-	if !refs["path:./b.go::B"] {
-		t.Fatalf("seed BFS should include sibling B: %+v", res.Atoms)
-	}
+	require.True(t, refs["path:./a.go::A"],
+		"missing A: %+v", res.Atoms)
+	require.True(t, refs["path:./b.go::B"],
+		"seed BFS should include sibling B: %+v", res.Atoms)
+
 }
 
 func TestLoad_SourceDirNonRecursive(t *testing.T) {
@@ -212,21 +186,18 @@ func TestLoad_SourceDirNonRecursive(t *testing.T) {
 	mustWrite(t, lewpath.New(dir, "root.go").String(), "package p\n\nfunc Root() {}\n")
 	mustWrite(t, lewpath.New(dir, "sub", "nested.go").String(), "package p\n\nfunc Nested() {}\n")
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	res, err := w.Load(t.Context(), ingest.SourceDir(dir, "", false), ingest.MaterializeOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	for _, e := range res.Atoms {
-		if e.Reference == "path:./sub/nested.go::Nested" {
-			t.Fatalf("non-recursive should omit nested: %+v", res.Atoms)
-		}
+		require.NotEqual(t, e.Reference, "path:./sub/nested.go::Nested",
+			"non-recursive should omit nested: %+v", res.Atoms)
+
 	}
 	found := false
 	for _, e := range res.Atoms {
@@ -234,9 +205,9 @@ func TestLoad_SourceDirNonRecursive(t *testing.T) {
 			found = true
 		}
 	}
-	if !found {
-		t.Fatalf("expected root entity: %+v", res.Atoms)
-	}
+	require.True(t, found,
+		"expected root entity: %+v", res.Atoms)
+
 }
 
 func TestWalkExtracts_DirRespectsLinguistGenerated(t *testing.T) {
@@ -250,13 +221,11 @@ func TestWalkExtracts_DirRespectsLinguistGenerated(t *testing.T) {
 
 	var paths []string
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = w.WalkExtracts(t.Context(), ingest.ExtractSource{
 		Kind:      ingest.ExtractDir,
 		Root:      dir,
@@ -265,29 +234,25 @@ func TestWalkExtracts_DirRespectsLinguistGenerated(t *testing.T) {
 		paths = append(paths, fe.Path)
 		return true
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	seen := map[string]bool{}
 	for _, p := range paths {
 		seen[p] = true
 	}
-	if !seen["hand.go"] {
-		t.Fatalf("want hand.go, got %v", paths)
-	}
-	if !seen["gen/keep.go"] {
-		t.Fatalf("want un-ignored gen/keep.go, got %v", paths)
-	}
-	if seen["api.pb.go"] {
-		t.Fatalf("linguist-generated api.pb.go should be skipped, got %v", paths)
-	}
-	if seen["gen/a.go"] {
-		t.Fatalf("linguist-generated gen/a.go should be skipped, got %v", paths)
-	}
+	require.True(t, seen["hand.go"],
+		"want hand.go, got %v", paths)
+	require.True(t, seen["gen/keep.go"],
+		"want un-ignored gen/keep.go, got %v", paths)
+	require.False(t, seen["api.pb.go"],
+		"linguist-generated api.pb.go should be skipped, got %v", paths)
+	require.False(t, seen["gen/a.go"],
+		"linguist-generated gen/a.go should be skipped, got %v", paths)
+
 	for p := range seen {
-		if strings.Contains(p, "node_modules") {
-			t.Fatalf("node_modules should be skipped, got %v", paths)
-		}
+		require.False(t, strings.Contains(p, "node_modules"),
+			"node_modules should be skipped, got %v", paths)
+
 	}
 }
 
@@ -300,13 +265,11 @@ func TestWalkExtracts_HopIgnoresFilter(t *testing.T) {
 
 	var n int
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = w.WalkExtracts(t.Context(), ingest.ExtractSource{
 		Kind:  ingest.ExtractHop,
 		Root:  dir,
@@ -315,12 +278,10 @@ func TestWalkExtracts_HopIgnoresFilter(t *testing.T) {
 		n++
 		return true
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if n != 1 {
-		t.Fatalf("hop should parse generated file when explicit, got %d", n)
-	}
+	require.NoError(t, err)
+	require.Equal(t, 1, n,
+		"hop should parse generated file when explicit, got %d", n)
+
 }
 
 func TestSeedResult_SkipsGeneratedNeighbors(t *testing.T) {
@@ -330,21 +291,18 @@ func TestSeedResult_SkipsGeneratedNeighbors(t *testing.T) {
 	mustWrite(t, lewpath.New(dir, "b.pb.go").String(), "package p\n\nfunc B() {}\n")
 
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	res, err := w.Load(t.Context(), ingest.SourceSeed(dir, lewpath.New(dir, "a.go").String()), ingest.MaterializeOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	for _, e := range res.Atoms {
-		if strings.Contains(e.Reference, "b.pb.go") {
-			t.Fatalf("seed BFS should not pull generated peer: %+v", res.Atoms)
-		}
+		require.False(t, strings.Contains(e.Reference, "b.pb.go"),
+			"seed BFS should not pull generated peer: %+v", res.Atoms)
+
 	}
 	found := false
 	for _, e := range res.Atoms {
@@ -352,9 +310,9 @@ func TestSeedResult_SkipsGeneratedNeighbors(t *testing.T) {
 			found = true
 		}
 	}
-	if !found {
-		t.Fatalf("expected A: %+v", res.Atoms)
-	}
+	require.True(t, found,
+		"expected A: %+v", res.Atoms)
+
 }
 
 func TestPackageSourceFiles_SkipsGeneratedPeers(t *testing.T) {
@@ -366,21 +324,18 @@ func TestPackageSourceFiles_SkipsGeneratedPeers(t *testing.T) {
 
 	// Directory-module file expands to ignore-aware peers (not the generated one).
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	got := w.PackageSourceFiles(t.Context(), a, false)
-	if len(got) != 1 || got[0] != a {
-		t.Fatalf("file hop peers=%v want only %s", got, a)
-	}
+	require.False(t, len(got) != 1 || got[0] != a,
+		"file hop peers=%v want only %s", got, a)
 
 	// Explicit dir hop uses the same peer list.
 	gotDir := w.PackageSourceFiles(t.Context(), dir, true)
-	if len(gotDir) != 1 || gotDir[0] != a {
-		t.Fatalf("dir hop peers=%v want only %s", gotDir, a)
-	}
+	require.False(t, len(gotDir) != 1 || gotDir[0] != a,
+		"dir hop peers=%v want only %s", gotDir, a)
+
 }

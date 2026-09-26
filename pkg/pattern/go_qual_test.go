@@ -7,6 +7,7 @@ import (
 	lewpath "github.com/lewtec/lewkit/x/path"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/walker"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
@@ -15,22 +16,18 @@ import (
 func TestGoQualifiedTypeUse(t *testing.T) {
 	src := []byte("package main\nimport \"github.com/spf13/cobra\"\nvar _ *cobra.Command\n")
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	pf, _, err := w.ParseAttributed(t.Context(), src, "x.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer pf.Close()
 	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "x.go")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var found bool
 	for _, u := range fe.Usages {
 		t.Logf("name=%q prefix=%v", u.Name, u.Prefix)
@@ -38,7 +35,7 @@ func TestGoQualifiedTypeUse(t *testing.T) {
 			found = true
 		}
 	}
-	if !found {
-		t.Fatal("want cobra.Command use with name-list prefix cobra")
-	}
+	require.True(t, found,
+		"want cobra.Command use with name-list prefix cobra")
+
 }

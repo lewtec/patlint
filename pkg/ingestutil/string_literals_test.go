@@ -1,8 +1,9 @@
 package ingestutil
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestForEachStringLiteral(t *testing.T) {
@@ -25,9 +26,8 @@ func TestForEachStringLiteral(t *testing.T) {
 		{`"hello"`, 4},
 		{"`raw`", 17},
 	}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("got %#v want %#v", got, want)
-	}
+	require.Equal(t, want, got)
+
 }
 
 func TestForEachStringLiteralEscapes(t *testing.T) {
@@ -37,9 +37,8 @@ func TestForEachStringLiteralEscapes(t *testing.T) {
 		lits = append(lits, lit)
 		return true
 	})
-	if len(lits) != 1 || lits[0] != `"a\"b"` {
-		t.Fatalf("escaped quote: got %#v", lits)
-	}
+	require.Equal(t, []string{`"a\"b"`}, lits)
+
 }
 
 func TestForEachStringLiteralSkipsComments(t *testing.T) {
@@ -58,7 +57,6 @@ const d = "after"
 		return true
 	})
 	want := []string{`"github.com/example/internal/dump"`, "`raw`", `"after"`}
-	if !reflect.DeepEqual(lits, want) {
-		t.Fatalf("got %#v want %#v", lits, want)
-	}
+	require.Equal(t, want, lits)
+
 }

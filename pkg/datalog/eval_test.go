@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/lewtec/patlint/pkg/store"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEvalJoinAndNegation(t *testing.T) {
@@ -18,12 +19,11 @@ func TestEvalJoinAndNegation(t *testing.T) {
 		cl(l("marked", "?x"), l("keep", "?x"), Lit{Rel: "edge", Args: []Arg{Var("x"), Var("x")}, Neg: true}),
 	}
 	Eval(t.Context(), s, p, nil)
-	if !s.Contains("path", store.Tuple{"a", "c"}) {
-		t.Fatalf("expected path a c, rows=%v", s.Rows("path"))
-	}
-	if !s.Contains("marked", store.Tuple{"a"}) {
-		t.Fatal("expected marked a")
-	}
+	require.True(t, s.Contains("path", store.Tuple{"a", "c"}),
+		"expected path a c, rows=%v", s.Rows("path"))
+	require.True(t, s.Contains("marked", store.Tuple{"a"}),
+		"expected marked a")
+
 }
 
 func TestQueryDeadImports(t *testing.T) {
@@ -41,16 +41,14 @@ func TestQueryDeadImports(t *testing.T) {
 		"main.go", "*", "star", "*", "80", "90", "0", "0", "0", "0", "0", "1",
 	})
 	Eval(t.Context(), s, QueryProgram(), StoreHost{Store: s})
+	require.True(t, s.Contains(store.RelationFinding, store.Tuple{"main.go", "12", "24", DeadImportID, DeadImportLevel, DeadImportMsg}),
+		"want unused fmt, findings=%v used=%v", s.Rows(store.RelationFinding), s.Rows(store.RelationUsedName))
+	require.True(t, s.Contains(store.RelationEdit, store.Tuple{"main.go", "12", "24", ""}),
+		"want delete edit, edits=%v", s.Rows(store.RelationEdit))
 
-	if !s.Contains(store.RelationFinding, store.Tuple{"main.go", "12", "24", DeadImportID, DeadImportLevel, DeadImportMsg}) {
-		t.Fatalf("want unused fmt, findings=%v used=%v", s.Rows(store.RelationFinding), s.Rows(store.RelationUsedName))
-	}
-	if !s.Contains(store.RelationEdit, store.Tuple{"main.go", "12", "24", ""}) {
-		t.Fatalf("want delete edit, edits=%v", s.Rows(store.RelationEdit))
-	}
 	for _, row := range s.Rows(store.RelationFinding) {
-		if len(row) > 2 && row[1] == "25" {
-			t.Fatalf("os is used: %v", row)
+		if len(row) > 2 {
+			require.NotEqual(t, "25", row[1], "os is used: %v", row)
 		}
 	}
 }
@@ -72,15 +70,15 @@ func TestRenameProgram(t *testing.T) {
 		},
 	}
 	Eval(t.Context(), s, RenameProgram(), host)
-	if !s.Contains(store.RelationEdit, store.Tuple{"main.go", "5", "11", "doHelp"}) {
-		t.Fatalf("want def edit, edits=%v", s.Rows(store.RelationEdit))
-	}
-	if !s.Contains(store.RelationEdit, store.Tuple{"main.go", "40", "46", "doHelp"}) {
-		t.Fatalf("want use edit, edits=%v", s.Rows(store.RelationEdit))
-	}
+	require.True(t, s.Contains(store.RelationEdit, store.Tuple{"main.go", "5", "11", "doHelp"}),
+		"want def edit, edits=%v", s.Rows(store.RelationEdit))
+	require.True(t, s.Contains(store.RelationEdit, store.Tuple{"main.go", "40", "46", "doHelp"}),
+		"want use edit, edits=%v", s.Rows(store.RelationEdit))
+
 	for _, row := range s.Rows(store.RelationEdit) {
-		if len(row) > 2 && (row[1] == "20" || row[1] == "0") {
-			t.Fatalf("alias/via-import must not edit: %v", row)
+		if len(row) > 2 {
+			require.NotEqual(t, "20", row[1], "alias/via-import must not edit: %v", row)
+			require.NotEqual(t, "0", row[1], "alias/via-import must not edit: %v", row)
 		}
 	}
 }
@@ -105,18 +103,16 @@ func TestMoveProgram(t *testing.T) {
 		},
 	}
 	Eval(t.Context(), s, MoveProgram(), host)
-	if !s.Contains(store.RelationEdit, store.Tuple{"src.go", "14", "30", ""}) {
-		t.Fatalf("want hole, edits=%v", s.Rows(store.RelationEdit))
-	}
-	if !s.Contains(store.RelationEdit, store.Tuple{"dst.go", "20", "20", "func helper() {\n}\n"}) {
-		t.Fatalf("want place, edits=%v", s.Rows(store.RelationEdit))
-	}
-	if !s.Contains(store.RelationEdit, store.Tuple{"./main.go", "10", "16", "dst.go"}) {
-		t.Fatalf("want import rewrite, edits=%v", s.Rows(store.RelationEdit))
-	}
+	require.True(t, s.Contains(store.RelationEdit, store.Tuple{"src.go", "14", "30", ""}),
+		"want hole, edits=%v", s.Rows(store.RelationEdit))
+	require.True(t, s.Contains(store.RelationEdit, store.Tuple{"dst.go", "20", "20", "func helper() {\n}\n"}),
+		"want place, edits=%v", s.Rows(store.RelationEdit))
+	require.True(t, s.Contains(store.RelationEdit, store.Tuple{"./main.go", "10", "16", "dst.go"}),
+		"want import rewrite, edits=%v", s.Rows(store.RelationEdit))
+
 	for _, row := range s.Rows(store.RelationEdit) {
-		if len(row) > 0 && (row[0] == "./src.go" || row[0] == "src.go") && row[1] == "10" {
-			t.Fatalf("must not rewrite src import: %v", row)
+		if len(row) > 1 && (row[0] == "./src.go" || row[0] == "src.go") {
+			require.NotEqual(t, "10", row[1], "must not rewrite src import: %v", row)
 		}
 	}
 }

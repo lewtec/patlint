@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 )
@@ -16,49 +17,39 @@ func TestMatchFileMultiLeaves_EqualsSolo(t *testing.T) {
 	rootNode := mustParseRoot(t, path)
 
 	m1, err := ParseMatcher(`(token "interface{}")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	m2, err := ParseMatcher(`(token "return")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm1, err := CompileMatcher(m1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm2, err := CompileMatcher(m2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	a1, fk1, ok := cm1.AsFullFileLeafArm(10)
-	if !ok || fk1 != fileKeyAlways {
-		t.Fatalf("arm1 ok=%v key=%q", ok, fk1)
-	}
+	require.False(t, !ok || fk1 != fileKeyAlways,
+		"arm1 ok=%v key=%q", ok, fk1)
+
 	a2, fk2, ok := cm2.AsFullFileLeafArm(20)
-	if !ok || fk2 != fileKeyAlways {
-		t.Fatalf("arm2 ok=%v key=%q", ok, fk2)
-	}
+	require.False(t, !ok || fk2 != fileKeyAlways,
+		"arm2 ok=%v key=%q", ok, fk2)
 
 	solo1, err := MatchFileMatcher(t.Context(), testSess(), dir, "x.go", src, rootNode, cm1, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	solo2, err := MatchFileMatcher(t.Context(), testSess(), dir, "x.go", src, rootNode, cm2, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	collapsed, err := CompileMultiLeafNFA([]LeafArm{a1, a2})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(collapsed.n.states) <= 2 {
-		t.Fatalf("want merged states, got %d", len(collapsed.n.states))
-	}
+	require.NoError(t, err)
+	require.Greater(t, len(collapsed.n.states), 2,
+		"want merged states, got %d", len(collapsed.n.states))
+
 	multi, err := MatchFileMultiLeavesNFA(testSess(), dir, "x.go", src, rootNode, collapsed, []LeafArm{a1, a2}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	byID := map[int][]Match{}
 	for _, tm := range multi {
 		byID[tm.ID] = append(byID[tm.ID], tm.Match)
@@ -69,14 +60,14 @@ func TestMatchFileMultiLeaves_EqualsSolo(t *testing.T) {
 
 func assertSameMatches(t *testing.T, label string, want, got []Match) {
 	t.Helper()
-	if len(want) != len(got) {
-		t.Fatalf("%s: len want %d got %d", label, len(want), len(got))
-	}
+	require.Len(t, want, len(got),
+		"%s: len want %d got %d", label, len(want), len(got))
+
 	for i := range want {
-		if want[i].StartByte != got[i].StartByte || want[i].EndByte != got[i].EndByte {
-			t.Fatalf("%s[%d]: want %d-%d got %d-%d", label, i,
-				want[i].StartByte, want[i].EndByte, got[i].StartByte, got[i].EndByte)
-		}
+		require.False(t, want[i].StartByte != got[i].StartByte || want[i].EndByte != got[i].EndByte,
+			"%s[%d]: want %d-%d got %d-%d", label, i,
+			want[i].StartByte, want[i].EndByte, got[i].StartByte, got[i].EndByte)
+
 	}
 }
 
@@ -89,31 +80,25 @@ func TestCollapsedMulti_CaptureArm(t *testing.T) {
 
 	// Two capturing leaves
 	m1, err := ParseMatcher(`(seq (capture n (regex "^[a-z]")) (token ":="))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	m2, err := ParseMatcher(`(token "func")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm1, err := CompileMatcher(m1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm2, err := CompileMatcher(m2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	a1, _, _ := cm1.AsFullFileLeafArm(1)
 	a2, _, _ := cm2.AsFullFileLeafArm(2)
 	solo1, err := MatchFileMatcher(t.Context(), testSess(), dir, "x.go", src, rootNode, cm1, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	multi, err := MatchFileMultiLeaves(testSess(), dir, "x.go", src, rootNode, []LeafArm{a1, a2}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var got1 []Match
 	for _, tm := range multi {
 		if tm.ID == 1 {
@@ -121,21 +106,20 @@ func TestCollapsedMulti_CaptureArm(t *testing.T) {
 		}
 	}
 	assertSameMatches(t, "cap", solo1, got1)
-	if len(got1) > 0 && len(got1[0].Captures["n"]) == 0 {
-		t.Fatalf("want capture n on multi hit: %+v", got1[0].Captures)
-	}
+	require.False(t, len(got1) > 0 && len(got1[0].Captures["n"]) == 0,
+		"want capture n on multi hit: %+v", got1[0].Captures)
+
 }
 
 func TestAsFullFileLeafArm_RejectsUnder(t *testing.T) {
 	m, err := ParseMatcher(`(under (token "func") (token "x"))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	cm, err := CompileMatcher(m)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, ok := cm.AsFullFileLeafArm(0); ok {
-		t.Fatal("under must not fuse as full-file leaf")
-	}
+	require.NoError(t, err)
+
+	_, _, ok := cm.AsFullFileLeafArm(0)
+	require.False(t, ok,
+		"under must not fuse as full-file leaf")
+
 }

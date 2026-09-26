@@ -1,21 +1,28 @@
 package ingest
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestQualifierBefore(t *testing.T) {
 	src := []byte("pkga.Helper()\nmedia.PlaybackStatus\nHelper()\n")
-	if qs, qe, ok := qualifierBefore(src, uint32(5)); !ok || string(src[qs:qe]) != "pkga" {
-		t.Fatalf("pkga: ok=%v %q", ok, src[qs:qe])
-	}
+	qs, qe, ok := qualifierBefore(src, uint32(5))
+	require.True(t, ok)
+	require.Equal(t, "pkga", string(src[qs:qe]))
+
 	at := uint32(len("pkga.Helper()\nmedia."))
-	if qs, qe, ok := qualifierBefore(src, at); !ok || string(src[qs:qe]) != "media" {
-		t.Fatalf("media: ok=%v %q", ok, src[qs:qe])
-	}
+	qs, qe, ok = qualifierBefore(src, at)
+	require.True(t, ok)
+	require.Equal(t, "media", string(src[qs:qe]))
+
 	bare := uint32(len("pkga.Helper()\nmedia.PlaybackStatus\n"))
-	if _, _, ok := qualifierBefore(src, bare); ok {
-		t.Fatal("bare Helper has no qualifier")
-	}
-	if qs, qe, ok := qualifierInSpan([]byte("pkga.Helper")); !ok || string([]byte("pkga.Helper")[qs:qe]) != "pkga" {
-		t.Fatalf("span: ok=%v", ok)
-	}
+	_, _, ok = qualifierBefore(src, bare)
+	require.False(t, ok, "bare Helper has no qualifier")
+
+	span := []byte("pkga.Helper")
+	qs, qe, ok = qualifierInSpan(span)
+	require.True(t, ok)
+	require.Equal(t, "pkga", string(span[qs:qe]))
 }

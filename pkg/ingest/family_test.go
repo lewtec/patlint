@@ -5,6 +5,7 @@ import (
 
 	"github.com/lewtec/patlint/pkg/ingest"
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/stretchr/testify/require"
 )
 
 // Root tests use synthetic families only — no production surface names.
@@ -14,26 +15,22 @@ func TestRegisterFamily(t *testing.T) {
 	const lang = "testlang_registry"
 
 	f := ingest.RegisterFamily(famID, ingest.FamilySpec{})
-	if f.ID() != famID {
-		t.Fatalf("ID=%q", f.ID())
-	}
-	if got, ok := ingest.FamilyByID(famID); !ok || got.ID() != famID {
-		t.Fatal("FamilyByID")
-	}
-	if !ingest.IsKnownFamily(famID) {
-		t.Fatal("IsKnownFamily")
-	}
+	require.Equal(t, famID, f.ID())
+	gotFam, ok := ingest.FamilyByID(famID)
+	require.True(t, ok, "FamilyByID")
+	require.Equal(t, famID, gotFam.ID())
+	require.True(t, ingest.IsKnownFamily(famID),
+		"IsKnownFamily")
+
 	claims := []project.FamilyClaim{{Lang: lang, Family: famID}}
-	if got := project.FamilyIDForLanguage(claims, lang); got != famID {
-		t.Fatalf("FamilyIDForLanguage=%q", got)
-	}
+	got := project.FamilyIDForLanguage(claims, lang)
+	require.Equal(t, famID, got)
+
 	langs := project.LanguagesInFamily(claims, famID)
-	if len(langs) != 1 || langs[0] != lang {
-		t.Fatalf("LanguagesInFamily=%v", langs)
-	}
-	if !project.LanguageInFamily(claims, lang, famID) {
-		t.Fatal("LanguageInFamily")
-	}
+	require.Equal(t, []string{lang}, langs)
+	require.True(t, project.LanguageInFamily(claims, lang, famID),
+		"LanguageInFamily")
+
 	fams := ingest.Families()
 	foundFam := false
 	for _, id := range fams {
@@ -42,9 +39,9 @@ func TestRegisterFamily(t *testing.T) {
 			break
 		}
 	}
-	if !foundFam {
-		t.Fatalf("Families() missing %q: %v", famID, fams)
-	}
+	require.True(t, foundFam,
+		"Families() missing %q: %v", famID, fams)
+
 }
 
 func TestLanguageInFamilyConflictClaims(t *testing.T) {
@@ -54,10 +51,9 @@ func TestLanguageInFamilyConflictClaims(t *testing.T) {
 	_ = ingest.RegisterFamily(famA, ingest.FamilySpec{})
 	_ = ingest.RegisterFamily(famB, ingest.FamilySpec{})
 	claims := []project.FamilyClaim{{Lang: lang, Family: famA}}
-	if project.LanguageInFamily(claims, lang, famB) {
-		t.Fatal("lang claimed by A must not be in B")
-	}
-	if !project.LanguageInFamily(claims, lang, famA) {
-		t.Fatal("lang claimed by A")
-	}
+	require.False(t, project.LanguageInFamily(claims, lang, famB),
+		"lang claimed by A must not be in B")
+	require.True(t, project.LanguageInFamily(claims, lang, famA),
+		"lang claimed by A")
+
 }

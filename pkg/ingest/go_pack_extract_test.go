@@ -8,6 +8,7 @@ import (
 	lewpath "github.com/lewtec/lewkit/x/path"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/walker"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/ingest"
@@ -40,35 +41,29 @@ func (t *T) Method() {
 	_ = aliased.ToUpper("a")
 }
 `
-	if err := os.WriteFile(lewpath.New(dir, "demo.go").String(), []byte(src), 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(lewpath.New(dir, "demo.go").String(), []byte(src), 0o644)
+		require.NoError(t, err)
 	}
 
 	var fe *project.FileExtract
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = w.WalkExtracts(t.Context(), ingest.SourceHop(dir, lewpath.New(dir, "demo.go").String()), func(x *project.FileExtract) bool {
 		fe = x
 		return true
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if fe == nil {
-		t.Fatal("no extract")
-	}
-	if fe.Language != "go" {
-		t.Fatalf("language=%q", fe.Language)
-	}
-	if fe.Package != "demo" {
-		t.Fatalf("package=%q want demo", fe.Package)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, fe,
+		"no extract")
+	require.Equal(t, "go", fe.Language,
+		"language=%q", fe.Language)
+	require.Equal(t, "demo", fe.Package,
+		"package=%q want demo", fe.Package)
 
 	atomNames := map[string]bool{}
 	for _, a := range fe.Atoms {
@@ -101,9 +96,8 @@ func (t *T) Method() {
 	}
 
 	res, err := w.Load(t.Context(), ingest.SourceProject(dir), ingest.MaterializeOptions{ExpandImports: true})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	refs := map[string]bool{}
 	for _, a := range res.Atoms {
 		refs[a.Reference] = true

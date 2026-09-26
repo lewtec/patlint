@@ -1,7 +1,6 @@
 package ingest_test
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	lewpath "github.com/lewtec/lewkit/x/path"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/walker"
+	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/ingest"
@@ -21,9 +21,8 @@ func TestParseFile_TreeSitterFaultIsError(t *testing.T) {
 	// Known pure-Go grammar fault on this file (slice/variadic near out[1:]...).
 	// Packs (language_go.rft) attribute **/*.go → go; no fake PackQueries.
 	root, err := filepath.Abs("../..")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	wd, _ := os.Getwd()
 	if strings.HasSuffix(filepath.ToSlash(wd), "/pkg/ingest") {
 		root, _ = filepath.Abs(lewpath.New(wd, "../..").String())
@@ -35,13 +34,11 @@ func TestParseFile_TreeSitterFaultIsError(t *testing.T) {
 
 	// Should not SIGSEGV the process. Real pack policy only.
 	vm, err := pattern.New(prelude.FS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	err = w.WalkExtracts(t.Context(), ingest.SourceHop(root, abs), func(*project.FileExtract) bool {
 		return true
 	})
@@ -50,7 +47,7 @@ func TestParseFile_TreeSitterFaultIsError(t *testing.T) {
 		t.Log("parse succeeded; no fault on this grammar version")
 		return
 	}
-	if !errors.Is(err, ingest.ErrTreeSitterFault) {
-		t.Fatalf("want tree-sitter fault error, got %v", err)
-	}
+	require.ErrorIs(t, err, ingest.ErrTreeSitterFault,
+		"want tree-sitter fault error, got %v", err)
+
 }

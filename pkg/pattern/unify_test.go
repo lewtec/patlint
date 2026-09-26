@@ -6,15 +6,15 @@ import (
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 )
 
 func TestParseUnifyAndDiscipline(t *testing.T) {
 	n, err := ParsePattern(`(seq (unify a any) ">" (unify b any) ":" (unify a any) "?" (unify b any))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	// seq or similar with unify captures
 	var foundA, foundB bool
 	var walk func(Node)
@@ -39,26 +39,30 @@ func TestParseUnifyAndDiscipline(t *testing.T) {
 		}
 	}
 	walk(n)
-	if !foundA || !foundB {
-		t.Fatalf("missing captures a=%v b=%v ir=%+v", foundA, foundB, n)
-	}
+	require.False(t, !foundA || !foundB,
+		"missing captures a=%v b=%v ir=%+v", foundA, foundB, n)
 
 	if _, err := ParsePattern(`(seq (capture a any) "+" (unify a any))`); err == nil {
-		t.Fatal("expected mix same name error")
-	} else if msg := err.Error(); !strings.Contains(msg, "both") && !strings.Contains(msg, "discipline") {
-		t.Fatalf("err=%v", err)
+		require.FailNow(t, "expected mix same name error")
+	} else {
+		msg := err.Error()
+		require.False(t, !strings.Contains(msg, "both") && !strings.Contains(msg, "discipline"),
+			"err=%v", err)
 	}
 
 	// (* (unify …)) is legal Core.
 	if n, err := ParsePattern(`(* (unify a (ref "go:fmt::Errorf")))`); err != nil {
-		t.Fatal(err)
-	} else if !n.Multi || !n.Unify {
-		t.Fatalf("want unify multi, got %+v", n)
+		require.NoError(t, err)
+	} else {
+		require.False(t, !n.Multi || !n.Unify,
+			"want unify multi, got %+v", n)
+	}
+	{
+
+		_, err := ParsePattern(`(seq (unify a any) "!=" (token "nil") "?" (unify a any) ":" (capture fallback any))`)
+		require.NoError(t, err)
 	}
 
-	if _, err := ParsePattern(`(seq (unify a any) "!=" (token "nil") "?" (unify a any) ":" (capture fallback any))`); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestUnifyMatchEqualAndReject(t *testing.T) {
@@ -80,23 +84,28 @@ func other(x, y int) int {
 }
 `)
 	path := lewpath.New(dir, "m.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
+
 	pat, err := ParsePattern(`(seq (token "if") (unify a any) ">" (unify b any) "{" (token "return") (unify a any) "}")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "m.go", src, pat)
-	if len(ms) != 1 {
-		t.Fatalf("matches=%d want 1 (only max); caps=%v", len(ms), capsOf(ms, src))
+	require.Len(t, ms, 1,
+		"matches=%d want 1 (only max); caps=%v", len(ms), capsOf(ms, src))
+	{
+
+		got := ms[0].Captures["a"][0].Text(src)
+		require.Equal(t, "x", got,
+			"a=%q", got)
 	}
-	if got := ms[0].Captures["a"][0].Text(src); got != "x" {
-		t.Fatalf("a=%q", got)
-	}
-	if got := ms[0].Captures["b"][0].Text(src); got != "y" {
-		t.Fatalf("b=%q", got)
-	}
+
+	got := ms[0].Captures["b"][0].Text(src)
+	require.Equal(t, "y", got,
+		"b=%q", got)
+
 }
 
 func TestAppendDoubleCapture(t *testing.T) {
@@ -104,52 +113,53 @@ func TestAppendDoubleCapture(t *testing.T) {
 	// Use single-token '+' (tree-sitter keeps '==' as one token; pattern '==' is two '=' lits).
 	src := []byte("package p\n\nfunc f(x, y int) int { return x + y }\n")
 	path := lewpath.New(dir, "m.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
+
 	// two (capture a …): append both sites (no unify)
 	pat, err := ParsePattern(`(seq (capture a any) "+" (capture a any))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "m.go", src, pat)
-	if len(ms) != 1 {
-		t.Fatalf("matches=%d caps=%v", len(ms), capsOf(ms, src))
-	}
-	if len(ms[0].Captures["a"]) != 2 {
-		t.Fatalf("append sites=%d want 2; caps=%v", len(ms[0].Captures["a"]), PublicCaptures(ms[0], src))
-	}
+	require.Len(t, ms, 1,
+		"matches=%d caps=%v", len(ms), capsOf(ms, src))
+	require.Len(t, ms[0].Captures["a"], 2,
+		"append sites=%d want 2; caps=%v", len(ms[0].Captures["a"]), PublicCaptures(ms[0], src))
 	// (capture a) + (capture a) with x + y still matches (no equality) — both sites stored
-	if ms[0].Captures["a"][0].Text(src) != "x" || ms[0].Captures["a"][1].Text(src) != "y" {
-		t.Fatalf("sites=%v", PublicCaptures(ms[0], src))
-	}
+	require.Equal(t, "x", ms[0].Captures["a"][0].Text(src))
+	require.Equal(t, "y", ms[0].Captures["a"][1].Text(src))
+
 }
 
 func TestUnifyRejectsDifferent(t *testing.T) {
 	dir := t.TempDir()
 	src := []byte("package p\n\nfunc f(x, y int) int { return x + y }\n")
 	path := lewpath.New(dir, "m.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
+
 	pat, err := ParsePattern(`(seq (unify a any) "+" (unify a any))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "m.go", src, pat)
-	if len(ms) != 0 {
-		t.Fatalf("want 0 matches for x+y with unify, got %d caps=%v", len(ms), capsOf(ms, src))
-	}
+	require.Empty(t, ms,
+		"want 0 matches for x+y with unify, got %d caps=%v", len(ms), capsOf(ms, src))
 
 	src2 := []byte("package p\n\nfunc f(x int) int { return x + x }\n")
 	path2 := lewpath.New(dir, "m2.go").String()
-	if err := os.WriteFile(path2, src2, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path2, src2, 0o644)
+		require.NoError(t, err)
 	}
+
 	ms = mustMatchFile(t, dir, path2, "m2.go", src2, pat)
-	if len(ms) != 1 {
-		t.Fatalf("want 1 for x+x, got %d", len(ms))
-	}
+	require.Len(t, ms, 1,
+		"want 1 for x+x, got %d", len(ms))
+
 }
 
 func TestRewriteUnifyTemplate(t *testing.T) {
@@ -164,20 +174,20 @@ func f(x, y int) int {
 }
 `)
 	path := lewpath.New(dir, "m.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
+
 	pat, err := ParsePattern(`(seq (token "if") (unify a any) ">" (unify b any) "{" (token "return") (unify a any) "}")`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "m.go", src, pat)
-	if len(ms) != 1 {
-		t.Fatalf("matches=%d", len(ms))
-	}
-	if ms[0].Captures["a"][0].Text(src) != "x" || ms[0].Captures["b"][0].Text(src) != "y" {
-		t.Fatalf("caps=%v", PublicCaptures(ms[0], src))
-	}
+	require.Len(t, ms, 1,
+		"matches=%d", len(ms))
+	require.False(t, ms[0].Captures["a"][0].Text(src) != "x" || ms[0].Captures["b"][0].Text(src) != "y",
+		"caps=%v", PublicCaptures(ms[0], src))
+
 }
 
 func TestMixUnifyAndAppend(t *testing.T) {
@@ -193,21 +203,20 @@ func f(x, y int) int {
 }
 `)
 	path := lewpath.New(dir, "m.go").String()
-	if err := os.WriteFile(path, src, 0o644); err != nil {
-		t.Fatal(err)
+	{
+		err := os.WriteFile(path, src, 0o644)
+		require.NoError(t, err)
 	}
+
 	pat, err := ParsePattern(`(seq (token "if") (unify a any) ">" "0" "{" (token "return") (unify a any) "}" (* any) (token "return") (capture fallback any))`)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	ms := mustMatchFile(t, dir, path, "m.go", src, pat)
-	if len(ms) != 1 {
-		t.Fatalf("matches=%d caps=%v", len(ms), capsOf(ms, src))
-	}
-	if ms[0].Captures["a"][0].Text(src) != "x" {
-		t.Fatalf("a=%v", PublicCaptures(ms[0], src))
-	}
-	if ms[0].Captures["fallback"][0].Text(src) != "y" {
-		t.Fatalf("fallback=%v", PublicCaptures(ms[0], src))
-	}
+	require.Len(t, ms, 1,
+		"matches=%d caps=%v", len(ms), capsOf(ms, src))
+	require.Equal(t, "x", ms[0].Captures["a"][0].Text(src),
+		"a=%v", PublicCaptures(ms[0], src))
+	require.Equal(t, "y", ms[0].Captures["fallback"][0].Text(src),
+		"fallback=%v", PublicCaptures(ms[0], src))
+
 }
