@@ -24,6 +24,10 @@ run = "go fmt ./..."
 description = "Test the lint engine and CLI"
 run = "go test ./cmd/patlint ./pkg/pattern ./pkg/script"
 
+[tasks.ci]
+description = "Run tests"
+depends = ["test"]
+
 [tasks.release]
 description = "Tag with svu and ship binaries with GoReleaser"
 usage = '''
