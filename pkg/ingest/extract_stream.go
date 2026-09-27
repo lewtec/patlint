@@ -14,6 +14,7 @@ package ingest
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -296,6 +297,23 @@ func normalizeSourcePaths(rootAbs string, paths []string) ([]string, error) {
 	return out, nil
 }
 
+// walkView is the filesystem that contains dirAbs, the WalkDir start name,
+// and the OS path that corresponds to the filesystem root.
+// A directory inside the session uses Session.FS, so an in-memory FS is visible.
+// A directory outside that root is an OS directory.
+func walkView(sess *project.Session, parseRoot, dirAbs string) (fs.FS, string, string) {
+	if sess != nil && sess.FS != nil {
+		relative, err := filepath.Rel(sess.Root, dirAbs)
+		if err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+			if relative == "." || relative == "" {
+				return sess.FS, ".", sess.Root
+			}
+			return sess.FS, filepath.ToSlash(relative), sess.Root
+		}
+	}
+	return os.DirFS(dirAbs), ".", dirAbs
+}
+
 func walkExtractsDir(ctx context.Context, sess *project.Session, parseRoot, dirAbs string, recursive bool, fsys projectfs.FS, policy PackQueries, yield func(*project.FileExtract) bool, st *store.Store) error {
 	slog.Debug("extract walk start", "root", parseRoot, "dir", dirAbs, "recursive", recursive)
 	eng, err := ignore.Collect(ctx, parseRoot)
@@ -304,30 +322,35 @@ func walkExtractsDir(ctx context.Context, sess *project.Session, parseRoot, dirA
 	}
 	visited := 0
 	skipped := 0
-	err = filepath.WalkDir(dirAbs, func(path string, d os.DirEntry, err error) error {
+	view, start, pathBase := walkView(sess, parseRoot, dirAbs)
+	err = fs.WalkDir(view, start, func(name string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		absPath := pathBase
+		if name != "." {
+			absPath = filepath.Join(pathBase, filepath.FromSlash(name))
+		}
 		if d.IsDir() {
 			// Enter walk root even if it would be ignored as a basename elsewhere;
 			// SkipDir still applies to children (node_modules, linguist trees, …).
-			if path != dirAbs && eng.SkipDir(path) {
-				slog.Debug("extract skip dir", "path", path, "name", d.Name())
-				return filepath.SkipDir
+			if absPath != dirAbs && eng.SkipDir(absPath) {
+				slog.Debug("extract skip dir", "path", absPath, "name", d.Name())
+				return fs.SkipDir
 			}
-			if !recursive && path != dirAbs {
-				return filepath.SkipDir
+			if !recursive && absPath != dirAbs {
+				return fs.SkipDir
 			}
 			return nil
 		}
 		// Dir crawl respects ignore.Engine (builtins + gitattributes attrs).
 		// ExtractHop / explicit seed paths intentionally do not filter here.
-		if !eng.CheckPath(path, false).Explore {
+		if !eng.CheckPath(absPath, false).Explore {
 			skipped++
-			slog.Debug("extract skip ignored", "path", path)
+			slog.Debug("extract skip ignored", "path", absPath)
 			return nil
 		}
 		info, infoErr := d.Info()
@@ -338,7 +361,7 @@ func walkExtractsDir(ctx context.Context, sess *project.Session, parseRoot, dirA
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		fe, parseErr := parseFileAt(ctx, sess, parseRoot, path, info, fsys, policy, st)
+		fe, parseErr := parseFileAt(ctx, sess, parseRoot, absPath, info, fsys, policy, st)
 		if parseErr != nil {
 			return parseErr
 		}
@@ -349,7 +372,7 @@ func walkExtractsDir(ctx context.Context, sess *project.Session, parseRoot, dirA
 		visited++
 		slog.Debug("extract visit", "path", fe.Path, "lang", fe.Language)
 		if !yield(fe) {
-			return filepath.SkipAll
+			return fs.SkipAll
 		}
 		return nil
 	})

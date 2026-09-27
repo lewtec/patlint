@@ -3,6 +3,7 @@ package ingest
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path"
@@ -124,11 +125,26 @@ func bfsNeighbors(sess *project.Session, rootAbs string, fe *project.FileExtract
 	return out
 }
 
+func sourceFilesInDir(sess *project.Session, absDir string) ([]fs.DirEntry, error) {
+	if sess == nil || sess.FS == nil {
+		return os.ReadDir(absDir)
+	}
+	relative, err := filepath.Rel(sess.Root, absDir)
+	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return os.ReadDir(absDir)
+	}
+	name := filepath.ToSlash(relative)
+	if name == "." {
+		name = "."
+	}
+	return fs.ReadDir(sess.FS, name)
+}
+
 func listSourceFilesInDir(sess *project.Session, absDir string, eng *ignore.Engine, policy PackQueries) []string {
 	if isSkippedDirName(filepath.Base(absDir)) {
 		return nil
 	}
-	entries, err := os.ReadDir(absDir)
+	entries, err := sourceFilesInDir(sess, absDir)
 	if err != nil {
 		return nil
 	}
