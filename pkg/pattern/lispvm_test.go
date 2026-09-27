@@ -15,7 +15,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingest"
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/pattern"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestLispVM_NewBound(t *testing.T) {
@@ -71,11 +71,11 @@ func TestLispVM_ImportNeedFromRef(t *testing.T) {
 }
 
 func TestLispVM_Extract_NoProgram(t *testing.T) {
-	fe, err := (*pattern.LispVM)(nil).Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "go", nil, nil, "x.go")
+	fe, err := (*pattern.LispVM)(nil).Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "go", nil, nil, "x.go")
 	require.False(t, !errors.Is(err, pattern.ErrExtract) || fe != nil,
 		"nil vm: fe=%v err=%v", fe, err)
 
-	fe, err = (&pattern.LispVM{}).Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "go", nil, nil, "x.go")
+	fe, err = (&pattern.LispVM{}).Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "go", nil, nil, "x.go")
 	require.False(t, !errors.Is(err, pattern.ErrExtract) || fe != nil,
 		"empty vm: fe=%v err=%v", fe, err)
 
@@ -160,7 +160,7 @@ func TestWalker_RequiresBoth(t *testing.T) {
 			"want error")
 	}
 
-	sess := project.NewSession(".").WithEngine(ccgo.Engine{})
+	sess := project.NewSession(".").WithEngine(treesitter.Engine{})
 	{
 		_, err := walker.NewWalker(t.Context(), sess, nil)
 		require.Error(t, err,
@@ -185,7 +185,7 @@ func TestWalker_WalkExtracts_UsesVMPolicy(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	src := ingest.SourceHop(dir, path)
 
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()), pattern.FromString("zzz.rft", `
@@ -219,7 +219,7 @@ func TestWalker_WalkAtoms_UsesVMPolicy(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()), pattern.FromString("zzz.rft", `
 (under (path "**/*.zzz")
   (as-language "go")
@@ -253,7 +253,7 @@ func TestWalker_Grep_UsesVMPolicy(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()), pattern.FromString("zzz.rft", `
 (under (path "**/*.zzz")
   (as-language "go")
@@ -279,7 +279,7 @@ func TestWalker_Load_UsesVMPolicy(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	src := ingest.SourceHop(dir, path)
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()), pattern.FromString("zzz.rft", `
 (under (path "**/*.zzz")
@@ -314,7 +314,7 @@ func TestLispVM_Run_WriteOnly(t *testing.T) {
 `))
 	require.NoError(t, err)
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	out, err := vm.Run(t.Context(), sess)
 	require.NoError(t, err)
 	require.NotNil(t, out,

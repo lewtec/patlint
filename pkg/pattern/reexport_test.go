@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestJSReexportExtract(t *testing.T) {
@@ -24,14 +24,14 @@ export function real() {}
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "barrel.js")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "barrel.js")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "barrel.js")
 	require.NoError(t, err)
 
 	t.Logf("DefaultExport=%q", fe.DefaultExport)

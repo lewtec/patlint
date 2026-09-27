@@ -14,7 +14,7 @@ import (
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/ingest"
 	"github.com/lewtec/patlint/pkg/pattern"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestCanonicalizeReference_ReexportChain(t *testing.T) {
@@ -37,7 +37,7 @@ func TestCanonicalizeReference_ReexportChain(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	got := w.CanonicalizeReference(t.Context(), root, ingest.ParseReference("path:./barrel/index.js::real"))
@@ -150,7 +150,7 @@ func TestCanonicalizeReference_DefaultExportSoleEntity(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	got := w.CanonicalizeReference(t.Context(), root, ingest.ParseReference("path:./mod.js"))
@@ -172,7 +172,7 @@ func TestCanonicalizeReference_ExportAsDefaultAmongMany(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	got := w.CanonicalizeReference(t.Context(), root, ingest.ParseReference("path:./mod.js"))
@@ -189,7 +189,7 @@ func TestCanonicalizeReference_PesquisarrParaglide(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	got := w.CanonicalizeReference(t.Context(), root, ingest.ParseReference(
@@ -231,7 +231,7 @@ func TestCanonicalizeReference_DefaultAsNamedReexport(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	got := w.CanonicalizeReference(t.Context(), root, ingest.ParseReference("path:./barrel.js::Search"))

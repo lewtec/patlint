@@ -1,4 +1,4 @@
-package ccgo
+package treesitter
 
 import (
 	"context"

@@ -13,7 +13,7 @@ import (
 
 	"github.com/lewtec/patlint/pkg/ingest"
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestSession_WalksWithoutCache(t *testing.T) {
@@ -29,7 +29,7 @@ func TestSession_WalksWithoutCache(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 

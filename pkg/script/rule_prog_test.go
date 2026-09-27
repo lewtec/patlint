@@ -12,7 +12,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/lewtec/patlint/pkg/store"
 )
 
@@ -55,7 +55,7 @@ func TestRunRuleWritesFinding(t *testing.T) {
 `)
 	require.NoError(t, err)
 
-	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
+	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), prog, Options{Paths: []string{"."}})
 	require.NoError(t, err)
 	require.NotEmpty(t, res.Findings, "want finding from Datalog rule")
 	require.Equal(t, "go/hit-return", res.Findings[0].RuleID)

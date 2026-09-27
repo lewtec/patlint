@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 // Ensures fixture pattern strings (not only hand-authored IR) drive the engine.
@@ -41,7 +41,7 @@ func TestFixturePatternStrings(t *testing.T) {
 			vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 			require.NoError(t, err)
 
-			w, err := walker.NewWalker(t.Context(), project.NewSession(tmp).WithEngine(ccgo.Engine{}), vm)
+			w, err := walker.NewWalker(t.Context(), project.NewSession(tmp).WithEngine(treesitter.Engine{}), vm)
 			require.NoError(t, err)
 
 			switch op.Mode {

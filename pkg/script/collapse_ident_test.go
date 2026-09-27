@@ -14,7 +14,7 @@ import (
 	_ "github.com/lewtec/patlint/internal/prelude"
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/project"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 // Prove collapsed multi matches sequential MatchFileMatcher for sites+handlers
@@ -70,7 +70,7 @@ func wrap(err error) error {
 		"failed-to rule needs (ref …) links")
 
 	// Spine path (collapsed multi-ε-NFA)
-	resSpine, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
+	resSpine, err := Run(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), prog, Options{Paths: []string{"."}})
 	require.NoError(t, err)
 
 	// Solo path: each matcher independently, same handlers
@@ -118,7 +118,7 @@ func runSolo(ctx context.Context, root string, prog *Program) (Result, error) {
 	}
 	prog.plan = p
 	defer func() { prog.plan = old }()
-	return Run(ctx, project.NewSession(root).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
+	return Run(ctx, project.NewSession(root).WithEngine(treesitter.Engine{}), prog, Options{Paths: []string{"."}})
 }
 
 type nf struct {
@@ -206,7 +206,7 @@ func helper(a int, b int, c int, d int) {
 	require.False(t, len(p.Unders) != 1 || len(p.Unders[0].Arms) != 2,
 		"want 1 under group with 2 arms: %s", p.PlanSummary())
 
-	spine, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
+	spine, err := Run(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), prog, Options{Paths: []string{"."}})
 	require.NoError(t, err)
 
 	solo, err := runSolo(t.Context(), dir, prog)

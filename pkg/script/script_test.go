@@ -10,7 +10,7 @@ import (
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/project"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestLoadAndRunPreferAny(t *testing.T) {
@@ -39,7 +39,7 @@ func TestLoadAndRunPreferAny(t *testing.T) {
 	require.NotNil(t, prog.Actions[0].Emit,
 		"want emit")
 
-	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
+	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), prog, Options{Paths: []string{"."}})
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(res.Findings), 1,
 		"want findings, got %d", len(res.Findings))
@@ -110,7 +110,7 @@ func TestTopLevelRewriteNoReport(t *testing.T) {
 	prog, err := Load("t.rft", script)
 	require.NoError(t, err)
 
-	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{})
+	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), prog, Options{})
 	require.NoError(t, err)
 	require.Empty(t, res.Findings,
 		"want no lint findings, got %d", len(res.Findings))

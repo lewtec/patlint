@@ -9,7 +9,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,14 +22,14 @@ func Max(a, b int) int {
 	return b
 }
 `)
-	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, src, "x.go", "go")
 	require.NoError(t, err)
 
 	defer pf.Close()
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	idx := ingest.LocalBindingsForLanguage(t.Context(), vm, project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, src, "go", "x.go")
+	idx := ingest.LocalBindingsForLanguage(t.Context(), vm, project.NewSession(".").WithEngine(treesitter.Engine{}), pf.Root, src, "go", "x.go")
 	require.NotNil(t, idx)
 
 	// Find def of "a" in params and a use in body

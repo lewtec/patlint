@@ -13,7 +13,7 @@ import (
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/ingest"
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/lewtec/patlint/pkg/store"
 )
 
@@ -56,7 +56,7 @@ func f() {
 		require.NoError(t, err)
 	}
 
-	sess := project.NewSession(".").WithEngine(ccgo.Engine{})
+	sess := project.NewSession(".").WithEngine(treesitter.Engine{})
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
@@ -74,7 +74,7 @@ func f() {
 	result, err := ingest.EvalStore(t.Context(), dir, st, vm)
 	require.NoError(t, err)
 
-	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), treesitter.Engine{}, path, "go")
 	require.NoError(t, err)
 
 	defer pf.Close()
@@ -94,7 +94,7 @@ func f() {
 	require.True(t, rule.NeedsLinks(),
 		"RefLeafRule should need links")
 
-	matches, edits, err := rule.ExpandFile(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), dir, "p.go", src, pf.Root, result)
+	matches, edits, err := rule.ExpandFile(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), dir, "p.go", src, pf.Root, result)
 	require.NoError(t, err)
 	require.NotEmpty(t, matches,
 		"expected matches for target %q", target)

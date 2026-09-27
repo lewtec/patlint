@@ -5,7 +5,7 @@ import (
 
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/sitter"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/lewtec/patlint/pkg/tape"
 	"github.com/stretchr/testify/require"
 )
@@ -62,7 +62,7 @@ func TestBuild_GoCompositeWithPolicy(t *testing.T) {
 
 func parseGo(t *testing.T, src []byte) *sitter.Node {
 	t.Helper()
-	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, src, "x.go", "go")
 	require.NoError(t, err)
 	t.Cleanup(func() { pf.Close() })
 	return pf.Root

@@ -20,7 +20,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingest"
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/lewtec/patlint/pkg/walker"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/stretchr/testify/assert"
@@ -521,7 +521,7 @@ func preludeWalker(ctx context.Context, root string) (*walker.Walker, error) {
 	if err != nil {
 		return nil, err
 	}
-	return walker.NewWalker(ctx, project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
+	return walker.NewWalker(ctx, project.NewSession(root).WithEngine(treesitter.Engine{}), vm)
 }
 
 func runKindRun(ctx context.Context, c Case, opts RunCaseOptions) (CaseResult, error) {
@@ -556,7 +556,7 @@ func runKindRun(ctx context.Context, c Case, opts RunCaseOptions) (CaseResult, e
 		return res, err
 	}
 
-	runRes, err := Run(ctx, project.NewSession(c.Scenario).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
+	runRes, err := Run(ctx, project.NewSession(c.Scenario).WithEngine(treesitter.Engine{}), prog, Options{Paths: []string{"."}})
 	if err != nil {
 		return res, err
 	}
@@ -578,7 +578,7 @@ func runKindRun(ctx context.Context, c Case, opts RunCaseOptions) (CaseResult, e
 	if cleanup {
 		defer os.RemoveAll(work)
 	}
-	fixRes, err := Run(ctx, project.NewSession(work).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
+	fixRes, err := Run(ctx, project.NewSession(work).WithEngine(treesitter.Engine{}), prog, Options{Paths: []string{"."}})
 	if err != nil {
 		return res, err
 	}

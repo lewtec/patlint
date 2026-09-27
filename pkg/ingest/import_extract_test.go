@@ -9,7 +9,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/stretchr/testify/require"
 )
 
@@ -127,11 +127,11 @@ func TestEnsureImportFirst_CIncludeAfterGuard(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "foo.h", "c")
+	pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, src, "foo.h", "c")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "c", pf.Root, src, "foo.h")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "c", pf.Root, src, "foo.h")
 	require.NoError(t, err)
 	require.NotZero(t, fe.PackageEnd, "as-package did not mark include guard")
 
@@ -153,11 +153,11 @@ func TestEnsureImportFirst_CIncludeAfterPragmaOnce(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "foo.h", "c")
+	pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, src, "foo.h", "c")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "c", pf.Root, src, "foo.h")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "c", pf.Root, src, "foo.h")
 	require.NoError(t, err)
 	require.NotZero(t, fe.PackageEnd, "as-package did not mark pragma once")
 

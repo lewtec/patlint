@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestCFunctionAtomIsDeclaratorNotSoup(t *testing.T) {
@@ -23,14 +23,14 @@ func TestCFunctionAtomIsDeclaratorNotSoup(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "helper.c")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "helper.c")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "helper.c")
 	require.NoError(t, err)
 
 	var names []string
@@ -60,14 +60,14 @@ func TestGoConstVarAndFieldAtoms(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "t.go")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "t.go")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "t.go")
 	require.NoError(t, err)
 
 	got := map[string]bool{}
@@ -89,14 +89,14 @@ func TestJSDestructureAtomsAreBindings(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "a.js")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "a.js")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "a.js")
 	require.NoError(t, err)
 
 	got := map[string]bool{}
@@ -124,14 +124,14 @@ func TestTSDestructureAtomsAreBindings(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "a.ts")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "a.ts")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "a.ts")
 	require.NoError(t, err)
 
 	got := map[string]bool{}
@@ -151,14 +151,14 @@ func TestPythonAssignmentAtoms(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "a.py")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "a.py")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "a.py")
 	require.NoError(t, err)
 
 	got := map[string]bool{}
@@ -177,14 +177,14 @@ func TestJSDefaultImportLocalName(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "main.js")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "main.js")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "main.js")
 	require.NoError(t, err)
 
 	var found bool
@@ -203,14 +203,14 @@ func TestJSConstLetAtoms(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "a.js")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "a.js")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "a.js")
 	require.NoError(t, err)
 
 	got := map[string]bool{}
@@ -229,14 +229,14 @@ func TestProductExtractRunsJSPackOnVueScript(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "App.vue")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "App.vue")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "App.vue")
 	require.NoError(t, err)
 	require.Equal(t, "vue", fe.Language,
 		"host language=%q", fe.Language)
@@ -262,14 +262,14 @@ func TestAtomJoinNames_GoMethod(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "t.go")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "t.go")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "t.go")
 	require.NoError(t, err)
 
 	var names []string
@@ -292,14 +292,14 @@ func TestAtomJoinNames_JavaMethod(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "A.java")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "A.java")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "A.java")
 	require.NoError(t, err)
 
 	var names []string
@@ -338,14 +338,14 @@ func TestUseNameCaptures_JavaObjectName(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "A.java")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "A.java")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "A.java")
 	require.NoError(t, err)
 
 	want := map[string]bool{"as.run": false, "as.x": false}
@@ -630,7 +630,7 @@ func TestAsGrammarUnknownFails(t *testing.T) {
 `)
 	require.NoError(t, err)
 
-	err = prog.ValidateGrammars(t.Context(), ccgo.Engine{})
+	err = prog.ValidateGrammars(t.Context(), treesitter.Engine{})
 	require.ErrorIs(t, err, pattern.ErrExtract,
 		"err=%v", err)
 
@@ -654,7 +654,7 @@ func TestAsLanguageWithoutGrammarFails(t *testing.T) {
 `)
 	require.NoError(t, err)
 
-	err = prog.ValidateGrammars(t.Context(), ccgo.Engine{})
+	err = prog.ValidateGrammars(t.Context(), treesitter.Engine{})
 	require.ErrorIs(t, err, pattern.ErrExtract,
 		"err=%v", err)
 
@@ -687,7 +687,7 @@ func TestPurposeLispUsesCommonlispGrammar(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	var got *project.FileExtract
@@ -747,12 +747,12 @@ func TestLoadExtractPack_GoFragment(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), treesitter.Engine{}, path, "go")
 	require.NoError(t, err)
 
 	defer pf.Close()
 
-	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, code, "x.go")
+	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), pf.Root, code, "x.go")
 	require.NoError(t, err)
 	require.Equal(t, "demo", fe.Package,
 		"package=%q", fe.Package)
@@ -768,7 +768,7 @@ func TestLoadExtractPack_UnknownLanguage(t *testing.T) {
 `)
 	require.NoError(t, err)
 
-	err = prog.ValidateGrammars(t.Context(), ccgo.Engine{})
+	err = prog.ValidateGrammars(t.Context(), treesitter.Engine{})
 	require.Error(t, err,
 		"want error for unregistered grammar id")
 	require.True(t, strings.Contains(err.Error(), "no_such_grammar_xyz"),
@@ -1126,11 +1126,11 @@ func Demo(n int) int {
 		require.NoError(t, err)
 	}
 
-	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), treesitter.Engine{}, path, "go")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, code, "x.go")
+	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), pf.Root, code, "x.go")
 	require.NoError(t, err)
 	require.NotEmpty(t, fe.Flows,
 		"no flow rows")
@@ -1244,12 +1244,12 @@ func TestExtractEmbedAsLanguage(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), treesitter.Engine{}, path, "go")
 	require.NoError(t, err)
 
 	defer pf.Close()
 
-	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, code, "x.go")
+	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), pf.Root, code, "x.go")
 	if err != nil {
 		// javascript grammar may be unregistered in this test binary
 		if strings.Contains(err.Error(), "unknown language") {
@@ -1284,11 +1284,11 @@ func TestExtractErr_AsAtomVisibility(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), treesitter.Engine{}, path, "go")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, code, "x.go")
+	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), pf.Root, code, "x.go")
 	require.NoError(t, err)
 
 	got := map[string]bool{}
@@ -1329,11 +1329,11 @@ func TestExtractErr_AsScopeNestByContainment(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), treesitter.Engine{}, path, "go")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), pf.Root, code, "x.go")
+	fe, err := prog.ExtractErr(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), pf.Root, code, "x.go")
 	require.NoError(t, err)
 	require.Len(t, fe.Scopes, 3,
 		"scopes=%d want 3: %+v", len(fe.Scopes), fe.Scopes)
@@ -1399,11 +1399,11 @@ func TestExtractErr_AsScopeNestByContainment(t *testing.T) {
 }
 
 func TestExtractErr_NilProgramOrTree(t *testing.T) {
-	fe, err := (*pattern.ExtractProgram)(nil).ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), nil, nil, "x.go")
+	fe, err := (*pattern.ExtractProgram)(nil).ExtractErr(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), nil, nil, "x.go")
 	require.False(t, !errors.Is(err, pattern.ErrExtract) || fe != nil,
 		"nil program: fe=%v err=%v", fe, err)
 
-	fe, err = (&pattern.ExtractProgram{}).ExtractErr(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), nil, nil, "x.go")
+	fe, err = (&pattern.ExtractProgram{}).ExtractErr(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), nil, nil, "x.go")
 	require.False(t, !errors.Is(err, pattern.ErrExtract) || fe != nil,
 		"nil tree: fe=%v err=%v", fe, err)
 

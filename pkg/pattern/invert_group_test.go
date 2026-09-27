@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/ingestutil"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/lewtec/patlint/pkg/tape"
 )
 
@@ -210,7 +210,7 @@ func TestLookbehindStarNotRecognized(t *testing.T) {
 
 func TestLookbehindStarNotSameAsNFA(t *testing.T) {
 	src := []byte("public class A {\n  public void foo() {}\n  void bar() {}\n  class Inner {}\n}\n")
-	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "A.java", "java")
+	pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, src, "A.java", "java")
 	require.NoError(t, err)
 
 	t.Cleanup(pf.Close)

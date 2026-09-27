@@ -11,7 +11,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/sitter"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 // Pack (as-docstring KIND) values. Mechanism in extractDocFromAST.
@@ -116,7 +116,7 @@ func docForEntity(ctx context.Context, policy PackQueries, dir string, result *p
 	if language == "" {
 		return nil, fmt.Errorf("%w for %s", ErrUnsupportedLanguage, filePath)
 	}
-	if err := ingestutil.RequireGrammar(ctx, ccgo.Engine{}, language); err != nil {
+	if err := ingestutil.RequireGrammar(ctx, treesitter.Engine{}, language); err != nil {
 		return nil, fmt.Errorf("%w for %s: %v", ErrUnsupportedLanguage, filePath, err)
 	}
 
@@ -124,7 +124,7 @@ func docForEntity(ctx context.Context, policy PackQueries, dir string, result *p
 	if err != nil {
 		return nil, err
 	}
-	pf, err := ingestutil.ParseSource(ctx, ccgo.Engine{}, source, filePath, language)
+	pf, err := ingestutil.ParseSource(ctx, treesitter.Engine{}, source, filePath, language)
 	if err != nil {
 		return nil, err
 	}

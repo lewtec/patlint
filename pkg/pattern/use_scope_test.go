@@ -11,7 +11,7 @@ import (
 
 	"github.com/lewtec/patlint/pkg/ingest"
 	"github.com/lewtec/patlint/pkg/pattern"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestGoUseScopeInsideMain(t *testing.T) {
@@ -19,14 +19,14 @@ func TestGoUseScopeInsideMain(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "main.go")
 	require.NoError(t, err)
 
 	defer pf.Close()
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "main.go")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "main.go")
 	require.NoError(t, err)
 
 	var gotScope string
@@ -50,7 +50,7 @@ func TestGoUseScopeInsideMain(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	walk, err := walker.NewWalker(t.Context(), sess, vm)
 	require.NoError(t, err)
 

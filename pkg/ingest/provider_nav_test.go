@@ -13,7 +13,7 @@ import (
 	"github.com/lewtec/patlint/internal/testutil"
 	"github.com/lewtec/patlint/pkg/ingest"
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	_ "github.com/spf13/cobra"
 )
 
@@ -23,7 +23,7 @@ func TestNavigateReference_GoProviderCobraCommand(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	nav, got := w.NavigateReference(t.Context(), root, nil, nil, ref)

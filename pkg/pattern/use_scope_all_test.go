@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestUseScope_MultiLang(t *testing.T) {
@@ -36,11 +36,11 @@ func TestUseScope_MultiLang(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.path, func(t *testing.T) {
-			pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, tc.src, tc.path, tc.lang)
+			pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, tc.src, tc.path, tc.lang)
 			require.NoError(t, err)
 
 			defer pf.Close()
-			fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, tc.src, tc.path)
+			fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, tc.src, tc.path)
 			require.NoError(t, err)
 
 			var got string

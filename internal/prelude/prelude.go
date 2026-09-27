@@ -3,7 +3,7 @@
 //	import _ "github.com/lewtec/patlint/internal/prelude"
 //
 // It blank-imports the Go import resolver and embeds the .rft packs.
-// Grammars register in pkg/sitter/ccgo and are parsed through the lewkit
+// Grammars register in pkg/sitter/treesitter and are parsed through the lewkit
 // tree-sitter driver.
 package prelude
 

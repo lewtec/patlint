@@ -16,7 +16,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingest"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestWalkExtracts_DirStreamsThenMaterialize(t *testing.T) {
@@ -27,7 +27,7 @@ func TestWalkExtracts_DirStreamsThenMaterialize(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	var n int
@@ -67,7 +67,7 @@ func TestWalkExtracts_HopSingleFile(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	err = w.WalkExtracts(t.Context(), ingest.ExtractSource{
@@ -93,7 +93,7 @@ func TestWalkExtracts_StopEarly(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	err = w.WalkExtracts(t.Context(), ingest.ExtractSource{
@@ -120,7 +120,7 @@ func TestWalkExtracts_ContextCancelBetweenFiles(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	err = w.WalkExtracts(ctx, ingest.ExtractSource{
@@ -145,7 +145,7 @@ func TestProjectResult_UsesSpine(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	got, err := w.Load(t.Context(), ingest.SourceProject(dir), ingest.MaterializeOptions{ExpandImports: true})
@@ -164,7 +164,7 @@ func TestSeedResult_BFSNeighbors(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	res, err := w.Load(t.Context(), ingest.SourceSeed(dir, lewpath.New(dir, "a.go").String()), ingest.MaterializeOptions{})
@@ -188,7 +188,7 @@ func TestLoad_SourceDirNonRecursive(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	res, err := w.Load(t.Context(), ingest.SourceDir(dir, "", false), ingest.MaterializeOptions{})
@@ -223,7 +223,7 @@ func TestWalkExtracts_DirRespectsLinguistGenerated(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	err = w.WalkExtracts(t.Context(), ingest.ExtractSource{
@@ -267,7 +267,7 @@ func TestWalkExtracts_HopIgnoresFilter(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	err = w.WalkExtracts(t.Context(), ingest.ExtractSource{
@@ -293,7 +293,7 @@ func TestSeedResult_SkipsGeneratedNeighbors(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	res, err := w.Load(t.Context(), ingest.SourceSeed(dir, lewpath.New(dir, "a.go").String()), ingest.MaterializeOptions{})
@@ -326,7 +326,7 @@ func TestPackageSourceFiles_SkipsGeneratedPeers(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	got := w.PackageSourceFiles(t.Context(), a, false)

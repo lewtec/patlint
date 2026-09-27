@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/lewtec/patlint/pkg/ui/highlight"
 )
 
@@ -26,7 +26,7 @@ func TestLinesColorStylesKeywords(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	got := highlight.Lines(t.Context(), src, "main.go", highlight.Options{Color: true, Walker: w})

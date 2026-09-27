@@ -9,7 +9,7 @@ import (
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/sitter"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/lewtec/patlint/pkg/tape"
 	"github.com/lewtec/patlint/pkg/walker"
 	"github.com/stretchr/testify/require"
@@ -17,7 +17,7 @@ import (
 
 func parseGo(t *testing.T, src string) (*sitter.Node, []byte, func()) {
 	t.Helper()
-	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, []byte(src), "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, []byte(src), "x.go", "go")
 	require.NoError(t, err)
 
 	return pf.Root, pf.Source, pf.Close
@@ -35,7 +35,7 @@ func Max(a, b int) int {
 	root, source, cleanup := parseGo(t, src)
 	defer cleanup()
 
-	sess := project.NewSession(".").WithEngine(ccgo.Engine{})
+	sess := project.NewSession(".").WithEngine(treesitter.Engine{})
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
@@ -64,7 +64,7 @@ func TestProjectAbstract_LitKeepsValue(t *testing.T) {
 	src := "package p\nfunc F() string { return \"hi\" }\n"
 	_, source, cleanup := parseGo(t, src)
 	defer cleanup()
-	sess := project.NewSession(".").WithEngine(ccgo.Engine{})
+	sess := project.NewSession(".").WithEngine(treesitter.Engine{})
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
@@ -127,7 +127,7 @@ func Min(a, b int) int {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	units, err := w.AbstractFile(t.Context(), root, source, "x.go", true)

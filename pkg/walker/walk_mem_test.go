@@ -8,7 +8,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingest"
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +19,7 @@ func TestWalkAtoms_MapFS(t *testing.T) {
 		"note.txt": {Data: []byte("not code\n")},
 		"sub/b.go": {Data: []byte("package sub\n\nfunc Nested() {}\n")},
 	}
-	session := project.NewSession(root).WithFS(memory).WithEngine(ccgo.Engine{})
+	session := project.NewSession(root).WithFS(memory).WithEngine(treesitter.Engine{})
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 	fileWalker, err := NewWalker(t.Context(), session, vm)

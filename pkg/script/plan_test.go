@@ -10,7 +10,7 @@ import (
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/project"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestCompilePlan_FusesFullFileLeaves(t *testing.T) {
@@ -137,7 +137,7 @@ func TestRun_SpineSameAsPreferAny(t *testing.T) {
 	require.True(t, strings.Contains(sum, "arms=2"),
 		"want fused arms: %s", sum)
 
-	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), prog, Options{Paths: []string{"."}})
+	res, err := Run(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), prog, Options{Paths: []string{"."}})
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(res.Findings), 2,
 		"findings=%d want >=2", len(res.Findings))

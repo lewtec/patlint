@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestPythonFromImportExtract(t *testing.T) {
@@ -30,7 +30,7 @@ func TestPythonFromImportExtract(t *testing.T) {
 		vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 		require.NoError(t, err)
 
-		w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+		w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 		require.NoError(t, err)
 
 		pf, lang, err := w.ParseAttributed(t.Context(), []byte(tc.src), "pkg/app.py")
@@ -39,7 +39,7 @@ func TestPythonFromImportExtract(t *testing.T) {
 		require.Equal(t, "python", lang,
 			"lang=%q", lang)
 
-		fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, []byte(tc.src), "pkg/app.py")
+		fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, []byte(tc.src), "pkg/app.py")
 		pf.Close()
 		require.NoError(t, err)
 		require.NotEmpty(t, fe.Imports,
@@ -58,13 +58,13 @@ func TestPythonFromImportFansOutNames(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	pf, _, err := w.ParseAttributed(t.Context(), src, "pkg/app.py")
 	require.NoError(t, err)
 
-	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), "", pf.Root, src, "pkg/app.py")
+	fe, err := vm.Extract(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), "", pf.Root, src, "pkg/app.py")
 	pf.Close()
 	require.NoError(t, err)
 

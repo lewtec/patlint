@@ -16,7 +16,7 @@ import (
 	"github.com/lewtec/patlint/pkg/ingest"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestWalkSymbols_NonRecursiveDirectory(t *testing.T) {
@@ -92,7 +92,7 @@ func TestWalkSymbols_StopEarly(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	err = w.WalkAtoms(t.Context(), dir, "path:./", ingest.ListOptions{IncludeHidden: true}, func(sym ingest.AtomInfo) bool {
@@ -159,7 +159,7 @@ func collectRefs(t *testing.T, dir, ref string, opts ingest.ListOptions) ([]stri
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	err = w.WalkAtoms(t.Context(), dir, ref, opts, func(sym ingest.AtomInfo) bool {

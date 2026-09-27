@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/ingest"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestWriteBack_LastWriteWins(t *testing.T) {
@@ -39,7 +39,7 @@ func TestWriteBack_LastWriteWins(t *testing.T) {
 
 func TestWriteBack_EmptyNoop(t *testing.T) {
 	dir := t.TempDir()
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	err := ingest.WriteBack(t.Context(), sess)
 	require.NoError(t, err)
 

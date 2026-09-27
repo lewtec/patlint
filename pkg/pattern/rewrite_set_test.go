@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestRewriteTakeOnly(t *testing.T) {
@@ -49,7 +49,7 @@ func Helper() {
 	vm, err := New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	res, err := applyOp(t.Context(), sess, vm, op, RunOptions{})
 	require.NoError(t, err)
 	require.Len(t, res.Edits, 1,
@@ -101,7 +101,7 @@ func Helper() {
 	vm, err := New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	res, err := applyOp(t.Context(), sess, vm, op, RunOptions{})
 	require.NoError(t, err)
 	require.Len(t, res.Edits, 2,
@@ -227,7 +227,7 @@ func Helper(t *testing.T) {
 	vm, err := New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	res, err := applyOp(t.Context(), sess, vm, op, RunOptions{})
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, // 2 site leaf rewrites + import "context" ensure for @go:context::Background
@@ -273,7 +273,7 @@ func TestFoo(t *testing.T) {
 	vm, err := New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	sess := project.NewSession(dir).WithEngine(ccgo.Engine{})
+	sess := project.NewSession(dir).WithEngine(treesitter.Engine{})
 	res, err := applyOp(t.Context(), sess, vm, op, RunOptions{})
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, // 2 site rewrites + import ensure for @go:context::Background

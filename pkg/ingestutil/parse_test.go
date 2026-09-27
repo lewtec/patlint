@@ -6,7 +6,7 @@ import (
 
 	lewpath "github.com/lewtec/lewkit/x/path"
 
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,7 +15,7 @@ func TestParseSourceFile(t *testing.T) {
 	path := lewpath.New(dir, "x.go").String()
 	err := os.WriteFile(path, []byte("package p\n"), 0o644)
 	require.NoError(t, err)
-	pf, err := ParseSourceFile(t.Context(), ccgo.Engine{}, path, "go")
+	pf, err := ParseSourceFile(t.Context(), treesitter.Engine{}, path, "go")
 	require.NoError(t, err)
 	defer pf.Close()
 	require.Equal(t, "package p\n", string(pf.Source))
@@ -28,7 +28,7 @@ func TestParseSourceFileEmptyLanguage(t *testing.T) {
 	path := lewpath.New(dir, "x.go").String()
 	err := os.WriteFile(path, []byte("package p\n"), 0o644)
 	require.NoError(t, err)
-	_, err = ParseSourceFile(t.Context(), ccgo.Engine{}, path, "")
+	_, err = ParseSourceFile(t.Context(), treesitter.Engine{}, path, "")
 	require.Error(t, err)
 }
 
@@ -37,13 +37,13 @@ func TestParseSourceFileUnknownLanguage(t *testing.T) {
 	path := lewpath.New(dir, "x.unknownlang").String()
 	err := os.WriteFile(path, []byte("x"), 0o644)
 	require.NoError(t, err)
-	_, err = ParseSourceFile(t.Context(), ccgo.Engine{}, path, "not-a-grammar")
+	_, err = ParseSourceFile(t.Context(), treesitter.Engine{}, path, "not-a-grammar")
 	require.Error(t, err)
 }
 
 func TestParseSource(t *testing.T) {
 	content := []byte("package p\n")
-	pf, err := ParseSource(t.Context(), ccgo.Engine{}, content, "x.go", "go")
+	pf, err := ParseSource(t.Context(), treesitter.Engine{}, content, "x.go", "go")
 	require.NoError(t, err)
 	defer pf.Close()
 	require.NotNil(t, pf.Root)

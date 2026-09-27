@@ -12,7 +12,7 @@ import (
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/project"
 	"github.com/lewtec/patlint/pkg/script"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/stretchr/testify/require"
 )
@@ -125,7 +125,7 @@ func TestRun_blankImportNotNamed(t *testing.T) {
 	require.NoError(t, os.WriteFile(lewpath.New(root, "main.go").String(), []byte(src), 0o644))
 	prog, err := script.EnsureDeadImports(&script.Program{Path: "<builtin>"})
 	require.NoError(t, err)
-	res, err := script.Run(t.Context(), project.NewSession(root).WithEngine(ccgo.Engine{}), prog, script.Options{Paths: []string{"."}})
+	res, err := script.Run(t.Context(), project.NewSession(root).WithEngine(treesitter.Engine{}), prog, script.Options{Paths: []string{"."}})
 	require.NoError(t, err)
 	require.Len(t, res.Findings, 1)
 	require.Contains(t, res.Findings[0].Snippet, "fmt")
@@ -144,7 +144,7 @@ func TestRunCase_deadImports(t *testing.T) {
 	require.NoError(t, os.WriteFile(lewpath.New(gold, "main.go").String(), []byte(src), 0o644))
 	prog, err := script.EnsureDeadImports(&script.Program{Path: "<builtin>"})
 	require.NoError(t, err)
-	fixRes, err := script.Run(t.Context(), project.NewSession(gold).WithEngine(ccgo.Engine{}), prog, script.Options{Paths: []string{"."}})
+	fixRes, err := script.Run(t.Context(), project.NewSession(gold).WithEngine(treesitter.Engine{}), prog, script.Options{Paths: []string{"."}})
 	require.NoError(t, err)
 	require.NotEmpty(t, fixRes.ApplyEdits)
 	require.NoError(t, project.ApplyEdits(t.Context(), gold, fixRes.ApplyEdits))

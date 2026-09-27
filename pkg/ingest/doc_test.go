@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/ingest"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestDocFor_PythonFunction(t *testing.T) {
@@ -27,7 +27,7 @@ func TestDocFor_PythonFunction(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	doc, err := w.Doc(t.Context(), dir, "path:./helper.py::helper")
@@ -53,7 +53,7 @@ func TestDocFor_PythonClass(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	doc, err := w.Doc(t.Context(), dir, "path:./helper.py::Greeter")
@@ -84,7 +84,7 @@ func TestDocFor_DirectoryReference_PythonRejected(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	_, err = w.Doc(t.Context(), dir, "path:./pkg::helper")
@@ -111,7 +111,7 @@ func TestDocFor_DirectoryReference_JSRejected(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	_, err = w.Doc(t.Context(), dir, "path:./pkg::helper")
@@ -137,7 +137,7 @@ func TestDocFor_DirectoryReference_GoFiles(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	doc, err := w.Doc(t.Context(), dir, "path:./pkg::helper")
@@ -154,7 +154,7 @@ func TestDocFor_GoProviderStdlibFunction(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	doc, err := w.Doc(t.Context(), ".", "go:fmt::Printf")

@@ -5,6 +5,10 @@ go 1.27.0
 // Placeholder v0.0.0 is a monorepo stub. MVS prefers it over real pseudo-versions.
 exclude github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0
 
+exclude github.com/lewtec/leaven-tree-sitter/grammar v0.0.0
+
+exclude github.com/lewtec/wazero-tree-sitter/grammar v0.0.0
+
 require (
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/git-pkgs/gitignore v1.3.0
@@ -48,14 +52,19 @@ require (
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/ebitengine/purego v0.11.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/lewtec/leaven v0.0.0-20260814142252-666e23083398 // indirect
+	github.com/lewtec/leaven-tree-sitter/grammar v0.0.0-20260823193308-9d0f77e93872 // indirect
+	github.com/lewtec/wazero-tree-sitter/grammar v0.0.0-20260926205449-ac1b106768d2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/json v0.0.0-20260907205036-8fdfa3f25c9a // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect

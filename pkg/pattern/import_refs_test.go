@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestEmitRefs(t *testing.T) {
@@ -44,7 +44,7 @@ func TestWithImportHygiene_AddsFmt(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	res, err := w.Run(t.Context(), op, pattern.RunOptions{Paths: []string{path}})
@@ -104,7 +104,7 @@ func TestWithImportHygiene_PrunesNamedAfterSiteRewrite(t *testing.T) {
 	vm, err := pattern.New(os.DirFS(lewpath.New("..", "..", "internal", "prelude").String()))
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(dir).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	res, err := w.Run(t.Context(), op, pattern.RunOptions{Paths: []string{path}})

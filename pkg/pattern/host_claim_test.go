@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/lewtec/patlint/pkg/pattern"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestHostOnlyPackClaimsPath(t *testing.T) {
@@ -51,7 +51,7 @@ func TestProductClaimsRftAndLoadsCommonPaint(t *testing.T) {
 	require.NotZero(t, paint, "program has no paint actions (language_common/highlight not loaded?)")
 
 	src := []byte("(under (path \"**/*.go\") (as-language \"go\"))\n")
-	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(".").WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	cells, gotLang, err := w.BuildTape(t.Context(), src, "demo.rft")

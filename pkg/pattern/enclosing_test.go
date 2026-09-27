@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	"github.com/lewtec/patlint/pkg/ingestutil"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEnclosingFieldArenaMatchesGrammar(t *testing.T) {
 	src := []byte("package p\n\nfunc Foo() {\n\tBar()\n}\n\nfunc Bar() {\n\tFoo()\n}\n")
-	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, src, "x.go", "go")
 	require.NoError(t, err)
 
 	t.Cleanup(pf.Close)
@@ -35,7 +35,7 @@ func TestEnclosingFieldArenaMatchesGrammar(t *testing.T) {
 
 func TestEnclosingFieldArenaPeelsCDeclarator(t *testing.T) {
 	src := []byte("void main() {\n  helper();\n}\n")
-	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "a.c", "c")
+	pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, src, "a.c", "c")
 	require.NoError(t, err)
 
 	t.Cleanup(pf.Close)

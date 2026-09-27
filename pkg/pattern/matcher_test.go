@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func testSess() *project.Session {
-	return project.NewSession(".").WithEngine(ccgo.Engine{})
+	return project.NewSession(".").WithEngine(treesitter.Engine{})
 }
 
 func TestMatchPathGlob(t *testing.T) {
@@ -410,7 +410,7 @@ func mustMatchMatcher(t *testing.T, dir, rel string, src []byte, cm *CompiledMat
 
 func TestFileScratchSameMatchesAsFreshTape(t *testing.T) {
 	src := []byte("package p\n\nimport \"fmt\"\n\nfunc Hello(x int) {\n\tfmt.Println(x)\n}\n")
-	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, src, "x.go", "go")
 	require.NoError(t, err)
 
 	t.Cleanup(pf.Close)
@@ -463,7 +463,7 @@ func TestFileScratchSameMatchesAsFreshTape(t *testing.T) {
 
 func TestNodeIndexUnderSameAsWalk(t *testing.T) {
 	src := []byte("package p\n\nfunc A() { x := 1 }\nfunc B() { y := 2; z := 3 }\n")
-	pf, err := ingestutil.ParseSource(t.Context(), ccgo.Engine{}, src, "x.go", "go")
+	pf, err := ingestutil.ParseSource(t.Context(), treesitter.Engine{}, src, "x.go", "go")
 	require.NoError(t, err)
 
 	t.Cleanup(pf.Close)

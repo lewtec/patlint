@@ -14,7 +14,7 @@ import (
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/ingest"
 	"github.com/lewtec/patlint/pkg/pattern"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestParseFile_TreeSitterFaultIsError(t *testing.T) {
@@ -36,7 +36,7 @@ func TestParseFile_TreeSitterFaultIsError(t *testing.T) {
 	vm, err := pattern.New(prelude.FS)
 	require.NoError(t, err)
 
-	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(ccgo.Engine{}), vm)
+	w, err := walker.NewWalker(t.Context(), project.NewSession(root).WithEngine(treesitter.Engine{}), vm)
 	require.NoError(t, err)
 
 	err = w.WalkExtracts(t.Context(), ingest.SourceHop(root, abs), func(*project.FileExtract) bool {

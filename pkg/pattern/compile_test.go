@@ -11,7 +11,7 @@ import (
 
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/sitter"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestSexpTextAndJSONSameMatches(t *testing.T) {
@@ -88,7 +88,7 @@ func mustPatToNode(t *testing.T, p Pat) Node {
 
 func mustParseRoot(t *testing.T, abs string) *sitter.Node {
 	t.Helper()
-	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, abs, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), treesitter.Engine{}, abs, "go")
 	require.NoError(t, err)
 
 	t.Cleanup(func() { pf.Close() })

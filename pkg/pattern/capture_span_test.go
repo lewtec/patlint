@@ -10,7 +10,7 @@ import (
 
 	"github.com/lewtec/patlint/pkg/ingest"
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
-	"github.com/lewtec/patlint/pkg/sitter/ccgo"
+	"github.com/lewtec/patlint/pkg/sitter/treesitter"
 )
 
 func TestUnquoteLiteralMap_Escapes(t *testing.T) {
@@ -274,7 +274,7 @@ func TestRefSelectorSpan(t *testing.T) {
 
 func mustMatchFile(t *testing.T, dir, abs, rel string, src []byte, pat Node) []Match {
 	t.Helper()
-	pf, err := ingestutil.ParseSourceFile(t.Context(), ccgo.Engine{}, abs, "go")
+	pf, err := ingestutil.ParseSourceFile(t.Context(), treesitter.Engine{}, abs, "go")
 	require.NoError(t, err)
 
 	defer pf.Close()
