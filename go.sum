@@ -29,8 +29,8 @@ github.com/hashicorp/golang-lru/v2 v2.0.7 h1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs
 github.com/hashicorp/golang-lru/v2 v2.0.7/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyfM2/ZepoAG6RGpeM=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/lewtec/lewkit v0.0.0-20260926185415-cd3b4a1313d9 h1:l9+n21R3k7PKSRVeF4jsd1gqWS8mAOl4FfHjBEtSOFQ=
-github.com/lewtec/lewkit v0.0.0-20260926185415-cd3b4a1313d9/go.mod h1:g+X2Y3WmDgVbc6QXVhd7yLHHEQ6zTuI1BhWDcpXZQVE=
+github.com/lewtec/lewkit v0.0.0-20260927145308-667527ae6b62 h1:/Aas14MWJ+TniXOadDwHpi2IqOPqQUi5ujqKUYaOcWE=
+github.com/lewtec/lewkit v0.0.0-20260927145308-667527ae6b62/go.mod h1:aTrpSDv03u8fCBvpsZsCDyWzEIAniPCXI27m39dtNdc=
 github.com/lucasb-eyer/go-colorful v1.4.0 h1:UtrWVfLdarDgc44HcS7pYloGHJUjHV/4FwW4TvVgFr4=
 github.com/lucasb-eyer/go-colorful v1.4.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/mattn/go-isatty v0.0.24 h1:tGZZoVgT/KiqK1c8ocVLeDS8BSWMRd47J3Lbz7vsReI=
@@ -47,8 +47,8 @@ github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/commonlisp v0.0.0-202608
 github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/commonlisp v0.0.0-20260802195525-37cdcab3c8c7/go.mod h1:5mz5c7DovGnQVQGL6PT7zhLr5vFn0Jepp+9LEJ5VM74=
 github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/cpp v0.0.0-20260725174331-dd9b30823ceb h1:KT2KrZDZ22UIseHwsoD05f+wsem6yzMvmb5RDcRJcwI=
 github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/cpp v0.0.0-20260725174331-dd9b30823ceb/go.mod h1:GQfdeH2VrZiUvUbxjByQ871QjUGLFBH+dDIGj829ivM=
-github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/go v0.0.0-20260713221032-8673315d25fc h1:7IwiqYIb8+5byJsapNcpSrZwYLlQa9QD2R8Mx7JwqWM=
-github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/go v0.0.0-20260713221032-8673315d25fc/go.mod h1:yToVHO1BKzVhZ9FrYDf994Bk76/0Kej2OLjwNY+mRYI=
+github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/go v0.0.0-20260801004327-2c4586c945d8 h1:YVdF3XRz3sgF+3s5i1F/knA/TyaOM1qYeA36hVav9NI=
+github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/go v0.0.0-20260801004327-2c4586c945d8/go.mod h1:DZ23nq6ePzEum+tlMpKWnHKLJQnGBURxQMb2Ld81k7w=
 github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/html v0.0.0-20260725174331-dd9b30823ceb h1:lB383RSy1kIE5uNzdMkgHB3pvRGPOPXdZ04VaduQJE4=
 github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/html v0.0.0-20260725174331-dd9b30823ceb/go.mod h1:LliQD1b0sWv/njucpHXoh7jOrCVVweDqS4ArMrJwe0E=
 github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/java v0.0.0-20260713221032-8673315d25fc h1:TtXsMDrbN7si7eiA6uZn60aQFyTNuAU26QXvpwN4F6A=

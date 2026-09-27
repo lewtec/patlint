@@ -9,7 +9,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/git-pkgs/gitignore v1.3.0
 	github.com/google/go-cmp v0.6.0
-	github.com/lewtec/lewkit v0.0.0-20260926185415-cd3b4a1313d9
+	github.com/lewtec/lewkit v0.0.0-20260927145308-667527ae6b62
 	github.com/mattn/go-isatty v0.0.24
 	github.com/mattn/go-runewidth v0.0.30
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0-20260801004327-2c4586c945d8
@@ -17,7 +17,7 @@ require (
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/c v0.0.0-20260725174331-dd9b30823ceb
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/commonlisp v0.0.0-20260802195525-37cdcab3c8c7
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/cpp v0.0.0-20260725174331-dd9b30823ceb
-	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/go v0.0.0-20260713221032-8673315d25fc
+	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/go v0.0.0-20260801004327-2c4586c945d8
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/html v0.0.0-20260725174331-dd9b30823ceb
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/java v0.0.0-20260713221032-8673315d25fc
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/javascript v0.0.0-20260713221032-8673315d25fc
@@ -60,7 +60,6 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
 	golang.org/x/image v0.42.0 // indirect
-	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	modernc.org/libc v1.75.6 // indirect
