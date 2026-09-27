@@ -10,8 +10,8 @@ import (
 
 	lewpath "github.com/lewtec/lewkit/x/path"
 
+	"github.com/lewtec/lewkit/x/text/report"
 	"github.com/lewtec/patlint/pkg/projectfs"
-	"github.com/lewtec/patlint/pkg/report"
 )
 
 // PackSubdir is the conventional directory for project .rft rules under a pack root.

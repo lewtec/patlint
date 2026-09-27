@@ -14,12 +14,12 @@ import (
 
 	lewpath "github.com/lewtec/lewkit/x/path"
 
+	"github.com/lewtec/lewkit/x/text/report"
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/ignore"
 	"github.com/lewtec/patlint/pkg/ingest"
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/project"
-	"github.com/lewtec/patlint/pkg/report"
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
 	"github.com/lewtec/patlint/pkg/walker"
 	"github.com/pelletier/go-toml/v2"

@@ -443,7 +443,9 @@ func isNamedLocal(name string) bool {
 }
 
 func importName(local, spec string) string {
-	if isNamedLocal(local) {
+	// An explicit local is the name, including locals is_named rejects.
+	// Only a missing local borrows the last segment of the path.
+	if local != "" {
 		return local
 	}
 	spec = strings.Trim(spec, `"'`+"`")

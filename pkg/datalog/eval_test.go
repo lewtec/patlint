@@ -40,6 +40,9 @@ func TestQueryDeadImports(t *testing.T) {
 	s.Insert(store.RelationImport, store.Tuple{
 		"main.go", "*", "star", "*", "80", "90", "0", "0", "0", "0", "0", "1",
 	})
+	s.Insert(store.RelationImport, store.Tuple{
+		"main.go", "_", "image/png", "", "100", "120", "0", "0", "1", "108", "118", "0",
+	})
 	Eval(t.Context(), s, QueryProgram(), StoreHost{Store: s})
 	require.True(t, s.Contains(store.RelationFinding, store.Tuple{"main.go", "12", "24", DeadImportID, DeadImportLevel, DeadImportMsg}),
 		"want unused fmt, findings=%v used=%v", s.Rows(store.RelationFinding), s.Rows(store.RelationUsedName))
@@ -49,6 +52,7 @@ func TestQueryDeadImports(t *testing.T) {
 	for _, row := range s.Rows(store.RelationFinding) {
 		if len(row) > 2 {
 			require.NotEqual(t, "25", row[1], "os is used: %v", row)
+			require.NotEqual(t, "100", row[1], "blank local is not a named import: %v", row)
 		}
 	}
 }

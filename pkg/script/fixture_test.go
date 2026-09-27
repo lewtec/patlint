@@ -7,10 +7,10 @@ import (
 
 	lewpath "github.com/lewtec/lewkit/x/path"
 
+	"github.com/lewtec/lewkit/x/text/report"
 	"github.com/lewtec/patlint/pkg/ignore"
 	_ "github.com/lewtec/patlint/pkg/ingest/go"
 	"github.com/lewtec/patlint/pkg/project"
-	"github.com/lewtec/patlint/pkg/report"
 	"github.com/lewtec/patlint/pkg/script"
 	"github.com/lewtec/patlint/pkg/sitter/ccgo"
 	"github.com/pelletier/go-toml/v2"
@@ -117,6 +117,18 @@ func TestDiffTrees(t *testing.T) {
 	require.Len(t, fails, 1)
 	require.Contains(t, fails[0], "ok")
 	require.Contains(t, fails[0], "nope")
+}
+
+func TestRun_blankImportNotNamed(t *testing.T) {
+	root := t.TempDir()
+	src := "package main\n\nimport (\n\t_ \"image/png\"\n\t\"fmt\"\n)\n\nfunc main() {}\n"
+	require.NoError(t, os.WriteFile(lewpath.New(root, "main.go").String(), []byte(src), 0o644))
+	prog, err := script.EnsureDeadImports(&script.Program{Path: "<builtin>"})
+	require.NoError(t, err)
+	res, err := script.Run(t.Context(), project.NewSession(root).WithEngine(ccgo.Engine{}), prog, script.Options{Paths: []string{"."}})
+	require.NoError(t, err)
+	require.Len(t, res.Findings, 1)
+	require.Contains(t, res.Findings[0].Snippet, "fmt")
 }
 
 func TestRunCase_deadImports(t *testing.T) {

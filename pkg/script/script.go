@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+	"github.com/lewtec/lewkit/x/text/report"
 
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/ingestutil"
@@ -22,7 +23,6 @@ import (
 	"github.com/lewtec/patlint/pkg/ingest"
 	"github.com/lewtec/patlint/pkg/pattern"
 	"github.com/lewtec/patlint/pkg/projectfs"
-	"github.com/lewtec/patlint/pkg/report"
 	"github.com/lewtec/patlint/pkg/store"
 )
 
@@ -69,7 +69,8 @@ type Result struct {
 type Options struct {
 	Paths      []string
 	LangFilter string
-	OnFinding  func(report.Finding)
+	// OnFinding is called as each finding is produced. A non-nil error stops the run.
+	OnFinding func(report.Finding) error
 	// FS is an optional project reader (e.g. overlay with dirty buffer text).
 	// Nil means the real filesystem.
 	FS projectfs.FS
@@ -427,7 +428,7 @@ func Run(ctx context.Context, sess *project.Session, prog *Program, opts Options
 	}
 
 	plan := prog.EnsurePlan()
-	claimed := map[string][]ingestutil.Span{}
+	claimed := map[string][]report.Span{}
 	var apply []project.Edit
 
 	fsys := opts.FS
@@ -567,7 +568,7 @@ func Run(ctx context.Context, sess *project.Session, prog *Program, opts Options
 	return out, nil
 }
 
-func findingsFromStore(prog *Program, st *store.Store, rel string, source []byte, sites map[int][]pattern.Match, claimed map[string][]ingestutil.Span, apply *[]project.Edit, out *Result, opts Options) error {
+func findingsFromStore(prog *Program, st *store.Store, rel string, source []byte, sites map[int][]pattern.Match, claimed map[string][]report.Span, apply *[]project.Edit, out *Result, opts Options) error {
 	if st == nil || prog == nil {
 		return nil
 	}
@@ -608,11 +609,12 @@ func findingsFromStore(prog *Program, st *store.Store, rel string, source []byte
 			edits = ed
 			break
 		}
-		line, col, endLine, endCol, snippet, err := report.SpanLoc(source, sp)
+		line, col, endLine, endCol, snippet, err := report.SpanLoc(source, reportSpan(sp))
 		if err != nil {
 			return err
 		}
-		skip := len(edits) > 0 && report.EditsOverlapAny(edits, claimed[rel])
+		shown := reportEdits(edits)
+		skip := report.EditsOverlap(shown, claimed[rel])
 		f := report.Finding{
 			RuleID:     t[3],
 			Level:      report.Level(t[4]),
@@ -623,17 +625,19 @@ func findingsFromStore(prog *Program, st *store.Store, rel string, source []byte
 			EndLine:    endLine,
 			EndCol:     endCol,
 			Snippet:    snippet,
-			SiteEdits:  edits,
+			Edits:      shown,
 			Fixable:    len(edits) > 0,
 			FixSkipped: skip,
 			Source:     source,
 		}
 		if opts.OnFinding != nil {
-			opts.OnFinding(f)
+			if err := opts.OnFinding(f); err != nil {
+				return err
+			}
 		}
 		out.Findings = append(out.Findings, f)
 		if len(edits) > 0 && !skip {
-			claimed[rel] = append(claimed[rel], report.EditBodySpans(edits)...)
+			claimed[rel] = append(claimed[rel], bodySpans(edits)...)
 			*apply = append(*apply, edits...)
 		}
 	}
@@ -641,7 +645,7 @@ func findingsFromStore(prog *Program, st *store.Store, rel string, source []byte
 }
 
 // handleSite applies report/emit handlers for one match site.
-func handleSite(act Action, m pattern.Match, source []byte, rel string, claimed map[string][]ingestutil.Span, apply *[]project.Edit, out *Result, opts Options) error {
+func handleSite(act Action, m pattern.Match, source []byte, rel string, claimed map[string][]report.Span, apply *[]project.Edit, out *Result, opts Options) error {
 	edits, err := editsForMatch(act, m, source)
 	if err != nil {
 		return fmt.Errorf("%s step %d: emit %s: %w", act.Source, act.Index, rel, err)
@@ -654,8 +658,8 @@ func handleSite(act Action, m pattern.Match, source []byte, rel string, claimed 
 		return nil
 	}
 	if act.Report == nil && act.Emit != nil {
-		if len(edits) > 0 && !report.EditsOverlapAny(edits, claimed[rel]) {
-			claimed[rel] = append(claimed[rel], report.EditBodySpans(edits)...)
+		if len(edits) > 0 && !report.EditsOverlap(reportEdits(edits), claimed[rel]) {
+			claimed[rel] = append(claimed[rel], bodySpans(edits)...)
 			*apply = append(*apply, edits...)
 		}
 		return nil
@@ -669,11 +673,12 @@ func handleSite(act Action, m pattern.Match, source []byte, rel string, claimed 
 			return nil
 		}
 	}
-	line, col, endLine, endCol, snippet, err := report.SpanLoc(source, span)
+	line, col, endLine, endCol, snippet, err := report.SpanLoc(source, reportSpan(span))
 	if err != nil {
 		return err
 	}
-	skip := len(edits) > 0 && report.EditsOverlapAny(edits, claimed[rel])
+	shown := reportEdits(edits)
+	skip := report.EditsOverlap(shown, claimed[rel])
 	f := report.Finding{
 		RuleID:     act.Report.ID,
 		Level:      act.Report.Level,
@@ -684,17 +689,19 @@ func handleSite(act Action, m pattern.Match, source []byte, rel string, claimed 
 		EndLine:    endLine,
 		EndCol:     endCol,
 		Snippet:    snippet,
-		SiteEdits:  edits,
+		Edits:      shown,
 		Fixable:    len(edits) > 0,
 		FixSkipped: skip,
 		Source:     source,
 	}
 	if opts.OnFinding != nil {
-		opts.OnFinding(f)
+		if err := opts.OnFinding(f); err != nil {
+			return err
+		}
 	}
 	out.Findings = append(out.Findings, f)
 	if len(edits) > 0 && !skip {
-		claimed[rel] = append(claimed[rel], report.EditBodySpans(edits)...)
+		claimed[rel] = append(claimed[rel], bodySpans(edits)...)
 		*apply = append(*apply, edits...)
 	}
 	return nil
@@ -726,7 +733,7 @@ func editsForMatch(act Action, m pattern.Match, source []byte) ([]project.Edit, 
 	return []project.Edit{{File: m.File, Span: m.Span, NewText: text}}, nil
 }
 
-func runBuiltin(ctx context.Context, policy ingest.PackQueries, act Action, root, rel string, fe *project.FileExtract, source []byte, claimed map[string][]ingestutil.Span, apply *[]project.Edit, out *Result, opts Options) error {
+func runBuiltin(ctx context.Context, policy ingest.PackQueries, act Action, root, rel string, fe *project.FileExtract, source []byte, claimed map[string][]report.Span, apply *[]project.Edit, out *Result, opts Options) error {
 	if act.Builtin != "dead-imports" {
 		return fmt.Errorf("unknown builtin %q", act.Builtin)
 	}
@@ -757,7 +764,7 @@ func runBuiltin(ctx context.Context, policy ingest.PackQueries, act Action, root
 		if sp.EndByte <= sp.StartByte {
 			continue
 		}
-		line, col, endLine, endCol, snippet, err := report.SpanLoc(source, sp)
+		line, col, endLine, endCol, snippet, err := report.SpanLoc(source, reportSpan(sp))
 		if err != nil {
 			return err
 		}
@@ -766,26 +773,59 @@ func runBuiltin(ctx context.Context, policy ingest.PackQueries, act Action, root
 			id, level, msg = act.Report.ID, act.Report.Level, act.Report.Message
 		}
 		ed, has := editsAt[t[1]+"\x00"+t[2]]
-		var site []project.Edit
+		var site []report.Edit
 		if has {
-			site = []project.Edit{ed}
+			site = reportEdits([]project.Edit{ed})
 		}
-		skip := has && ingestutil.OverlapsAny(ed.Span, claimed[rel])
+		skip := report.EditsOverlap(site, claimed[rel])
 		f := report.Finding{
 			RuleID: id, Level: level, Message: msg,
 			File: rel, Line: line, Column: col, EndLine: endLine, EndCol: endCol,
-			Snippet: snippet, SiteEdits: site, Fixable: has, FixSkipped: skip, Source: source,
+			Snippet: snippet, Edits: site, Fixable: has, FixSkipped: skip, Source: source,
 		}
 		if opts.OnFinding != nil {
-			opts.OnFinding(f)
+			if err := opts.OnFinding(f); err != nil {
+				return err
+			}
 		}
 		out.Findings = append(out.Findings, f)
 		if has && !skip {
-			claimed[rel] = append(claimed[rel], ed.Span)
+			claimed[rel] = append(claimed[rel], report.Span{StartByte: ed.StartByte, EndByte: ed.EndByte})
 			*apply = append(*apply, ed)
 		}
 	}
 	return nil
+}
+
+func reportSpan(sp ingestutil.Span) report.Span {
+	return report.Span{StartByte: sp.StartByte, EndByte: sp.EndByte}
+}
+
+func reportEdits(edits []project.Edit) []report.Edit {
+	if len(edits) == 0 {
+		return nil
+	}
+	out := make([]report.Edit, len(edits))
+	for i, edit := range edits {
+		out[i] = report.Edit{
+			File:      edit.File,
+			StartByte: edit.StartByte,
+			EndByte:   edit.EndByte,
+			NewText:   edit.NewText,
+		}
+	}
+	return out
+}
+
+func bodySpans(edits []project.Edit) []report.Span {
+	out := make([]report.Span, 0, len(edits))
+	for _, edit := range edits {
+		if edit.Empty() {
+			continue
+		}
+		out = append(out, report.Span{StartByte: edit.StartByte, EndByte: edit.EndByte})
+	}
+	return out
 }
 
 // ReportRules collects SARIF reporting descriptors from script actions and findings.

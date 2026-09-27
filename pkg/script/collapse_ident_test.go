@@ -95,7 +95,7 @@ func wrap(err error) error {
 	if !sawFailedTo {
 		for _, f := range resSpine.Findings {
 			if f.RuleID == "go/failed-to-fmt-errorf" {
-				t.Logf("finding fixable=%v edits=%#v line=%d col=%d", f.Fixable, f.SiteEdits, f.Line, f.Column)
+				t.Logf("finding fixable=%v edits=%#v line=%d col=%d", f.Fixable, f.Edits, f.Line, f.Column)
 			}
 		}
 		require.FailNow(t, fmt.Sprintf("expected failed-to fmt.Errorf rewrite; apply=%#v findings=%#v",
@@ -137,7 +137,7 @@ func normFindings(r Result) []nf {
 	var out []nf
 	for _, f := range r.Findings {
 		x := nf{Rule: f.RuleID, File: f.File, Msg: f.Message, Line: f.Line, Col: f.Column, EL: f.EndLine, EC: f.EndCol, Snippet: f.Snippet, Fixable: f.Fixable, Skipped: f.FixSkipped}
-		for _, e := range f.SiteEdits {
+		for _, e := range f.Edits {
 			x.Edits = append(x.Edits, ne{e.File, e.NewText, e.StartByte, e.EndByte})
 		}
 		out = append(out, x)

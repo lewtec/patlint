@@ -3,24 +3,29 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/lewtec/lewkit/x/cmd"
+	"github.com/lewtec/lewkit/x/text/report"
 	"github.com/lewtec/patlint/pkg/apply"
 	"github.com/lewtec/patlint/pkg/reporoot"
-	"github.com/lewtec/patlint/pkg/report"
 	"github.com/lewtec/patlint/pkg/script"
-	"log/slog"
 	"os"
 )
+
+var patlintTool = report.Tool{
+	Name:           "patlint",
+	InformationURI: "https://github.com/lewtec/patlint",
+}
 
 type runCmd struct {
 	projectDir
 	langFilter
 	backupFlag
-	format cmd.StringArg `long:"format" help:"output format: rustc, text, table, or sarif" default:"rustc"`
-	fix    cmd.Flag      `long:"fix" help:"apply non-conflicting fixes from rewrite actions"`
-	dryRun cmd.Flag      `short:"n" long:"dry-run" help:"with --fix: show planned edits without writing"`
+	format cmd.EnumArg[report.Format] `long:"format" help:"output format: rustc, text, table, or sarif" default:"rustc"`
+	fix    cmd.Flag                   `long:"fix" help:"apply non-conflicting fixes from rewrite actions"`
+	dryRun cmd.Flag                   `short:"n" long:"dry-run" help:"with --fix: show planned edits without writing"`
 	packs  []cmd.StringArg
 	paths  []cmd.StringArg
 }
@@ -63,9 +68,6 @@ Tool errors use a non-zero exit with a message on stderr.`
 
 func (command *runCmd) Run(ctx context.Context) error {
 	format := command.format.Value()
-	if _, err := report.NormalizeFormat(format); err != nil {
-		return exitError{exitCode: 2, cause: err}
-	}
 	packArguments := cmd.Values(command.packs)
 	paths := cmd.Values(command.paths)
 
@@ -101,10 +103,17 @@ func (command *runCmd) Run(ctx context.Context) error {
 	}
 
 	options := script.Options{Paths: paths, LangFilter: command.language.Value()}
-	if slog.Default().Enabled(ctx, slog.LevelDebug) {
-		options.OnFinding = func(finding report.Finding) {
-			_ = report.WriteFinding(os.Stderr, finding)
+	// A real --fix rewrites, then scans again. Only that second scan is the report.
+	reportLive := !command.fix.Value() || command.dryRun.Value()
+	var sink *findingSink
+	options.OnFinding = func(finding report.Finding) error {
+		if sink == nil {
+			return nil
 		}
+		return sink.Write(finding)
+	}
+	if reportLive {
+		sink = newFindingSink(format, os.Stdout, root)
 	}
 
 	result, err := script.Run(ctx, session, merged, options)
@@ -123,14 +132,22 @@ func (command *runCmd) Run(ctx context.Context) error {
 			return exitError{exitCode: 2, cause: err}
 		}
 		if !committer.DryRun {
+			sink = newFindingSink(format, os.Stdout, root)
 			result, err = script.Run(ctx, session, merged, options)
 			if err != nil {
 				return exitError{exitCode: 2, cause: err}
 			}
 		}
 	}
-
-	if err := report.WriteFormat(ctx, os.Stdout, format, root, result.Findings, script.ReportRules(result)); err != nil {
+	if sink == nil {
+		sink = newFindingSink(format, os.Stdout, root)
+		for _, finding := range result.Findings {
+			if err := sink.Write(finding); err != nil {
+				return exitError{exitCode: 2, cause: err}
+			}
+		}
+	}
+	if err := sink.Close(script.ReportRules(result)); err != nil {
 		return exitError{exitCode: 2, cause: err}
 	}
 
@@ -159,4 +176,48 @@ func resolveRunScripts(packArguments []string, startDirectory string) (scripts [
 		warning = fmt.Sprintf("no .rft scripts under %s (*.rft or %s/*.rft); running builtins only", packRoot, script.PackSubdir)
 	}
 	return scripts, warning, nil
+}
+
+// findingSink writes each finding as the scan produces it.
+// Text and rustc go out immediately. Table and SARIF are one document, so they flush in Close.
+type findingSink struct {
+	format report.Format
+	w      io.Writer
+	root   string
+	buf    []report.Finding
+	wrote  bool
+}
+
+func newFindingSink(format report.Format, w io.Writer, root string) *findingSink {
+	return &findingSink{format: format, w: w, root: root}
+}
+
+func (s *findingSink) Write(finding report.Finding) error {
+	switch s.format {
+	case report.FormatText:
+		s.wrote = true
+		return report.WriteFinding(s.w, finding)
+	case report.FormatRustc:
+		if s.wrote {
+			if _, err := io.WriteString(s.w, "\n"); err != nil {
+				return err
+			}
+		}
+		s.wrote = true
+		return report.WriteRustc(s.w, s.root, []report.Finding{finding})
+	case report.FormatTable, report.FormatSARIF:
+		s.buf = append(s.buf, finding)
+		return nil
+	default:
+		return fmt.Errorf("%w %s", report.ErrFormat, s.format.String())
+	}
+}
+
+func (s *findingSink) Close(rules []report.Rule) error {
+	switch s.format {
+	case report.FormatTable, report.FormatSARIF:
+		return s.format.Render(s.w, s.root, patlintTool, s.buf, rules)
+	default:
+		return nil
+	}
 }
