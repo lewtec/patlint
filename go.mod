@@ -15,7 +15,6 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/lewtec/lewkit v0.0.0-20260927145308-667527ae6b62
 	github.com/mattn/go-isatty v0.0.24
-	github.com/mattn/go-runewidth v0.0.30
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar v0.0.0-20260801004327-2c4586c945d8
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/astro v0.0.0-20260725174331-dd9b30823ceb
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/c v0.0.0-20260725174331-dd9b30823ceb
@@ -59,6 +58,7 @@ require (
 	github.com/lewtec/leaven-tree-sitter/grammar v0.0.0-20260823193308-9d0f77e93872 // indirect
 	github.com/lewtec/wazero-tree-sitter/grammar v0.0.0-20260926205449-ac1b106768d2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
+	github.com/mattn/go-runewidth v0.0.30 // indirect
 	github.com/modernc-tree-sitter/ccgo-tree-sitter/grammar/json v0.0.0-20260907205036-8fdfa3f25c9a // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
