@@ -11,6 +11,7 @@ type cli struct {
 	Grep    *grepCmd    `cmd:"grep" help:"Search for structural pattern matches"`
 	Rewrite *rewriteCmd `cmd:"rewrite" help:"Rewrite structural pattern matches"`
 	RunCmd  *runCmd     `cmd:"run" help:"Run .rft rules (findings, and fixes with --fix)"`
+	Cat     *catCmd     `cmd:"cat" help:"Print files with syntax highlighting"`
 }
 
 func (cli) Description() string {
