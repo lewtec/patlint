@@ -1,0 +1,5 @@
+kind = 'rewrite'
+description = 'Phase 3: pattern_sexp-only IR (token interface{} → any)'
+lang = 'go'
+pattern = '(token "interface{}")'
+emit = 'any'

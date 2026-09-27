@@ -1,0 +1,10 @@
+kind = 'extract'
+
+[[atom]]
+name = 'asTypeName'
+
+[[atom]]
+name = 'top'
+
+[[atom]]
+name = 'jvmSuppressWildcardsAnnotation'

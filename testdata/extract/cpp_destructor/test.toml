@@ -1,0 +1,7 @@
+kind = 'extract'
+
+[[atom]]
+name = 'AbsExtension.~AbsExtension'
+
+[[atom]]
+name = '~AbsExtension'

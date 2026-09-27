@@ -1,0 +1,64 @@
+;; -*- mode: lisp; -*-
+;; nix — place wraps verb (SPEC.md Extract dialect).
+;; Uses under binding places use (scope name).
+
+(under (path "**/default.nix")
+  (as-directory-representant))
+
+(under (path "**/*.nix")
+  (as-language "nix")
+  (as-family "nix")
+  (as-import (seq "import" path))
+
+  (under (node "binding")
+    ;; binding.attrpath is the defined name (id, or foo.bar). identifier has no name field.
+    (under (take "attrpath" (node "binding"))
+      (as-atom public (seq (capture name (regex "^[^_]"))))
+      (as-atom private (seq (capture name (regex "^_")))))
+    (under (node "select_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "variable_expression")
+      (as-use (scope name)))
+    (under (node "identifier")
+      (as-use (scope name))))
+
+  (under (node "function_expression")
+    (as-scope (this))
+    (under (take "universal" (node "function_expression"))
+      (as-atom private (this)))
+    (under (node "formal")
+      (as-atom private (take "name" (node "formal")))))
+
+  (under (node "path_expression")
+    (as-import (take "path" (capture path any))))
+
+  (under (node "select_expression")
+    (as-use
+      (take "name"
+        (seq (capture name any) "." (capture name any)))))
+
+  (under (node "variable_expression")
+    (as-use))
+
+  (under (node "identifier")
+    (as-use))
+
+  ;; keyword paint (token text — constant leaf glyphs)
+  (as-keyword (alt
+    (token "assert") (token "else") (token "if") (token "in")
+    (token "inherit") (token "let") (token "or") (token "rec")
+    (token "then") (token "with")))
+  (as-ident (or (node "identifier") (node "attrpath") (node "attr_identifier")))
+  (as-string (or (node "string") (node "string_fragment") (node "indented_string") (node "indented_string_fragment") (node "escape_sequence") (node "path") (node "hpath") (node "spath") (node "uri")))
+  (as-number (or (node "integer") (node "float")))
+  (as-comment (node "comment"))
+  (as-const (alt (token "true") (token "false") (token "null")))
+  (as-op (alt (token "->") (token "//") (token "++")))
+
+  (under (node "if")
+    (as-flow structural (this)))
+  (under (node "assert")
+    (as-flow structural (this)))
+)

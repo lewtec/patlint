@@ -1,0 +1,49 @@
+# Warning: Do not unify this file with others. Keep tool definitions localized.
+[tools]
+go = "1.27.1"
+goreleaser = "2.17.0"
+svu = "3.3.0"
+
+[tasks."install:go"]
+description = "Go module download"
+run = "go mod tidy && go get -v ./..."
+
+[tasks.install]
+description = "Install Go dependencies"
+depends = ["install:go"]
+
+[tasks.build]
+description = "Build the patlint binary"
+run = "go build -o patlint ./cmd/patlint"
+
+[tasks.format]
+description = "Format source packages"
+run = "go fmt ./..."
+
+[tasks.test]
+description = "Test the lint engine and CLI"
+run = "go test ./cmd/patlint ./pkg/pattern ./pkg/script"
+
+[tasks.ci]
+description = "Run tests"
+depends = ["test"]
+
+[tasks.release]
+description = "Tag with svu and ship binaries with GoReleaser"
+usage = '''
+arg "<version>" help="New version" {
+  choices "next" "major" "minor" "patch"
+  default "next"
+}
+'''
+run = '''
+TAG="$(svu ${usage_version})"
+echo "Releasing tag: $TAG (svu current=$(svu current 2>/dev/null || echo none))"
+if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+  echo "Tag $TAG already exists" >&2
+  exit 1
+fi
+git tag "$TAG"
+git push origin "refs/tags/$TAG"
+goreleaser release --clean
+'''

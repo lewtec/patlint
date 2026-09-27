@@ -1,0 +1,100 @@
+;; -*- mode: lisp; -*-
+;; Global paint: portable leaf types → tok-* (any host language).
+;; No as-language here — empty paths match every file.
+;; Language-specific keywords live under each language_*.rft (path-scoped).
+
+;; comments
+(under (node "comment") (as-comment))
+(under (node "line_comment") (as-comment))
+(under (node "block_comment") (as-comment))
+(under (node "doc_comment") (as-comment))
+
+;; strings
+(under (node "string") (as-string))
+(under (node "string_literal") (as-string))
+(under (node "string_content") (as-string))
+(under (node "string_start") (as-string))
+(under (node "string_end") (as-string))
+(under (node "interpreted_string_literal") (as-string))
+(under (node "raw_string_literal") (as-string))
+(under (node "template_string") (as-string))
+(under (node "template_literal") (as-string))
+(under (node "string_fragment") (as-string))
+(under (node "rune_literal") (as-string))
+(under (node "char_literal") (as-string))
+(under (node "escape_sequence") (as-string))
+(under (node "regex") (as-string))
+(under (node "regex_pattern") (as-string))
+(under (node "system_lib_string") (as-string))
+(under (node "quoted_attribute_value") (as-string))
+(under (node "attribute_value") (as-string))
+
+(under (node "character_literal") (as-string))
+(under (node "text_block") (as-string))
+(under (node "interpolated_string") (as-string))
+(under (node "indented_string") (as-string))
+(under (node "indented_string_fragment") (as-string))
+
+;; numbers
+(under (node "number") (as-number))
+(under (node "int_literal") (as-number))
+(under (node "integer_literal") (as-number))
+(under (node "integer") (as-number))
+(under (node "float_literal") (as-number))
+(under (node "float") (as-number))
+(under (node "imaginary_literal") (as-number))
+(under (node "number_literal") (as-number))
+
+;; types
+(under (node "type_identifier") (as-type))
+(under (node "primitive_type") (as-type))
+(under (node "predefined_type") (as-type))
+(under (node "sized_type_specifier") (as-type))
+(under (node "tag_name") (as-type))
+(under (node "component_name") (as-type))
+
+;; idents
+(under (node "identifier") (as-ident))
+(under (node "field_identifier") (as-ident))
+(under (node "package_identifier") (as-ident))
+(under (node "property_identifier") (as-ident))
+(under (node "shorthand_property_identifier") (as-ident))
+(under (node "private_property_identifier") (as-ident))
+(under (node "label_name") (as-ident))
+(under (node "blank_identifier") (as-ident))
+(under (node "attribute_name") (as-ident))
+(under (node "namespace_identifier") (as-ident))
+(under (node "statement_identifier") (as-ident))
+(under (node "shorthand_field_identifier") (as-ident))
+
+;; consts
+(under (node "true") (as-const))
+(under (node "false") (as-const))
+(under (node "null") (as-const))
+(under (node "nil") (as-const))
+(under (node "none") (as-const))
+(under (node "None") (as-const))
+(under (node "True") (as-const))
+(under (node "False") (as-const))
+(under (node "undefined") (as-const))
+(under (node "iota") (as-const))
+(under (node "nullptr") (as-const))
+(under (node "NULL") (as-const))
+(under (node "this") (as-const))
+(under (node "super") (as-const))
+
+;; punct / ops — portable glyphs (tree-sitter node type is usually the glyph)
+(as-punct (alt
+  (token "(") (token ")") (token "[") (token "]") (token "{") (token "}")
+  (token ",") (token ";") (token ".") (token ":") (token "?")))
+(as-op (alt
+  (token "+") (token "-") (token "*") (token "/") (token "%")
+  (token "=") (token "!") (token "<") (token ">")
+  (token "&") (token "|") (token "^") (token "~") (token "@")
+  (token "==") (token "!=") (token "<=") (token ">=")
+  (token "&&") (token "||") (token "<<") (token ">>")
+  (token "++") (token "--")
+  (token "+=") (token "-=") (token "*=") (token "/=") (token "%=")
+  (token "&=") (token "|=") (token "^=")
+  (token ":=") (token "<-") (token "...") (token "=>") (token "??") (token "?.")
+  (token "**") (token "===") (token "!==") (token "->") (token "::") (token "//")))

@@ -1,0 +1,7 @@
+kind = 'extract'
+
+[[atom]]
+name = 'TGA.EncoderOptions.job_time'
+
+[[atom]]
+name = 'TargaRLEDecoder.deinit'

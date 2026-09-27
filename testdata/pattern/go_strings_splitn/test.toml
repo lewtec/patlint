@@ -1,0 +1,5 @@
+kind = 'grep'
+description = 'A3: find strings.SplitN(..., 2) only (N=3 must not match)'
+lang = 'go'
+pattern = '(seq (capture F (ref "go:strings::SplitN")) "(" (capture S any) "," (capture SEP any) "," "2" ")")'
+expect_match_count = 1

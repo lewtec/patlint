@@ -1,0 +1,5 @@
+kind = 'grep'
+description = 'Go convention: error must be the last result (flag error before a following result)'
+lang = 'go'
+pattern = '(seq ")" "(" (group (alt (seq (* (group (seq (regex "[^,)]") "+" ","))) (token "error") "," (capture x (not (regex "\\)")))) (seq (capture n (regex "^[a-z]")) (token "error") "," (capture m (regex "^[a-z]")) (capture ty any)))) ")")'
+expect_match_count = 7

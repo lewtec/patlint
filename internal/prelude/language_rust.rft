@@ -1,0 +1,166 @@
+;; -*- mode: lisp; -*-
+;; rust — place wraps verb (SPEC.md Extract dialect).
+;; Uses under def places use (scope name).
+
+(under (path "**/mod.rs")
+  (as-directory-representant))
+
+(under (path "**/*.rs")
+  (as-language "rust")
+  (as-layout import body)
+  (as-family "rust" nested-type-members import-ref-name)
+  (as-import (seq "use" path ";"))
+  (as-docstring comment-before)
+
+  (under (node "function_item")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "pub" (* (not "fn")) "fn" (capture name (regex "^[^_]")))))
+    (as-atom private (take "name" (seq "pub" (* (not "fn")) "fn" (capture name (regex "^_")))))
+    (as-atom private (take "name" (seq (assert_not_behind (seq "pub" (* (not "fn")))) "fn" (capture name any))))
+    (under (node "field_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "scoped_identifier")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "::" (capture name any)))))
+    (under (node "identifier")
+      (as-use (scope name)))
+    (under (node "type_identifier")
+      (as-use (scope name))))
+
+  (under (node "struct_item")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "pub" (* (not "struct")) "struct" (capture name (regex "^[^_]")))))
+    (as-atom private (take "name" (seq "pub" (* (not "struct")) "struct" (capture name (regex "^_")))))
+    (as-atom private (take "name" (seq (assert_not_behind (seq "pub" (* (not "struct")))) "struct" (capture name any))))
+    (under (node "field_declaration")
+      (as-atom public (take "name" (seq "pub" (capture name (regex "^[^_]")) ":")))
+      (as-atom private (take "name" (seq "pub" (capture name (regex "^_")) ":")))
+      (as-atom private (take "name" (seq (assert_not_behind (token "pub")) (capture name any) ":")))))
+
+  (under (node "enum_item")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "pub" (* (not "enum")) "enum" (capture name (regex "^[^_]")))))
+    (as-atom private (take "name" (seq "pub" (* (not "enum")) "enum" (capture name (regex "^_")))))
+    (as-atom private (take "name" (seq (assert_not_behind (seq "pub" (* (not "enum")))) "enum" (capture name any))))
+    (under (node "enum_variant")
+      (as-atom public (take "name" (node "enum_variant")))))
+
+  (under (node "trait_item")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "pub" (* (not "trait")) "trait" (capture name (regex "^[^_]")))))
+    (as-atom private (take "name" (seq "pub" (* (not "trait")) "trait" (capture name (regex "^_")))))
+    (as-atom private (take "name" (seq (assert_not_behind (seq "pub" (* (not "trait")))) "trait" (capture name any)))))
+
+  (under (node "type_item")
+    (as-atom public (take "name" (seq "pub" (* (not "type")) "type" (capture name (regex "^[^_]")) "=")))
+    (as-atom private (take "name" (seq "pub" (* (not "type")) "type" (capture name (regex "^_")) "=")))
+    (as-atom private (take "name" (seq (assert_not_behind (seq "pub" (* (not "type")))) "type" (capture name any) "="))))
+
+  (under (node "const_item")
+    (as-atom public (take "name" (seq "pub" (* (not "const")) "const" (capture name (regex "^[^_]")) ":")))
+    (as-atom private (take "name" (seq "pub" (* (not "const")) "const" (capture name (regex "^_")) ":")))
+    (as-atom private (take "name" (seq (assert_not_behind (seq "pub" (* (not "const")))) "const" (capture name any) ":"))))
+
+  (under (node "static_item")
+    (as-atom public (take "name" (seq "pub" (* (not "static")) "static" (capture name (regex "^[^_]")) ":")))
+    (as-atom private (take "name" (seq "pub" (* (not "static")) "static" (capture name (regex "^_")) ":")))
+    (as-atom private (take "name" (seq (assert_not_behind (seq "pub" (* (not "static")))) "static" (capture name any) ":"))))
+
+  (under (node "mod_item")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "pub" (* (not "mod")) "mod" (capture name (regex "^[^_]")))))
+    (as-atom private (take "name" (seq "pub" (* (not "mod")) "mod" (capture name (regex "^_")))))
+    (as-atom private (take "name" (seq (assert_not_behind (seq "pub" (* (not "mod")))) "mod" (capture name any)))))
+
+  (under (node "impl_item")
+    (as-decl (this))
+    (as-atom public
+      (take "name"
+        (alt
+          (seq "impl" "<" (until ">") any "for" (capture name (regex "^[A-Za-z_]")))
+          (seq "impl" any "<" (until ">") "for" (capture name (regex "^[A-Za-z_]")))
+          (seq "impl" any "for" (capture name (regex "^[A-Za-z_]")))
+          (seq "impl" "<" (until ">") (capture name (regex "^[A-Za-z_]")) "{")
+          (seq "impl" "<" (until ">") (capture name (regex "^[A-Za-z_]")) "<")
+          (seq "impl" (capture name (regex "^[A-Za-z_]")) "{"))))
+    (under (node "function_item")
+      (under (node "field_expression")
+        (as-use (scope name)
+          (take "name"
+            (seq (capture name any) "." (capture name any)))))
+      (under (node "scoped_identifier")
+        (as-use (scope name)
+          (take "name"
+            (seq (capture name any) "::" (capture name any)))))
+      (under (node "identifier")
+        (as-use (scope name)))
+      (under (node "type_identifier")
+        (as-use (scope name)))))
+
+  ;; use helpers::helper
+  (under (node "use_declaration")
+    (under (node "scoped_identifier")
+      (as-import (node "scoped_identifier"))))
+  ;; use helpers::helper as h — not under use_as_clause (path field is the
+  ;; whole helpers::helper node).
+  (as-import
+    (take "path"
+      (seq "use" (capture path any) "::" (capture name any) "as" (capture alias any) ";")))
+
+  (under (node "field_expression")
+    (as-use
+      (take "name"
+        (seq (capture name any) "." (capture name any)))))
+
+  (under (node "scoped_identifier")
+    (as-use
+      (take "name"
+        (seq (capture name any) "::" (capture name any)))))
+
+  (under (node "identifier")
+    (as-use))
+
+  (under (node "type_identifier")
+    (as-use))
+
+  ;; keyword paint (token text — constant leaf glyphs)
+  (as-keyword (alt
+    (token "as") (token "async") (token "await") (token "break")
+    (token "const") (token "continue") (token "dyn") (token "else")
+    (token "enum") (token "extern") (token "fn") (token "for")
+    (token "if") (token "impl") (token "in") (token "let")
+    (token "loop") (token "match") (token "mod") (token "move")
+    (token "mut") (token "pub") (token "ref") (token "return")
+    (token "static") (token "struct") (token "trait") (token "type")
+    (token "unsafe") (token "use") (token "where") (token "while")
+    (token "yield") (token "union") (token "box") (token "crate")
+    (token "self") (token "super") (token "Self")))
+  (as-ident (or (node "identifier") (node "field_identifier") (node "shorthand_field_identifier")))
+  (as-type (or (node "type_identifier") (node "primitive_type")))
+  (as-string (or (node "string_literal") (node "raw_string_literal") (node "char_literal") (node "string_content") (node "escape_sequence")))
+  (as-number (or (node "integer_literal") (node "float_literal")))
+  (as-comment (or (node "line_comment") (node "block_comment") (node "doc_comment")))
+  (as-const (alt (token "true") (token "false")))
+
+  (under (node "if_expression")
+    (as-flow structural (take "consequence" (node "if_expression"))))
+  (under (node "if_expression")
+    (as-flow hybrid (take "alternative" (node "if_expression"))))
+  (under (node "if_let_expression")
+    (as-flow structural (this)))
+  (under (node "for_expression")
+    (as-flow structural (this)))
+  (under (node "while_expression")
+    (as-flow structural (this)))
+  (under (node "while_let_expression")
+    (as-flow structural (this)))
+  (under (node "loop_expression")
+    (as-flow structural (this)))
+  (under (node "match_expression")
+    (as-flow structural (this)))
+  (under (node "closure_expression")
+    (as-flow structural (this)))
+)

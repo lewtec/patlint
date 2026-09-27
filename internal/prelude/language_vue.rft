@@ -1,0 +1,27 @@
+;; -*- mode: lisp; -*-
+;; vue — place wraps verb (SPEC.md Extract dialect).
+
+(under (path "**/*.vue")
+  (as-language "vue")
+  (as-family "ecma" directory-manifest dest-export)
+
+  (under (node "script_element")
+    ;; <script> body → JavaScript embed (guest pack supplies atoms)
+    (under (node "raw_text")
+      (as-language "javascript")))
+
+  (under (node "tag_name")
+    (as-use))
+
+  ;; @click="helper" — directive value is attribute_value, not identifier
+  (under (node "directive_attribute")
+    (under (node "attribute_value")
+      (as-use (this))))
+
+  (under (node "identifier")
+    (as-use))
+
+  (as-type (or (node "tag_name") (node "component_name")))
+  (as-ident (or (node "attribute_name") (node "attribute") (node "attribute_identifier") (node "directive_name") (node "directive_value") (node "directive_modifier")))
+  (as-string (or (node "attribute_value") (node "quoted_attribute_value") (node "attribute_backtick_string"))))
+

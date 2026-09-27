@@ -1,0 +1,29 @@
+;; -*- mode: lisp; -*-
+;; astro — place wraps verb (SPEC.md Extract dialect).
+
+(under (path "**/*.astro")
+  (as-language "astro")
+  (as-family "ecma" directory-manifest dest-export)
+
+  ;; frontmatter island → TypeScript (paint/extract via embed; not host leaves)
+  (under (node "frontmatter_js_block")
+    (as-language "typescript"))
+
+  (under (node "script_element")
+    (under (node "raw_text")
+      (as-language "typescript")))
+
+  (under (node "tag_name")
+    (as-use))
+
+  ;; onclick={helper} — no identifier child, just the expr node
+  (under (node "attribute_js_expr")
+    (as-use (this)))
+
+  (under (node "identifier")
+    (as-use))
+
+  (as-type (or (node "tag_name") (node "component_name")))
+  (as-ident (or (node "attribute_name") (node "attribute") (node "attribute_identifier") (node "directive_name") (node "directive_value") (node "directive_modifier")))
+  (as-string (or (node "attribute_value") (node "quoted_attribute_value") (node "attribute_backtick_string"))))
+

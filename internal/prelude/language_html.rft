@@ -1,0 +1,25 @@
+;; -*- mode: lisp; -*-
+;; html — place wraps verb (SPEC.md Extract dialect).
+
+(under (path "**/*.html" "**/*.htm")
+  (as-language "html")
+  (as-family "html")
+
+  (under (node "element")
+    (as-scope (this)))
+
+  (under (node "script_element")
+    (under (node "raw_text")
+      (as-language "typescript")))
+
+  (under (node "tag_name")
+    (as-use))
+
+  (under (node "attribute_name")
+    (as-use))
+
+  (as-type (node "tag_name"))
+  (as-ident (node "attribute_name"))
+  (as-string (or (node "attribute_value") (node "quoted_attribute_value")))
+  (as-comment (node "comment"))
+  (as-punct (alt (token "doctype") (token "DOCTYPE") (token "<!") (token ">") (token "/") (token "="))))

@@ -1,0 +1,5 @@
+kind = 'grep'
+description = 'B4: find http.ListenAndServe (not other http symbols)'
+lang = 'go'
+pattern = '(seq (capture F (ref "go:net/http::ListenAndServe")) "(" (capture ADDR any) "," (capture HANDLER any) ")")'
+expect_match_count = 1

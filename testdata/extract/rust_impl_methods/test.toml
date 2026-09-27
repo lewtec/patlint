@@ -1,0 +1,19 @@
+kind = 'extract'
+
+[[atom]]
+name = 'Searcher.find'
+
+[[atom]]
+name = 'Searcher.is_match'
+
+[[atom]]
+name = 'Searcher.find_in'
+
+[[atom]]
+name = 'Searcher.fmt'
+
+[[atom]]
+name = 'Fat.candidate'
+
+[[atom]]
+name = 'Box.wrap'

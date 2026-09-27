@@ -1,0 +1,19 @@
+kind = 'extract'
+
+[[atom]]
+name = 'Main'
+
+[[atom]]
+name = 'Main.value'
+
+[[atom]]
+name = 'Color'
+
+[[atom]]
+name = 'Color.RED'
+
+[[atom]]
+name = 'Tag'
+
+[[atom]]
+name = 'Tag.helper'

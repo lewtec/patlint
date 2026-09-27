@@ -1,0 +1,10 @@
+kind = 'extract'
+
+[[atom]]
+name = 'Outer'
+
+[[atom]]
+name = 'Outer.Nested'
+
+[[atom]]
+name = 'Outer.Nested.helper'

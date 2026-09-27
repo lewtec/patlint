@@ -1,0 +1,34 @@
+;; -*- mode: lisp; -*-
+;; rft language rules — expensive extract/script operations (learned from zig/kotlin/rust).
+;; Always-on via script.EnsureDeadImports (prelude.FS). Report-only.
+;;
+;; until / (* (not STOP)) cost is the gap to the first STOP.
+;; assert_not_behind with (* any) tries every start 0..pos.
+;; (? "(") is callish: the match span widens to the container.
+
+;; (until "(") (until "{") (until "fun") (until "fn") (until ".")
+;; Those stops live in every class/impl/fn body. Header-only until is
+;; fine when the stop cannot appear in the remaining header (until ">").
+(rule rft/until-body-scan
+  warning
+  "until walks to the first stop; (, {, fun, fn, . are body tokens. Put atoms on the node; Type.leaf joins from as-scope / as-decl"
+  (under (path "**/*.rft")
+    (seq "(" (token "until")
+         (alt (token "\"(\"") (token "\"{\"") (token "\"fun\"")
+              (token "\"fn\"") (token "\".\"")))))
+
+;; (seq HEADER (? "(")) — old class/impl widen. Nest under (node T).
+(rule rft/callish-widen
+  warning
+  "(? \"(\") is callish: the match span widens to the container. That is seq-as-parser; nest under (node class/impl/fn)"
+  (under (path "**/*.rft")
+    (seq "(" (token "?") (token "\"(\"") ")")))
+
+;; (assert_not_behind … (* any) …) / rest. Cheap lookbehind is
+;; (seq FIRST (* (not STOP))) — engine walks back from the cursor.
+(rule rft/lookbehind-open
+  warning
+  "assert_not_behind with (* any) or rest tries every start. Keep the arm a short token seq; (* (not STOP)) after a first token is the cheap lookbehind"
+  (under (path "**/*.rft")
+    (seq (token "assert_not_behind") (* any) (token "*")
+         (alt (token "any") (token "rest")))))

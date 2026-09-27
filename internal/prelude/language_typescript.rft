@@ -1,0 +1,288 @@
+;; -*- mode: lisp; -*-
+;; typescript — place wraps verb (SPEC.md Extract dialect).
+;; Uses under def places use (scope name).
+
+(under (path "**/*.ts")
+  (as-language "typescript")
+  (as-layout import body)
+  (as-family "ecma" directory-manifest dest-export)
+  (as-import (seq "import" "{" leaf "}" "from" "'" path "'" ";"))
+  (as-docstring comment-before-c)
+
+  (under (node "function_declaration")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "function" (capture name any) "(")))
+    (under (node "formal_parameters")
+      (under (node "identifier")
+        (as-atom private (this))))
+    (under (node "required_parameter")
+      (as-atom private (take "pattern" (node "required_parameter"))))
+    (under (node "member_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "identifier")
+      (as-use (scope name)))
+    (under (node "type_identifier")
+      (as-use (scope name))))
+
+  (under (node "arrow_function")
+    (as-scope (this))
+    (under (node "formal_parameters")
+      (under (node "identifier")
+        (as-atom private (this))))
+    (under (node "required_parameter")
+      (as-atom private (take "pattern" (node "required_parameter")))))
+  (under (node "function_expression")
+    (as-scope (this))
+    (under (node "formal_parameters")
+      (under (node "identifier")
+        (as-atom private (this)))))
+  (under (node "generator_function_declaration")
+    (as-scope (this)))
+  (under (node "generator_function")
+    (as-scope (this)))
+
+  (under (node "class_declaration")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "class" (capture name any))))
+    (under (node "field_definition")
+      (as-atom public (take "name" (seq (capture name any) "="))))
+    (under (node "public_field_definition")
+      (as-atom public (take "name" (seq (capture name any) "="))))
+    (under (node "method_definition")
+      (as-scope (this))
+      (as-atom public (take "name" (node "method_definition")))
+      (under (node "member_expression")
+        (as-use (scope name)
+          (take "name"
+            (seq (capture name any) "." (capture name any)))))
+      (under (node "identifier")
+        (as-use (scope name)))
+      (under (node "type_identifier")
+        (as-use (scope name))))
+    (under (node "member_expression")
+      (as-use (scope name)
+        (take "name"
+          (seq (capture name any) "." (capture name any)))))
+    (under (node "identifier")
+      (as-use (scope name)))
+    (under (node "type_identifier")
+      (as-use (scope name))))
+
+  (under (node "interface_declaration")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "interface" (capture name any))))
+    (under (node "method_signature")
+      (as-atom public (take "name" (node "method_signature"))))
+    (under (node "property_signature")
+      (as-atom public (take "name" (node "property_signature")))))
+
+  (under (node "type_alias_declaration")
+    (as-decl (this))
+    (as-atom public (take "name" (seq "type" (capture name any) "=")))
+    (under (node "method_signature")
+      (as-atom public (take "name" (node "method_signature"))))
+    (under (node "property_signature")
+      (as-atom public (take "name" (node "property_signature")))))
+
+  (under (node "enum_declaration")
+    (as-scope (this))
+    (as-atom public (take "name" (seq "enum" (capture name any))))
+    (under (node "enum_assignment")
+      (as-atom public (take "name" (node "enum_assignment"))))
+    (under (node "property_identifier")
+      (as-atom public (take "name" (seq (capture name any))))))
+
+  (under (node "abstract_class_declaration")
+    (as-scope (this))
+    (as-atom public (take "name" (node "abstract_class_declaration")))
+    (under (node "method_definition")
+      (as-atom public (take "name" (node "method_definition"))))
+    (under (node "field_definition")
+      (as-atom public (take "name" (seq (capture name any) "="))))
+    (under (node "public_field_definition")
+      (as-atom public (take "name" (seq (capture name any) "=")))))
+
+  (under (node "lexical_declaration")
+    (as-decl (this)))
+  (under (node "variable_declaration")
+    (as-decl (this)))
+
+  (under (node "variable_declarator")
+    (as-scope (this))
+    (under (node "method_definition")
+      (as-atom public (take "name" (node "method_definition")))))
+
+  (under (node "variable_declarator")
+    (as-atom public (take "name" (node "variable_declarator")))
+    (under (node "array_pattern")
+      (under (node "identifier")
+        (as-atom public (this))))
+    (under (node "object_pattern")
+      (under (node "identifier")
+        (as-atom public (this)))
+      (under (node "shorthand_property_identifier_pattern")
+        (as-atom public (this))
+        (as-use (this)))))
+
+  (under (node "import_statement")
+    (under (node "import_specifier")
+      (as-import (node "import_specifier"))))
+  (under (node "import_statement")
+    (as-import
+      (take "name"
+        (seq "import" (capture name any) "from" (capture path any)))))
+  (under (node "import_statement")
+    (as-import (node "import_statement")))
+
+  (as-import
+    (take "path"
+      (alt
+        (seq (alt "const" "let" "var") (capture name any) "=" "require" "(" (capture path any) ")")
+        (seq (alt "const" "let" "var") (capture name any) "=" "await" "import" "(" (capture path any) ")")
+        (seq (alt "const" "let" "var") (capture name any) "=" "import" "(" (capture path any) ")"))))
+
+  (as-import
+    (take "path"
+      (seq (alt "const" "let" "var") "{" (capture name any) ","
+           (* (not "=")) "=" (alt
+             (seq "require" "(" (capture path any) ")")
+             (seq "await" "import" "(" (capture path any) ")")
+             (seq "import" "(" (capture path any) ")")))))
+  (as-import
+    (take "path"
+      (seq (alt "const" "let" "var") "{" (* (not ",")) "," (capture name any) "}"
+           (* (not "=")) "=" (alt
+             (seq "require" "(" (capture path any) ")")
+             (seq "await" "import" "(" (capture path any) ")")
+             (seq "import" "(" (capture path any) ")")))))
+  (as-import
+    (take "path"
+      (seq (alt "const" "let" "var") "{" (capture name any) "}"
+           "=" (alt
+             (seq "require" "(" (capture path any) ")")
+             (seq "await" "import" "(" (capture path any) ")")
+             (seq "import" "(" (capture path any) ")")))))
+  (as-import
+    (take "path"
+      (alt
+        (seq (alt "const" "let" "var") "{" (capture name any) ":"
+             (* (not "=")) "=" "require" "(" (capture path any) ")")
+        (seq (alt "const" "let" "var") "{" (* (not ",")) "," (capture name any) ":"
+             (* (not "=")) "=" "require" "(" (capture path any) ")")
+        (seq (alt "const" "let" "var") "{" (capture name any) ":"
+             (* (not "=")) "=" "await" "import" "(" (capture path any) ")")
+        (seq (alt "const" "let" "var") "{" (capture name any) ":"
+             (* (not "=")) "=" "import" "(" (capture path any) ")"))))
+
+  (as-import
+    (take "path"
+      (alt
+        (seq "import" "(" (capture path any) ")" "." "then" "(" "(" (capture name any) ")")
+        (seq "import" "(" (capture path any) ")" "." "then" "(" (capture name any) "=>"))))
+  (as-import
+    (take "path"
+      (seq "import" "(" (capture path any) ")" "." "then" "(" "(" "{" (capture name any) ",")))
+  (as-import
+    (take "path"
+      (seq "import" "(" (capture path any) ")" "." "then" "(" "(" "{"
+           (* (not ",")) "," (capture name any) "}")))
+
+  (under (node "export_statement")
+    (as-decl (this)))
+  (under (node "export_statement")
+    (as-reexport (node "export_statement")))
+  (under (node "export_statement")
+    (under (node "export_specifier")
+      (as-reexport (node "export_specifier"))))
+  (under (node "export_statement")
+    (under (node "function_declaration")
+      (as-default (take "name" (node "function_declaration")))))
+  (under (node "export_statement")
+    (under (node "class_declaration")
+      (as-default (take "name" (node "class_declaration")))))
+  (under (node "export_specifier")
+    (as-default (node "export_specifier")))
+
+  (under (node "member_expression")
+    (as-use
+      (take "name"
+        (seq (capture name any) "." (capture name any)))))
+
+  (under (node "shorthand_property_identifier")
+    (as-use (this)))
+
+  (under (node "pair_pattern")
+    (as-use
+      (take "name"
+        (seq (capture name any) ":"))))
+
+  (under (node "assignment_expression")
+    (as-use
+      (take "name"
+        (alt
+          (seq (? (seq "module" ".")) "exports" "=" "{" (capture name any) ":")
+          (seq (? (seq "module" ".")) "exports" "=" "{" (* (not ",")) "," (capture name any) ":")))))
+
+  (under (node "assignment_expression")
+    (as-use
+      (take "name"
+        (seq (? (seq "module" ".")) "exports" "." (capture name any) "="))))
+
+  (under (node "identifier")
+    (as-use))
+
+  (under (node "type_identifier")
+    (as-use))
+
+  ;; keyword paint (token text — constant leaf glyphs)
+  (as-keyword (alt
+    (token "as") (token "async") (token "await") (token "break")
+    (token "case") (token "catch") (token "class") (token "const")
+    (token "continue") (token "debugger") (token "default") (token "delete")
+    (token "do") (token "else") (token "enum") (token "export")
+    (token "extends") (token "finally") (token "for") (token "from")
+    (token "function") (token "get") (token "if") (token "implements")
+    (token "import") (token "in") (token "instanceof") (token "interface")
+    (token "let") (token "new") (token "of") (token "package")
+    (token "private") (token "protected") (token "public") (token "return")
+    (token "set") (token "static") (token "switch") (token "throw")
+    (token "try") (token "typeof") (token "var") (token "void")
+    (token "while") (token "with") (token "yield") (token "declare")
+    (token "keyof") (token "namespace") (token "readonly") (token "type")
+    (token "satisfies") (token "infer") (token "is") (token "asserts")
+    (token "override") (token "abstract") (token "accessor")))
+  (as-ident (or (node "identifier") (node "property_identifier") (node "shorthand_property_identifier") (node "private_property_identifier") (node "shorthand_property_identifier_pattern")))
+  (as-type (or (node "type_identifier") (node "predefined_type")))
+  (as-string (or (node "string") (node "string_fragment") (node "template_string") (node "template_literal") (node "escape_sequence") (node "regex") (node "regex_pattern") (node "regex_flags")))
+  (as-number (node "number"))
+  (as-comment (node "comment"))
+  (as-const (alt (token "true") (token "false") (token "null") (token "undefined") (token "this") (token "super")))
+  (as-op (alt (token "=>") (token "??") (token "?.") (token "**") (token "===") (token "!==") (token "...")))
+
+  (under (node "if_statement")
+    (as-flow structural (take "consequence" (node "if_statement"))))
+  (under (node "if_statement")
+    (as-flow hybrid (take "alternative" (node "if_statement"))))
+  (under (node "for_statement")
+    (as-flow structural (take "body" (node "for_statement"))))
+  (under (node "for_in_statement")
+    (as-flow structural (take "body" (node "for_in_statement"))))
+  (under (node "for_of_statement")
+    (as-flow structural (take "body" (node "for_of_statement"))))
+  (under (node "while_statement")
+    (as-flow structural (take "body" (node "while_statement"))))
+  (under (node "do_statement")
+    (as-flow structural (take "body" (node "do_statement"))))
+  (under (node "switch_statement")
+    (as-flow structural (this)))
+  (under (node "catch_clause")
+    (as-flow structural (this)))
+  (under (node "ternary_expression")
+    (as-flow structural (this)))
+  (under (node "arrow_function")
+    (as-flow structural (this)))
+  (under (node "function_expression")
+    (as-flow structural (this)))
+)

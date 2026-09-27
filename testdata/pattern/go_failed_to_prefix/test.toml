@@ -1,0 +1,5 @@
+kind = 'rewrite'
+description = 'A1: strip leading "failed to " from fmt.Errorf format strings via capture group'
+lang = 'go'
+pattern = '(seq (capture F (ref "go:fmt::Errorf")) "(" (capture MSG (regex "(?i)^failed to\\s+(.*)" 1)) "," (capture ERR any) ")")'
+emit = '(seq (ref "go:fmt::Errorf") "(\"open image: %w\", err)")'
