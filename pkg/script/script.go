@@ -8,12 +8,10 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-
-	lewpath "github.com/lewtec/lewkit/x/path"
-
-	"os"
 	"path/filepath"
 	"strings"
+
+	lewpath "github.com/lewtec/lewkit/x/path"
 
 	"github.com/lewtec/patlint/internal/prelude"
 	"github.com/lewtec/patlint/pkg/ingestutil"
@@ -79,11 +77,20 @@ type Options struct {
 
 // LoadFile reads and compiles a .rft script.
 func LoadFile(path string) (*Program, error) {
-	data, err := os.ReadFile(path)
+	data, err := readOSPath(path)
 	if err != nil {
 		return nil, err
 	}
 	return Load(path, string(data))
+}
+
+func readOSPath(path string) ([]byte, error) {
+	root, err := lewpath.Open(filepath.Dir(path))
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+	return lewpath.New(filepath.Base(path)).ReadFile(root)
 }
 
 // Load compiles script source via LispVM.New, then decodes rewrite/rule/builtin.

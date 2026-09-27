@@ -2,7 +2,7 @@ package ignore
 
 import (
 	"bufio"
-	"os"
+	"io"
 	"strings"
 )
 
@@ -27,15 +27,9 @@ var knownAttrs = []struct {
 
 // parseGitAttributesFile reads path and returns linguist-generated /
 // refactree-ignored marks only.
-func parseGitAttributesFile(path string) ([]attrLine, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
+func parseGitAttributes(reader io.Reader, path string) ([]attrLine, error) {
 	var out []attrLine
-	sc := bufio.NewScanner(f)
+	sc := bufio.NewScanner(reader)
 	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 	lineNo := 0
 	for sc.Scan() {

@@ -4,7 +4,7 @@ package walker
 import (
 	"context"
 	"fmt"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path/filepath"
 	"strings"
 
@@ -42,7 +42,7 @@ func (w *Walker) Doc(ctx context.Context, dir, reference string) (*ingest.DocRes
 		absPath = lewpath.New(dir, strings.TrimPrefix(rawRef.Path, "./")).String()
 	}
 
-	st, err := os.Stat(absPath)
+	st, err := (projectfs.OS{}).Stat(absPath)
 	if err != nil {
 		canon := w.CanonicalizeReference(ctx, dir, rawRef)
 		cAbs := canon.Path

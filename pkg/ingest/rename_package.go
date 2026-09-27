@@ -3,8 +3,8 @@ package ingest
 import (
 	"context"
 	"fmt"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"log/slog"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -69,7 +69,7 @@ func planPackageMove(ctx context.Context, dir string, st *store.Store, result *p
 			if under != "" {
 				dstFile = path.Join(toDir, under)
 			}
-			content, err := os.ReadFile(lewpath.New(dir, rel).String())
+			content, err := (projectfs.OS{}).ReadFile(lewpath.New(dir, rel).String())
 			if err != nil {
 				return project.Plan{}, fmt.Errorf("reading %s: %w", rel, err)
 			}
@@ -101,7 +101,7 @@ func planPackageMove(ctx context.Context, dir string, st *store.Store, result *p
 				if under != "" {
 					dstFile = path.Join(toDir, under)
 				}
-				content, err := os.ReadFile(lewpath.New(dir, srcFile).String())
+				content, err := (projectfs.OS{}).ReadFile(lewpath.New(dir, srcFile).String())
 				if err != nil {
 					return project.Plan{}, fmt.Errorf("reading %s: %w", srcFile, err)
 				}
@@ -110,7 +110,7 @@ func planPackageMove(ctx context.Context, dir string, st *store.Store, result *p
 				newContent := string(project.ApplyEditsInMemory(content, rewrites))
 				holes = append(holes, []string{srcFile, "0", store.Itoa(uint32(len(content)))})
 				destEnd := uint32(0)
-				if dstBody, err := os.ReadFile(lewpath.New(dir, filepath.FromSlash(dstFile)).String()); err == nil {
+				if dstBody, err := (projectfs.OS{}).ReadFile(lewpath.New(dir, filepath.FromSlash(dstFile)).String()); err == nil {
 					destEnd = uint32(len(dstBody))
 				}
 				places = append(places, []string{dstFile, "0", store.Itoa(destEnd), newContent})
@@ -179,7 +179,7 @@ func planPackageMove(ctx context.Context, dir string, st *store.Store, result *p
 				if movedFiles[rel] {
 					continue
 				}
-				content, err := os.ReadFile(lewpath.New(dir, rel).String())
+				content, err := (projectfs.OS{}).ReadFile(lewpath.New(dir, rel).String())
 				if err != nil {
 					continue
 				}
@@ -214,7 +214,7 @@ func planPackageMove(ctx context.Context, dir string, st *store.Store, result *p
 		if rewritten[consumerFile] || pathOld == pathNew {
 			continue
 		}
-		fcontent, err := os.ReadFile(lewpath.New(dir, consumerFile).String())
+		fcontent, err := (projectfs.OS{}).ReadFile(lewpath.New(dir, consumerFile).String())
 		if err != nil {
 			return project.Plan{}, fmt.Errorf("reading %s: %w", consumerFile, err)
 		}

@@ -2,7 +2,7 @@ package ingest
 
 import (
 	"context"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path"
 	"slices"
 	"strings"
@@ -93,7 +93,7 @@ func (m moveQualify) edits(ctx context.Context) ([]project.Edit, error) {
 }
 
 func readFileCached(dir, relative string) []byte {
-	b, err := os.ReadFile(path.Join(dir, relative))
+	b, err := (projectfs.OS{}).ReadFile(path.Join(dir, relative))
 	if err != nil {
 		return nil
 	}
@@ -118,7 +118,7 @@ func (m moveQualify) qualifyUses(ctx context.Context) ([]project.Edit, error) {
 		if b, ok := contents[rel]; ok {
 			return b
 		}
-		b, err := os.ReadFile(path.Join(m.dir, rel))
+		b, err := (projectfs.OS{}).ReadFile(path.Join(m.dir, rel))
 		if err != nil {
 			return nil
 		}
@@ -252,7 +252,7 @@ func (m moveQualify) splitFromImports(ctx context.Context) ([]project.Edit, erro
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		b, err := os.ReadFile(path.Join(m.dir, f))
+		b, err := (projectfs.OS{}).ReadFile(path.Join(m.dir, f))
 		if err != nil {
 			continue
 		}
@@ -414,7 +414,7 @@ func (m moveQualify) holeDependencyImports(destinationContent []byte) []project.
 			needed[local] = true
 		}
 	}
-	srcBytes, err := os.ReadFile(path.Join(dir, sourceRelative))
+	srcBytes, err := (projectfs.OS{}).ReadFile(path.Join(dir, sourceRelative))
 	if err != nil {
 		return nil
 	}
@@ -538,7 +538,7 @@ func (m moveQualify) retargetLeafFrom(ctx context.Context) ([]project.Edit, erro
 		if !fileKeepsOldPackage(m.result, f, m.sourceRelative, m.entity) {
 			continue
 		}
-		content, err := os.ReadFile(path.Join(m.dir, f))
+		content, err := (projectfs.OS{}).ReadFile(path.Join(m.dir, f))
 		if err != nil {
 			continue
 		}

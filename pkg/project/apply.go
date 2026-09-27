@@ -5,13 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
-	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
-	"github.com/lewtec/lewkit/x/io/atomic"
 	lewpath "github.com/lewtec/lewkit/x/path"
 
 	"github.com/lewtec/patlint/pkg/ingestutil"
@@ -71,12 +69,18 @@ func ApplyEdits(ctx context.Context, dir string, edits []Edit) error {
 		byFile[e.File] = append(byFile[e.File], e)
 	}
 
+	root, err := lewpath.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+
 	for file, fileEdits := range byFile {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		target := lewpath.New(dir, file).String()
-		content, err := os.ReadFile(target)
+		target := lewpath.New(filepath.ToSlash(file))
+		content, err := target.ReadFile(root)
 		creating := false
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
@@ -92,7 +96,7 @@ func ApplyEdits(ctx context.Context, dir string, edits []Edit) error {
 				}
 				content = []byte{}
 				creating = true
-				if mkerr := os.MkdirAll(lewpath.New(target).Parent().String(), 0o755); mkerr != nil {
+				if mkerr := target.Parent().MkdirAll(root, 0o755); mkerr != nil {
 					return fmt.Errorf("mkdir for %s: %w", file, mkerr)
 				}
 			} else {
@@ -141,15 +145,12 @@ func ApplyEdits(ctx context.Context, dir string, edits []Edit) error {
 			}
 		}
 
-		if err := atomic.WriteFileFunction(target, func(w io.Writer) error {
-			_, err := w.Write(content)
-			return err
-		}); err != nil {
+		if err := target.WriteFile(root, content, 0o644); err != nil {
 			return fmt.Errorf("writing %s: %w", file, err)
 		}
 
 		if len(content) == 0 {
-			if err := os.Remove(target); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			if err := target.Remove(root); err != nil && !errors.Is(err, fs.ErrNotExist) {
 				return fmt.Errorf("remove empty %s: %w", file, err)
 			}
 		}

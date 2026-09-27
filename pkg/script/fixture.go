@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"io"
 	"io/fs"
 	"os"
@@ -148,7 +149,7 @@ func DiscoverCasesIn(dir string) ([]Case, error) {
 	if err != nil {
 		return nil, err
 	}
-	ents, err := os.ReadDir(abs)
+	ents, err := (projectfs.OS{}).ReadDir(abs)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -161,7 +162,7 @@ func DiscoverCasesIn(dir string) ([]Case, error) {
 			continue
 		}
 		child := lewpath.New(abs, e.Name()).String()
-		if _, err := os.Stat(lewpath.New(child, TestFileName).String()); err != nil {
+		if _, err := (projectfs.OS{}).Stat(lewpath.New(child, TestFileName).String()); err != nil {
 			continue
 		}
 		c, err := LoadCase(child)
@@ -192,17 +193,17 @@ func WalkCases(ctx context.Context, path string, fn func(Case) error) error {
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(abs); err != nil {
+	if _, err := (projectfs.OS{}).Stat(abs); err != nil {
 		return err
 	}
-	if _, err := os.Stat(lewpath.New(abs, TestFileName).String()); err == nil {
+	if _, err := (projectfs.OS{}).Stat(lewpath.New(abs, TestFileName).String()); err == nil {
 		c, err := LoadCase(abs)
 		if err != nil {
 			return err
 		}
 		return fn(c)
 	}
-	ents, err := os.ReadDir(abs)
+	ents, err := (projectfs.OS{}).ReadDir(abs)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -218,7 +219,7 @@ func WalkCases(ctx context.Context, path string, fn func(Case) error) error {
 			continue
 		}
 		child := lewpath.New(abs, e.Name()).String()
-		if _, err := os.Stat(lewpath.New(child, TestFileName).String()); err != nil {
+		if _, err := (projectfs.OS{}).Stat(lewpath.New(child, TestFileName).String()); err != nil {
 			continue
 		}
 		c, err := LoadCase(child)
@@ -250,7 +251,7 @@ func WalkCasesRecursive(ctx context.Context, root string, eng *ignore.Engine, fn
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(abs); err != nil {
+	if _, err := (projectfs.OS{}).Stat(abs); err != nil {
 		return err
 	}
 	if eng == nil {
@@ -274,7 +275,7 @@ func WalkCasesRecursive(ctx context.Context, root string, eng *ignore.Engine, fn
 			return filepath.SkipDir
 		}
 		tomlPath := lewpath.New(path, TestFileName).String()
-		if _, err := os.Stat(tomlPath); err != nil {
+		if _, err := (projectfs.OS{}).Stat(tomlPath); err != nil {
 			return nil
 		}
 		if eng.GitHidden(tomlPath, false) {
@@ -306,7 +307,7 @@ func LoadCase(dir string) (Case, error) {
 		return Case{}, err
 	}
 	metaPath := lewpath.New(abs, TestFileName).String()
-	data, err := os.ReadFile(metaPath)
+	data, err := (projectfs.OS{}).ReadFile(metaPath)
 	if err != nil {
 		return Case{}, err
 	}
@@ -320,12 +321,12 @@ func LoadCase(dir string) (Case, error) {
 		return Case{}, fmt.Errorf("%s: %w", TestFileName, err)
 	}
 	scenario := lewpath.New(abs, "scenario").String()
-	st, err := os.Stat(scenario)
+	st, err := (projectfs.OS{}).Stat(scenario)
 	if err != nil || !st.IsDir() {
 		return Case{}, fmt.Errorf("missing scenario/ directory")
 	}
 	expected := lewpath.New(abs, "expected").String()
-	if st, err := os.Stat(expected); err != nil || !st.IsDir() {
+	if st, err := (projectfs.OS{}).Stat(expected); err != nil || !st.IsDir() {
 		expected = ""
 	}
 	return Case{
@@ -933,12 +934,12 @@ func DiffTrees(ctx context.Context, expectedRoot, gotRoot string) []string {
 		if err != nil {
 			return err
 		}
-		want, err := os.ReadFile(path)
+		want, err := (projectfs.OS{}).ReadFile(path)
 		if err != nil {
 			return err
 		}
 		gotPath := lewpath.New(gotRoot, rel).String()
-		got, err := os.ReadFile(gotPath)
+		got, err := (projectfs.OS{}).ReadFile(gotPath)
 		if err != nil {
 			fails = append(fails, fmt.Sprintf("expected %s: missing in result: %v", filepath.ToSlash(rel), err))
 			return nil

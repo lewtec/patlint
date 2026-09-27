@@ -13,7 +13,7 @@ package pattern
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"strings"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
@@ -93,7 +93,7 @@ type Node struct {
 
 // LoadOp reads a grep/rewrite fixture from test.toml or a case directory.
 func LoadOp(path string) (Op, error) {
-	st, err := os.Stat(path)
+	st, err := (projectfs.OS{}).Stat(path)
 	if err != nil {
 		return Op{}, err
 	}
@@ -113,7 +113,7 @@ type opTOML struct {
 }
 
 func loadOpTOML(path string) (Op, error) {
-	b, err := os.ReadFile(path)
+	b, err := (projectfs.OS{}).ReadFile(path)
 	if err != nil {
 		return Op{}, err
 	}

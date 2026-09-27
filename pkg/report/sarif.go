@@ -2,8 +2,8 @@ package report
 
 import (
 	"encoding/json"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -127,7 +127,7 @@ func editsToSARIFFix(root, description string, edits []project.Edit, source []by
 			if root != "" && !filepath.IsAbs(file) {
 				abs = lewpath.New(root, filepath.FromSlash(file)).String()
 			}
-			b, err := os.ReadFile(abs)
+			b, err := (projectfs.OS{}).ReadFile(abs)
 			if err != nil {
 				return sarifFix{}, err
 			}

@@ -3,7 +3,7 @@ package javaref
 import (
 	"context"
 	"fmt"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path/filepath"
 	"strings"
 
@@ -61,7 +61,7 @@ func ResolvePackageDir(spec, rootDir string) (string, error) {
 	}
 	rel := strings.ReplaceAll(pkg, ".", "/")
 	for _, dir := range packageDirCandidates(rootDir, rel) {
-		st, err := os.Stat(dir)
+		st, err := (projectfs.OS{}).Stat(dir)
 		if err == nil && st.IsDir() && dirHasJavaSources(dir) {
 			return dir, nil
 		}

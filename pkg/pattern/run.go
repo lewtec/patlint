@@ -372,7 +372,7 @@ func isExplicitFilePath(rootAbs string, paths []string, abs string) bool {
 			continue
 		}
 		if cand == abs {
-			if st, err := os.Stat(cand); err == nil && !st.IsDir() {
+			if st, err := (projectfs.OS{}).Stat(cand); err == nil && !st.IsDir() {
 				return true
 			}
 		}

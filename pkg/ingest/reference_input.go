@@ -1,7 +1,7 @@
 package ingest
 
 import (
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path/filepath"
 	"strings"
 
@@ -22,7 +22,7 @@ func CoerceLocalPathReference(baseDir string, ref Reference) Reference {
 	if !filepath.IsAbs(statPath) {
 		statPath = lewpath.New(baseDir, statPath).String()
 	}
-	if _, err := os.Stat(statPath); err != nil {
+	if _, err := (projectfs.OS{}).Stat(statPath); err != nil {
 		return ref
 	}
 

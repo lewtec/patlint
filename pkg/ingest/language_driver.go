@@ -2,7 +2,6 @@ package ingest
 
 import (
 	"context"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	lewpath "github.com/lewtec/lewkit/x/path"
 
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	refpkg "github.com/lewtec/patlint/pkg/reference"
 	"github.com/lewtec/patlint/pkg/sitter"
 )
@@ -74,7 +74,7 @@ func packDirectoryRepresentant(m refpkg.RepresentantMatcher, absDir, dirRel stri
 		if !m.MatchDirectoryRepresentant(childRel) {
 			continue
 		}
-		st, err := os.Stat(lewpath.New(absDir, filepath.FromSlash(base)).String())
+		st, err := (projectfs.OS{}).Stat(lewpath.New(absDir, filepath.FromSlash(base)).String())
 		if err != nil || st.IsDir() {
 			continue
 		}

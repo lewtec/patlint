@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	lewpath "github.com/lewtec/lewkit/x/path"
+
 	"github.com/lewtec/patlint/pkg/sitter"
 )
 
@@ -25,7 +27,11 @@ func NewSession(root string) *Session {
 	if err != nil || abs == "" {
 		abs = root
 	}
-	return &Session{Root: abs, FS: os.DirFS(abs)}
+	opened, err := lewpath.Open(abs)
+	if err != nil {
+		return &Session{Root: abs, FS: os.DirFS(abs)}
+	}
+	return &Session{Root: abs, FS: opened}
 }
 
 func (s *Session) clone() *Session {

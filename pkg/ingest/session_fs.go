@@ -2,7 +2,6 @@ package ingest
 
 import (
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -34,7 +33,7 @@ func (r rootedFS) rel(path string) (string, bool) {
 func (r rootedFS) ReadFile(path string) ([]byte, error) {
 	name, ok := r.rel(path)
 	if !ok {
-		return os.ReadFile(path)
+		return (projectfs.OS{}).ReadFile(path)
 	}
 	return fs.ReadFile(r.fsys, name)
 }
@@ -42,7 +41,7 @@ func (r rootedFS) ReadFile(path string) ([]byte, error) {
 func (r rootedFS) Stat(path string) (fs.FileInfo, error) {
 	name, ok := r.rel(path)
 	if !ok {
-		return os.Stat(path)
+		return (projectfs.OS{}).Stat(path)
 	}
 	return fs.Stat(r.fsys, name)
 }
@@ -50,7 +49,7 @@ func (r rootedFS) Stat(path string) (fs.FileInfo, error) {
 func (r rootedFS) ReadDir(path string) ([]fs.DirEntry, error) {
 	name, ok := r.rel(path)
 	if !ok {
-		return os.ReadDir(path)
+		return (projectfs.OS{}).ReadDir(path)
 	}
 	if name == "." || name == "" {
 		return fs.ReadDir(r.fsys, ".")

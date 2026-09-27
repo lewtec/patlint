@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
-	"os"
 	"path"
 	"path/filepath"
 	"runtime/debug"
@@ -127,11 +126,11 @@ func bfsNeighbors(sess *project.Session, rootAbs string, fe *project.FileExtract
 
 func sourceFilesInDir(sess *project.Session, absDir string) ([]fs.DirEntry, error) {
 	if sess == nil || sess.FS == nil {
-		return os.ReadDir(absDir)
+		return (projectfs.OS{}).ReadDir(absDir)
 	}
 	relative, err := filepath.Rel(sess.Root, absDir)
 	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-		return os.ReadDir(absDir)
+		return (projectfs.OS{}).ReadDir(absDir)
 	}
 	name := filepath.ToSlash(relative)
 	if name == "." {
@@ -269,7 +268,7 @@ func probeImportTargets(sess *project.Session, rootAbs, importerDirRel, sourcePa
 		if abs == "" || seen[abs] {
 			return
 		}
-		st, err := os.Stat(abs)
+		st, err := (projectfs.OS{}).Stat(abs)
 		if err != nil {
 			return
 		}

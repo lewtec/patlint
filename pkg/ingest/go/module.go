@@ -2,7 +2,7 @@ package ingestgo
 
 import (
 	"context"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path"
 	"path/filepath"
 	"strings"
@@ -94,7 +94,7 @@ func (referenceProvider) ListScopeChildren(ctx context.Context, ref ingest.Refer
 		return nil, true, err
 	}
 
-	entries, err := os.ReadDir(dir)
+	entries, err := (projectfs.OS{}).ReadDir(dir)
 	if err != nil {
 		return nil, true, err
 	}
@@ -154,7 +154,7 @@ func (referenceProvider) AllowDocEntity(ctx context.Context, _ ingest.Reference,
 }
 
 func dirHasGoSources(dir string) bool {
-	entries, err := os.ReadDir(dir)
+	entries, err := (projectfs.OS{}).ReadDir(dir)
 	if err != nil {
 		return false
 	}

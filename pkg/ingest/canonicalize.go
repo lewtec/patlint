@@ -1,7 +1,7 @@
 package ingest
 
 import (
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path/filepath"
 	"strings"
 
@@ -145,7 +145,7 @@ func canonicalizeDirectoryModule(policy PackQueries, rootAbs string, ref Referen
 	if !filepath.IsAbs(abs) {
 		abs = lewpath.New(rootAbs, filepath.FromSlash(rel)).String()
 	}
-	st, err := os.Stat(abs)
+	st, err := (projectfs.OS{}).Stat(abs)
 	if err != nil || !st.IsDir() {
 		return ref
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -99,7 +100,7 @@ func resolveStdlibPackageDir(ctx context.Context, pkgPath string) (string, bool)
 		return "", false
 	}
 	pkgDir := lewpath.New(root, "src", filepath.FromSlash(pkgPath)).String()
-	st, err := os.Stat(pkgDir)
+	st, err := (projectfs.OS{}).Stat(pkgDir)
 	if err != nil || !st.IsDir() {
 		return "", false
 	}
@@ -126,7 +127,7 @@ func goListDir(ctx context.Context, workDir string, args ...string) (string, err
 	if dir == "" {
 		return "", ErrEmptyListDir
 	}
-	st, err := os.Stat(dir)
+	st, err := (projectfs.OS{}).Stat(dir)
 	if err != nil || !st.IsDir() {
 		return "", fmt.Errorf("%w: %s", ErrInvalidListDir, dir)
 	}
@@ -155,7 +156,7 @@ func resolveModuleCachePackageDir(ctx context.Context, pkgPath string) (string, 
 			if subPath != "" {
 				candidate = lewpath.New(candidate, filepath.FromSlash(subPath)).String()
 			}
-			st, err := os.Stat(candidate)
+			st, err := (projectfs.OS{}).Stat(candidate)
 			if err == nil && st.IsDir() {
 				return candidate, true
 			}
@@ -167,7 +168,7 @@ func resolveModuleCachePackageDir(ctx context.Context, pkgPath string) (string, 
 
 func moduleCacheDir(ctx context.Context) (string, bool) {
 	if v := strings.TrimSpace(os.Getenv("GOMODCACHE")); v != "" {
-		if st, err := os.Stat(v); err == nil && st.IsDir() {
+		if st, err := (projectfs.OS{}).Stat(v); err == nil && st.IsDir() {
 			return v, true
 		}
 	}
@@ -178,7 +179,7 @@ func moduleCacheDir(ctx context.Context) (string, bool) {
 				continue
 			}
 			candidate := lewpath.New(gp, "pkg", "mod").String()
-			if st, err := os.Stat(candidate); err == nil && st.IsDir() {
+			if st, err := (projectfs.OS{}).Stat(candidate); err == nil && st.IsDir() {
 				return candidate, true
 			}
 		}

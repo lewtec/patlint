@@ -1,7 +1,6 @@
 package ingest
 
 import (
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/lewtec/patlint/pkg/ingestutil"
 	"github.com/lewtec/patlint/pkg/project"
+	"github.com/lewtec/patlint/pkg/projectfs"
 )
 
 // RewriteMarkedImportPaths edits as-import path tokens in fileRel.
@@ -171,7 +171,7 @@ func (s importSpecifier) namesFileFrom(importerRel, fileRel string, policy PackQ
 func RewritePackageJSONPaths(dir, sourceRelative, destinationRelative string) []project.Edit {
 	var edits []project.Edit
 	for _, rel := range packageJSONNear(dir, sourceRelative, destinationRelative) {
-		content, err := os.ReadFile(lewpath.New(dir, filepath.FromSlash(rel)).String())
+		content, err := (projectfs.OS{}).ReadFile(lewpath.New(dir, filepath.FromSlash(rel)).String())
 		if err != nil {
 			continue
 		}
@@ -188,7 +188,7 @@ func packageJSONNear(dir string, rels ...string) []string {
 		if p == "" || seen[p] {
 			return
 		}
-		if _, err := os.Stat(lewpath.New(dir, filepath.FromSlash(p)).String()); err != nil {
+		if _, err := (projectfs.OS{}).Stat(lewpath.New(dir, filepath.FromSlash(p)).String()); err != nil {
 			return
 		}
 		seen[p] = true
@@ -338,7 +338,7 @@ func dirHasPackageIndex(root, rel string, policy PackQueries) bool {
 	if rel != "" {
 		d = lewpath.New(root, filepath.FromSlash(rel)).String()
 	}
-	ents, err := os.ReadDir(d)
+	ents, err := (projectfs.OS{}).ReadDir(d)
 	if err != nil {
 		return false
 	}

@@ -3,7 +3,7 @@ package ingest
 import (
 	"context"
 	"fmt"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path"
 	"path/filepath"
 	"strings"
@@ -346,7 +346,7 @@ func listScopeForRef(dir string, ref Reference) (refPath string, refIsDir bool) 
 	if !filepath.IsAbs(absPath) {
 		absPath = lewpath.New(dir, refPath).String()
 	}
-	if st, err := os.Stat(absPath); err == nil && st.IsDir() {
+	if st, err := (projectfs.OS{}).Stat(absPath); err == nil && st.IsDir() {
 		refIsDir = true
 	}
 	return refPath, refIsDir

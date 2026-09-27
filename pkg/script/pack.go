@@ -1,14 +1,16 @@
 package script
 
 import (
+	"errors"
 	"fmt"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"slices"
 	"strings"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
 
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"github.com/lewtec/patlint/pkg/report"
 )
 
@@ -31,7 +33,7 @@ func ListPackScripts(dir string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	st, err := os.Stat(abs)
+	st, err := (projectfs.OS{}).Stat(abs)
 	if err != nil {
 		return nil, err
 	}
@@ -41,9 +43,9 @@ func ListPackScripts(dir string) ([]string, error) {
 
 	var out []string
 	for _, sub := range []string{abs, lewpath.New(abs, PackSubdir).String()} {
-		ents, err := os.ReadDir(sub)
+		ents, err := (projectfs.OS{}).ReadDir(sub)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
 			return nil, err
@@ -73,7 +75,7 @@ func ExpandScriptArgs(args []string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		st, err := os.Stat(abs)
+		st, err := (projectfs.OS{}).Stat(abs)
 		if err != nil {
 			return nil, err
 		}

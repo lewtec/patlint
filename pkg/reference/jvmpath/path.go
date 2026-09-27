@@ -3,11 +3,12 @@
 package jvmpath
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
+
+	"github.com/lewtec/patlint/pkg/projectfs"
 )
 
 // NormalizeTypeSpec normalizes a dotted or slash-separated type/package spec.
@@ -75,7 +76,7 @@ func ResolveTypeFileOnDisk(rootDir string, candidates []string) (string, bool) {
 	}
 	for _, candidate := range candidates {
 		path := lewpath.New(rootAbs, filepath.FromSlash(candidate)).String()
-		st, err := os.Stat(path)
+		st, err := (projectfs.OS{}).Stat(path)
 		if err == nil && !st.IsDir() {
 			return path, true
 		}
@@ -88,7 +89,7 @@ func DirHasSources(dir string, isSource func(name string) bool) bool {
 	if isSource == nil {
 		return false
 	}
-	entries, err := os.ReadDir(dir)
+	entries, err := (projectfs.OS{}).ReadDir(dir)
 	if err != nil {
 		return false
 	}

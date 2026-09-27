@@ -3,8 +3,8 @@ package pattern
 import (
 	"context"
 	"fmt"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"io/fs"
-	"os"
 	"path"
 	"strings"
 
@@ -40,7 +40,7 @@ type fileSource struct{ path string }
 
 func (s fileSource) name() string { return s.path }
 func (s fileSource) files() ([]PackFile, error) {
-	b, err := os.ReadFile(s.path)
+	b, err := (projectfs.OS{}).ReadFile(s.path)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (s dirSource) files() ([]PackFile, error) {
 	if glob == "" {
 		glob = "*.rft"
 	}
-	ents, err := os.ReadDir(s.dir)
+	ents, err := (projectfs.OS{}).ReadDir(s.dir)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (s dirSource) files() ([]PackFile, error) {
 			continue
 		}
 		fp := lewpath.New(s.dir, e.Name()).String()
-		b, err := os.ReadFile(fp)
+		b, err := (projectfs.OS{}).ReadFile(fp)
 		if err != nil {
 			return nil, err
 		}
@@ -305,7 +305,11 @@ func (vm *LispVM) Run(ctx context.Context, sess *project.Session, paths ...strin
 		}
 		parent := cur.FS
 		if parent == nil {
-			parent = os.DirFS(cur.Root)
+			opened, err := lewpath.Open(cur.Root)
+			if err != nil {
+				return nil, err
+			}
+			parent = opened
 		}
 		cur = cur.WithFS(project.NewPatchFS(parent, writes))
 	}

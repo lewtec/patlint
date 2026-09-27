@@ -2,7 +2,7 @@ package pattern
 
 import (
 	"fmt"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -70,7 +70,7 @@ func readOfficialCoreRft() (string, error) {
 		return "", fmt.Errorf("no caller path")
 	}
 	p := lewpath.New(filepath.Dir(self), "..", "..", "internal", "prelude", "core.rft").String()
-	b, err := os.ReadFile(p)
+	b, err := (projectfs.OS{}).ReadFile(p)
 	if err != nil {
 		return "", err
 	}

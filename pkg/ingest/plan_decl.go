@@ -2,7 +2,7 @@ package ingest
 
 import (
 	"fmt"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path"
 	"strings"
 
@@ -16,7 +16,7 @@ import (
 func extractDeclarationFromResult(dir string, result *project.Result, entity project.Atom) (DeclExtract, error) {
 	ref := ParseReference(entity.Reference)
 	fileRelative := strings.TrimPrefix(ref.Path, "./")
-	src, err := os.ReadFile(path.Join(dir, fileRelative))
+	src, err := (projectfs.OS{}).ReadFile(path.Join(dir, fileRelative))
 	if err != nil {
 		return DeclExtract{}, err
 	}

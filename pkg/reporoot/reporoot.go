@@ -8,7 +8,6 @@ package reporoot
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
@@ -29,8 +28,12 @@ func Find(start string) (string, error) {
 	}
 
 	dir := abs
-	if fi, err := os.Stat(abs); err == nil && !fi.IsDir() {
-		dir = filepath.Dir(abs)
+	if root, err := lewpath.Open(filepath.Dir(abs)); err == nil {
+		info, statErr := lewpath.New(filepath.Base(abs)).Stat(root)
+		root.Close()
+		if statErr == nil && !info.IsDir() {
+			dir = filepath.Dir(abs)
+		}
 	}
 
 	for {
@@ -48,6 +51,11 @@ func Find(start string) (string, error) {
 // hasGitPivot reports a Git checkout root: .git directory or gitdir file
 // (linked worktree / submodule).
 func hasGitPivot(dir string) bool {
-	_, err := os.Stat(lewpath.New(dir, ".git").String())
+	root, err := lewpath.Open(dir)
+	if err != nil {
+		return false
+	}
+	defer root.Close()
+	_, err = lewpath.New(".git").Stat(root)
 	return err == nil
 }

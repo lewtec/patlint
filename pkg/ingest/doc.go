@@ -3,7 +3,7 @@ package ingest
 import (
 	"context"
 	"fmt"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"strings"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
@@ -120,7 +120,7 @@ func docForEntity(ctx context.Context, policy PackQueries, dir string, result *p
 		return nil, fmt.Errorf("%w for %s: %v", ErrUnsupportedLanguage, filePath, err)
 	}
 
-	source, err := os.ReadFile(filePath)
+	source, err := (projectfs.OS{}).ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}

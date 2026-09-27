@@ -2,7 +2,7 @@ package ingest
 
 import (
 	"fmt"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path"
 	"strings"
 	"unicode"
@@ -67,7 +67,7 @@ func rejectCircularResidualMove(dir string, result *project.Result, src, dst Ref
 	leaf := AtomName(src.Name)
 	residual := fileUsesMovedOutside(result, sourceRelative, src, entity, hole)
 	if !residual {
-		srcBytes, err := os.ReadFile(path.Join(dir, sourceRelative))
+		srcBytes, err := (projectfs.OS{}).ReadFile(path.Join(dir, sourceRelative))
 		if err == nil && leaf != "" {
 			residual = textHasIdentOutside(srcBytes, leaf, hole.RemoveStart, hole.RemoveEnd)
 		}
@@ -215,7 +215,7 @@ func iotaConstantGroup(dir string, result *project.Result, fileRelative string, 
 		if !p.HoleOnly {
 			continue
 		}
-		src, err := os.ReadFile(path.Join(dir, fileRelative))
+		src, err := (projectfs.OS{}).ReadFile(path.Join(dir, fileRelative))
 		if err != nil || int(p.EndByte) > len(src) || p.EndByte <= p.StartByte {
 			return false
 		}

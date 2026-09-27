@@ -3,10 +3,11 @@ package projectfs
 
 import (
 	"io/fs"
-	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	lewpath "github.com/lewtec/lewkit/x/path"
 )
 
 // FS reads project files by absolute (or cleaned) path.
@@ -19,10 +20,35 @@ type FS interface {
 // OS is the real filesystem.
 type OS struct{}
 
-func (OS) ReadFile(path string) ([]byte, error)  { return os.ReadFile(path) }
-func (OS) Stat(path string) (fs.FileInfo, error) { return os.Stat(path) }
+func (OS) ReadFile(path string) ([]byte, error) {
+	return readThroughPath(path, func(root *lewpath.Root, name lewpath.Path) ([]byte, error) {
+		return name.ReadFile(root)
+	})
+}
+
+func (OS) Stat(path string) (fs.FileInfo, error) {
+	return readThroughPath(path, func(root *lewpath.Root, name lewpath.Path) (fs.FileInfo, error) {
+		return name.Stat(root)
+	})
+}
+
 func (OS) ReadDir(path string) ([]fs.DirEntry, error) {
-	return os.ReadDir(path)
+	root, err := lewpath.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+	return lewpath.New(".").ReadDir(root)
+}
+
+func readThroughPath[T any](path string, read func(*lewpath.Root, lewpath.Path) (T, error)) (T, error) {
+	var zero T
+	root, err := lewpath.Open(filepath.Dir(path))
+	if err != nil {
+		return zero, err
+	}
+	defer root.Close()
+	return read(root, lewpath.New(filepath.Base(path)))
 }
 
 // Overlay prefers in-memory text for ReadFile; Stat reports overlay size when set.

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"slices"
 
@@ -46,7 +45,7 @@ func (committer Committer) Session(ctx context.Context, session *project.Session
 	if len(writes) == 0 && len(renames) == 0 {
 		return ErrNoMatches
 	}
-	edits := editsFromWrites(session.Root, writes)
+	edits := editsFromWrites(session.FS, writes)
 	if committer.Interactive || committer.DryRun {
 		if err := printFileMoves(committer.StandardError, renames); err != nil {
 			return err
@@ -109,10 +108,10 @@ func sessionFromEdits(root string, edits []project.Edit) (*project.Session, erro
 	return session.WithFS(project.NewPatchFS(session.FS, writes)), nil
 }
 
-func editsFromWrites(root string, writes map[string][]byte) []project.Edit {
+func editsFromWrites(filesystem fs.FS, writes map[string][]byte) []project.Edit {
 	var edits []project.Edit
 	for name, after := range writes {
-		before, err := os.ReadFile(lewpath.New(root, filepath.FromSlash(name)).String())
+		before, err := lewpath.New(name).ReadFile(filesystem)
 		if err != nil {
 			edits = append(edits, project.Edit{File: name, NewText: string(after)})
 			continue
@@ -166,6 +165,11 @@ func confirmApply(writer io.Writer, reader io.Reader) (bool, error) {
 }
 
 func createBackups(ctx context.Context, directory string, edits []project.Edit) error {
+	root, err := lewpath.Open(directory)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
 	seen := map[string]bool{}
 	for _, edit := range edits {
 		if err := ctx.Err(); err != nil {
@@ -175,28 +179,15 @@ func createBackups(ctx context.Context, directory string, edits []project.Edit) 
 			continue
 		}
 		seen[edit.File] = true
-		sourcePath := lewpath.New(directory, edit.File).String()
-		backupPath := sourcePath + ".bak"
-		source, err := os.Open(sourcePath)
+		name := filepath.ToSlash(edit.File)
+		source, err := lewpath.New(name).ReadFile(root)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
 			return err
 		}
-		backup, err := os.Create(backupPath)
-		if err != nil {
-			source.Close()
-			return err
-		}
-		_, err = io.Copy(backup, source)
-		if closeErr := backup.Close(); err == nil {
-			err = closeErr
-		}
-		if closeErr := source.Close(); err == nil {
-			err = closeErr
-		}
-		if err != nil {
+		if err := lewpath.New(name+".bak").WriteFile(root, source, 0o644); err != nil {
 			return err
 		}
 	}

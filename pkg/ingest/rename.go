@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"io/fs"
 	"log/slog"
-	"os"
 	"path"
 	"strings"
 
@@ -572,7 +572,7 @@ func planCrossFileMove(ctx context.Context, dir string, st *store.Store, result 
 	}
 
 	destinationPath := lewpath.New(dir, destinationRelative).String()
-	destinationContent, err := os.ReadFile(destinationPath)
+	destinationContent, err := (projectfs.OS{}).ReadFile(destinationPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			destinationContent = nil
@@ -640,7 +640,7 @@ func planCrossFileMove(ctx context.Context, dir string, st *store.Store, result 
 	for _, e := range qualifyEdits {
 		st.Insert(store.RelationEdit, store.Tuple{e.File, store.Itoa(e.StartByte), store.Itoa(e.EndByte), e.NewText})
 	}
-	if srcBytes, err := os.ReadFile(lewpath.New(dir, sourceRelative).String()); err == nil {
+	if srcBytes, err := (projectfs.OS{}).ReadFile(lewpath.New(dir, sourceRelative).String()); err == nil {
 		fe := fileExtractForImports(result, sourceRelative, st)
 		decl.Imports = holeImportCandidates(fe, decl, srcBytes)
 		for _, e := range PruneNamedUnusedForDecl(sourceRelative, srcBytes, fe, decl) {
@@ -791,7 +791,7 @@ func planCrossFileMoveImportRewrites(dir string, result *project.Result, src, de
 			continue
 		}
 
-		content, err := os.ReadFile(lewpath.New(dir, consumerFile).String())
+		content, err := (projectfs.OS{}).ReadFile(lewpath.New(dir, consumerFile).String())
 		if err != nil {
 			continue
 		}
@@ -805,7 +805,7 @@ func planCrossFileMoveImportRewrites(dir string, result *project.Result, src, de
 		if rel == sourceRelative || rel == destinationRelative || consumerFiles[rel] {
 			continue
 		}
-		content, err := os.ReadFile(lewpath.New(dir, rel).String())
+		content, err := (projectfs.OS{}).ReadFile(lewpath.New(dir, rel).String())
 		if err != nil {
 			continue
 		}

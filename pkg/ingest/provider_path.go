@@ -2,7 +2,7 @@ package ingest
 
 import (
 	"encoding/json"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path/filepath"
 	"strings"
 
@@ -64,7 +64,7 @@ func resolveKnownPathRepresentant(rel string, ctx ImportResolveContext) (string,
 }
 
 func resolvePathFileOnDisk(baseAbs, dirRel string, ctx ImportResolveContext) (string, bool) {
-	if st, err := os.Stat(baseAbs); err == nil {
+	if st, err := (projectfs.OS{}).Stat(baseAbs); err == nil {
 		if !st.IsDir() {
 			return baseAbs, true
 		}
@@ -80,7 +80,7 @@ func resolvePathFileOnDisk(baseAbs, dirRel string, ctx ImportResolveContext) (st
 	}
 	for _, ext := range []string{".js", ".mjs", ".cjs"} {
 		candidate := baseAbs + ext
-		if st, err := os.Stat(candidate); err == nil && !st.IsDir() {
+		if st, err := (projectfs.OS{}).Stat(candidate); err == nil && !st.IsDir() {
 			return candidate, true
 		}
 	}
@@ -88,7 +88,7 @@ func resolvePathFileOnDisk(baseAbs, dirRel string, ctx ImportResolveContext) (st
 }
 
 func readPackageMain(packageJSONPath string) (string, bool) {
-	data, err := os.ReadFile(packageJSONPath)
+	data, err := (projectfs.OS{}).ReadFile(packageJSONPath)
 	if err != nil {
 		return "", false
 	}

@@ -1,7 +1,7 @@
 package ingest
 
 import (
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"strings"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
@@ -43,7 +43,7 @@ func readGoModulePath(rootDir string) string {
 	if rootDir == "" {
 		return ""
 	}
-	data, err := os.ReadFile(lewpath.New(rootDir, "go.mod").String())
+	data, err := (projectfs.OS{}).ReadFile(lewpath.New(rootDir, "go.mod").String())
 	if err != nil {
 		return ""
 	}

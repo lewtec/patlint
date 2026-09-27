@@ -2,22 +2,16 @@ package ignore
 
 import (
 	"bufio"
-	"os"
+	"io"
 	"strings"
 )
 
 // parseGitignoreFile reads path and returns ignore rules relative to baseDir
 // (the directory containing the .gitignore). Last line wins at eval time when
 // composed with other sources.
-func parseGitignoreFile(path, baseDir string) ([]Rule, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
+func parseGitignore(reader io.Reader, path, baseDir string) ([]Rule, error) {
 	var rules []Rule
-	sc := bufio.NewScanner(f)
+	sc := bufio.NewScanner(reader)
 	lineNo := 0
 	for sc.Scan() {
 		lineNo++

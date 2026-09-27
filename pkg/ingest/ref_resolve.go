@@ -2,7 +2,7 @@ package ingest
 
 import (
 	"fmt"
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path"
 	"path/filepath"
 	"strings"
@@ -47,7 +47,7 @@ func CanonicalSourceReference(dir string, result *project.Result, ref Reference,
 		absPath = lewpath.New(dir, strings.TrimPrefix(ref.Path, "./")).String()
 	}
 
-	st, err := os.Stat(absPath)
+	st, err := (projectfs.OS{}).Stat(absPath)
 	if err != nil || !st.IsDir() {
 		return ref, nil
 	}
@@ -140,7 +140,7 @@ func canonicalDestinationReference(dir string, result *project.Result, srcRef, d
 		absPath = lewpath.New(dir, strings.TrimPrefix(dstRef.Path, "./")).String()
 	}
 
-	st, err := os.Stat(absPath)
+	st, err := (projectfs.OS{}).Stat(absPath)
 	if err != nil || !st.IsDir() {
 		return dstRef, nil
 	}

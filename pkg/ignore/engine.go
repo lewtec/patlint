@@ -1,7 +1,6 @@
 package ignore
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -51,8 +50,11 @@ func (e *Engine) Check(path string) Decision {
 		abs = filepath.Clean(path)
 	}
 	isDir := false
-	if st, err := os.Stat(abs); err == nil {
-		isDir = st.IsDir()
+	if root, err := lewpath.Open(filepath.Dir(abs)); err == nil {
+		if st, statErr := lewpath.New(filepath.Base(abs)).Stat(root); statErr == nil {
+			isDir = st.IsDir()
+		}
+		root.Close()
 	}
 	return e.decide(abs, isDir)
 }

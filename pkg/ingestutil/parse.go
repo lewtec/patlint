@@ -3,8 +3,8 @@ package ingestutil
 import (
 	"context"
 	"fmt"
-	"os"
 
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"github.com/lewtec/patlint/pkg/sitter"
 )
 
@@ -70,7 +70,7 @@ func ParseSource(ctx context.Context, eng sitter.Engine, content []byte, path, l
 
 // ParseSourceFile reads path and parses it as language id (not by extension).
 func ParseSourceFile(ctx context.Context, eng sitter.Engine, path, language string) (*ParsedFile, error) {
-	source, err := os.ReadFile(path)
+	source, err := (projectfs.OS{}).ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

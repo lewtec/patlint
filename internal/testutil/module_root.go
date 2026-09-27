@@ -4,6 +4,8 @@ package testutil
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"testing"
 
 	lewpath "github.com/lewtec/lewkit/x/path"
@@ -17,7 +19,7 @@ func ModuleRoot(t testing.TB) string {
 		t.Fatal(err)
 	}
 	for {
-		if _, err := os.Stat(lewpath.New(wd, "go.mod").String()); err == nil {
+		if _, err := (projectfs.OS{}).Stat(lewpath.New(wd, "go.mod").String()); err == nil {
 			return wd
 		}
 		p := filepath.Dir(wd)

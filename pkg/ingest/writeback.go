@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -40,12 +39,16 @@ func WriteBack(ctx context.Context, sess *project.Session) error {
 		names = append(names, n)
 	}
 	sort.Strings(names)
+	root, err := lewpath.Open(sess.Root)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
 	for _, name := range names {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		abs := lewpath.New(sess.Root, filepath.FromSlash(name)).String()
-		if err := os.WriteFile(abs, writes[name], 0o644); err != nil {
+		if err := lewpath.New(filepath.ToSlash(name)).WriteFile(root, writes[name], 0o644); err != nil {
 			return err
 		}
 	}
@@ -62,7 +65,11 @@ func SessionFromPlan(ctx context.Context, sess *project.Session, plan project.Pl
 	}
 	parent := sess.FS
 	if parent == nil {
-		parent = os.DirFS(sess.Root)
+		opened, err := lewpath.Open(sess.Root)
+		if err != nil {
+			return nil, err
+		}
+		parent = opened
 	}
 	renames := map[string]string{}
 	for _, m := range plan.FileMoves {

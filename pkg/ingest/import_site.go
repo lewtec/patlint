@@ -1,7 +1,7 @@
 package ingest
 
 import (
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path"
 	"strings"
 
@@ -372,7 +372,7 @@ func importKeepsOtherMembers(dir string, result *project.Result, file, specifier
 	if leaf == "" {
 		return false
 	}
-	content, err := os.ReadFile(path.Join(dir, strings.TrimPrefix(file, "./")))
+	content, err := (projectfs.OS{}).ReadFile(path.Join(dir, strings.TrimPrefix(file, "./")))
 	if err != nil || len(content) == 0 {
 		return false
 	}

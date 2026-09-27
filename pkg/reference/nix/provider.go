@@ -3,6 +3,7 @@ package nixref
 import (
 	"context"
 	"fmt"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,7 +34,7 @@ func ResolveTarget(spec string) (Target, error) {
 		return Target{}, err
 	}
 
-	st, err := os.Stat(resolved)
+	st, err := (projectfs.OS{}).Stat(resolved)
 	if err != nil {
 		return Target{}, fmt.Errorf("nix path target invalid: %w", err)
 	}
@@ -145,13 +146,13 @@ func existingPath(candidate string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	if _, err := os.Stat(abs); err != nil {
+	if _, err := (projectfs.OS{}).Stat(abs); err != nil {
 		return "", false
 	}
 	return abs, true
 }
 
 func fileExists(path string) bool {
-	st, err := os.Stat(path)
+	st, err := (projectfs.OS{}).Stat(path)
 	return err == nil && !st.IsDir()
 }

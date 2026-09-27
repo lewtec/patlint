@@ -7,6 +7,7 @@ package rustref
 import (
 	"context"
 	"errors"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -129,7 +130,7 @@ func findRegistryCrateVersion(name, version string) (string, bool) {
 	if srcRoot == "" {
 		return "", false
 	}
-	entries, err := os.ReadDir(srcRoot)
+	entries, err := (projectfs.OS{}).ReadDir(srcRoot)
 	if err != nil {
 		return "", false
 	}
@@ -144,7 +145,7 @@ func findRegistryCrateVersion(name, version string) (string, bool) {
 		regDir := lewpath.New(srcRoot, reg.Name()).String()
 		for w := range wantSet {
 			cand := lewpath.New(regDir, w).String()
-			if st, err := os.Stat(cand); err == nil && st.IsDir() {
+			if st, err := (projectfs.OS{}).Stat(cand); err == nil && st.IsDir() {
 				return cand, true
 			}
 		}
@@ -170,7 +171,7 @@ func findRustupLib(name string) (string, bool) {
 		return "", false
 	}
 	toolchains := lewpath.New(home, ".rustup", "toolchains").String()
-	entries, err := os.ReadDir(toolchains)
+	entries, err := (projectfs.OS{}).ReadDir(toolchains)
 	if err != nil {
 		return "", false
 	}
@@ -179,7 +180,7 @@ func findRustupLib(name string) (string, bool) {
 			continue
 		}
 		lib := lewpath.New(toolchains, tc.Name(), "lib", "rustlib", "src", "rust", "library", name).String()
-		if st, err := os.Stat(lib); err == nil && st.IsDir() {
+		if st, err := (projectfs.OS{}).Stat(lib); err == nil && st.IsDir() {
 			return lib, true
 		}
 	}

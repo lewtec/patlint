@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -49,18 +50,18 @@ func applyFileMove(root string, m project.FileMove) error {
 	}
 	fromAbs := lewpath.New(root, filepath.FromSlash(from)).String()
 	toAbs := lewpath.New(root, filepath.FromSlash(to)).String()
-	st, err := os.Stat(fromAbs)
+	st, err := (projectfs.OS{}).Stat(fromAbs)
 	if err != nil {
 		return fmt.Errorf("rename file %s: %w", from, err)
 	}
 	if st.IsDir() {
 		return fmt.Errorf("rename file %s: is a directory", from)
 	}
-	if _, err := os.Stat(toAbs); err == nil {
+	if _, err := (projectfs.OS{}).Stat(toAbs); err == nil {
 		return fmt.Errorf("rename file %s → %s: dest exists", from, to)
 	}
 	parent := filepath.Dir(toAbs)
-	pst, err := os.Stat(parent)
+	pst, err := (projectfs.OS{}).Stat(parent)
 	if err != nil {
 		return fmt.Errorf("rename file %s → %s: dest parent: %w", from, to, err)
 	}
@@ -107,11 +108,11 @@ func canDirectoryRename(root, from, to string) bool {
 	}
 	fromAbs := lewpath.New(root, filepath.FromSlash(from)).String()
 	toAbs := lewpath.New(root, filepath.FromSlash(to)).String()
-	fi, err := os.Stat(fromAbs)
+	fi, err := (projectfs.OS{}).Stat(fromAbs)
 	if err != nil || !fi.IsDir() {
 		return false
 	}
-	if _, err := os.Stat(toAbs); err == nil {
+	if _, err := (projectfs.OS{}).Stat(toAbs); err == nil {
 		return false
 	} else if !errors.Is(err, fs.ErrNotExist) {
 		return false

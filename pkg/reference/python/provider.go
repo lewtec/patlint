@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -222,7 +223,7 @@ func resolveModuleTarget(ctx context.Context, module, workDir string) (ModuleTar
 		}
 		if file == "" {
 			initFile := lewpath.New(dir, "__init__.py").String()
-			if st, err := os.Stat(initFile); err == nil && !st.IsDir() {
+			if st, err := (projectfs.OS{}).Stat(initFile); err == nil && !st.IsDir() {
 				file = "__init__.py"
 			}
 		}
@@ -235,14 +236,14 @@ func resolveModuleTarget(ctx context.Context, module, workDir string) (ModuleTar
 			if candidate == "" {
 				continue
 			}
-			st, err := os.Stat(candidate)
+			st, err := (projectfs.OS{}).Stat(candidate)
 			if err == nil && !st.IsDir() {
 				return ModuleTarget{Dir: filepath.Dir(candidate), File: filepath.Base(candidate), IsPackage: false}, nil
 			}
 		}
 		return ModuleTarget{}, fmt.Errorf("python module %q %w", module, ErrNoFilesystemSource)
 	}
-	st, err := os.Stat(origin)
+	st, err := (projectfs.OS{}).Stat(origin)
 	if err != nil || st.IsDir() {
 		return ModuleTarget{}, fmt.Errorf("%w %q: %q", ErrInvalidSource, module, origin)
 	}
@@ -275,7 +276,7 @@ func pythonCommand(workDir string) (string, error) {
 // isMiseOrUvPythonShim reports scripts that re-exec through mise and/or `uv run`.
 // Those can block for minutes downloading tools when the project mise.toml pins uv.
 func isMiseOrUvPythonShim(path string) bool {
-	data, err := os.ReadFile(path)
+	data, err := (projectfs.OS{}).ReadFile(path)
 	if err != nil {
 		return false
 	}
@@ -314,7 +315,7 @@ func findVenvPython(projectRoot string) (string, bool) {
 			lewpath.New("venv", "bin", "python3").String(),
 		} {
 			candidate := lewpath.New(dir, rel).String()
-			if st, err := os.Stat(candidate); err == nil && !st.IsDir() {
+			if st, err := (projectfs.OS{}).Stat(candidate); err == nil && !st.IsDir() {
 				return candidate, true
 			}
 		}

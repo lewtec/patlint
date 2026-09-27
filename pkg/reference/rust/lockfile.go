@@ -2,8 +2,9 @@ package rustref
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
+
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"strings"
 	"sync"
 
@@ -36,7 +37,7 @@ type Lockfile struct {
 
 // LoadLockfile reads and parses path (must be a Cargo.lock file).
 func LoadLockfile(path string) (*Lockfile, error) {
-	data, err := os.ReadFile(path)
+	data, err := (projectfs.OS{}).ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func FindLockfile(startDir string) (path string, lf *Lockfile, err error) {
 	}
 	for {
 		cand := lewpath.New(dir, "Cargo.lock").String()
-		if st, err := os.Stat(cand); err == nil && !st.IsDir() {
+		if st, err := (projectfs.OS{}).Stat(cand); err == nil && !st.IsDir() {
 			lf, err := LoadLockfile(cand)
 			if err != nil {
 				return cand, nil, err
@@ -301,7 +302,7 @@ func LockfileForProject(startDir string) (*Lockfile, error) {
 			break
 		}
 		cand := lewpath.New(dir, "Cargo.lock").String()
-		if st, err := os.Stat(cand); err == nil && !st.IsDir() {
+		if st, err := (projectfs.OS{}).Stat(cand); err == nil && !st.IsDir() {
 			lf, err := LoadLockfile(cand)
 			if err != nil {
 				return nil, err

@@ -2,7 +2,7 @@ package ignore
 
 import (
 	"context"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -30,12 +30,23 @@ func Collect(ctx context.Context, root string) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	st, err := os.Stat(abs)
+	rootFS, err := lewpath.Open(abs)
+	if err != nil {
+		return nil, err
+	}
+	defer rootFS.Close()
+	st, err := lewpath.New(".").Stat(rootFS)
 	if err != nil {
 		return nil, err
 	}
 	if !st.IsDir() {
 		abs = filepath.Dir(abs)
+		rootFS.Close()
+		rootFS, err = lewpath.Open(abs)
+		if err != nil {
+			return nil, err
+		}
+		defer rootFS.Close()
 	}
 
 	e := &Engine{Root: abs, m: gitignore.New("")}
@@ -50,11 +61,11 @@ func Collect(ctx context.Context, root string) (*Engine, error) {
 		})
 	}
 
-	if exclude := lewpath.New(abs, ".git", "info", "exclude").String(); fileExists(exclude) {
-		e.addGitignore(exclude, abs)
+	if fileExists(rootFS, ".git/info/exclude") {
+		e.addGitignore(rootFS, abs, filepath.Join(abs, ".git", "info", "exclude"), abs)
 	}
 
-	giFiles, err := findNamedFiles(ctx, abs, ".gitignore")
+	giFiles, err := findNamedFiles(ctx, rootFS, abs, ".gitignore")
 	if err != nil {
 		return nil, err
 	}
@@ -67,16 +78,21 @@ func Collect(ctx context.Context, root string) (*Engine, error) {
 		return giFiles[i] < giFiles[j]
 	})
 	for _, path := range giFiles {
-		e.addGitignore(path, filepath.Dir(path))
+		e.addGitignore(rootFS, abs, path, filepath.Dir(path))
 	}
 
-	attrFiles, err := findNamedFiles(ctx, abs, ".gitattributes")
+	attrFiles, err := findNamedFiles(ctx, rootFS, abs, ".gitattributes")
 	if err != nil {
 		return nil, err
 	}
 	sort.Strings(attrFiles)
 	for _, path := range attrFiles {
-		attrs, err := parseGitAttributesFile(path)
+		file, openErr := openUnderRoot(rootFS, abs, path)
+		if openErr != nil {
+			continue
+		}
+		attrs, err := parseGitAttributes(file, path)
+		file.Close()
 		if err != nil {
 			continue
 		}
@@ -115,8 +131,13 @@ func (e *Engine) add(r Rule) {
 }
 
 // addGitignore parses path into Rules and compiles each line into the matcher.
-func (e *Engine) addGitignore(path, baseDir string) {
-	rs, err := parseGitignoreFile(path, baseDir)
+func (e *Engine) addGitignore(root *lewpath.Root, rootAbs, path, baseDir string) {
+	file, err := openUnderRoot(root, rootAbs, path)
+	if err != nil {
+		return
+	}
+	rs, err := parseGitignore(file, path, baseDir)
+	file.Close()
 	if err != nil || len(rs) == 0 {
 		return
 	}
@@ -126,28 +147,36 @@ func (e *Engine) addGitignore(path, baseDir string) {
 	}
 }
 
-func fileExists(path string) bool {
-	st, err := os.Stat(path)
+func openUnderRoot(root *lewpath.Root, rootAbs, absPath string) (fs.File, error) {
+	relative, err := filepath.Rel(rootAbs, absPath)
+	if err != nil {
+		return nil, err
+	}
+	return lewpath.New(filepath.ToSlash(relative)).Open(root)
+}
+
+func fileExists(root *lewpath.Root, name string) bool {
+	st, err := lewpath.New(name).Stat(root)
 	return err == nil && !st.IsDir()
 }
 
-func findNamedFiles(ctx context.Context, root, name string) ([]string, error) {
+func findNamedFiles(ctx context.Context, root *lewpath.Root, rootAbs, name string) ([]string, error) {
 	var files []string
-	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+	err := lewpath.New(".").WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if d.IsDir() {
-			if path != root && IsSkippedDirName(d.Name()) {
-				return filepath.SkipDir
+		if entry.IsDir() {
+			if path != "." && IsSkippedDirName(entry.Name()) {
+				return fs.SkipDir
 			}
 			return nil
 		}
-		if d.Name() == name {
-			files = append(files, path)
+		if entry.Name() == name {
+			files = append(files, filepath.Join(rootAbs, filepath.FromSlash(path)))
 		}
 		return nil
 	})

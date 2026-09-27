@@ -1,7 +1,7 @@
 package ingest
 
 import (
-	"os"
+	"github.com/lewtec/patlint/pkg/projectfs"
 	"path/filepath"
 	"strings"
 
@@ -25,7 +25,7 @@ func ResolveReferenceScope(baseDir string, ref Reference) ReferenceScope {
 	if ref.Provider == "path" {
 		p := strings.TrimPrefix(ref.Path, "./")
 		targetAbs := absolutePathFromBase(baseDir, ref.Path)
-		if st, err := os.Stat(targetAbs); err == nil && st.IsDir() {
+		if st, err := (projectfs.OS{}).Stat(targetAbs); err == nil && st.IsDir() {
 			switch {
 			case filepath.IsAbs(ref.Path):
 				scopeDir = ref.Path
