@@ -1,0 +1,23 @@
+;; -*- mode: lisp; -*-
+;; vim: set ft=lisp:
+;; Helix: common-lisp (.helix/languages.toml maps .rft → common-lisp)
+
+(def errf ()
+  "Core ref leaf for go:fmt::Errorf (expand-time helper)."
+  (ref "go:fmt::Errorf"))
+
+
+;; Report fmt.Errorf format strings that do not contain %w.
+(rule go/fmt-errorf-missing-wrap
+  warning
+  "fmt.Errorf format lacks %w — wrap the cause (table the error)"
+  (under (lang go)
+    (seq
+      (capture F (errf))
+      "("
+      (capture MSG (not (regex "%w")))
+      (* any)
+      ")")
+  ))
+
+
